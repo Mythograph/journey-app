@@ -1,0 +1,31 @@
+{
+  "name": "journey-app",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mythograph Journey — Human Design bodygraph chart tool + paid Journey Narrative reading.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/netlify": "^6.5.13",
+    "@astrojs/react": "^4.4.0",
+    "@fontsource/dm-sans": "^5.2.6",
+    "@fontsource/fraunces": "^5.2.7",
+    "@fontsource/playfair-display": "^5.2.6",
+    "@tailwindcss/vite": "^4.1.13",
+    "astro": "^5.14.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwindcss": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "typescript": "^5.9.2"
+  }
+}
