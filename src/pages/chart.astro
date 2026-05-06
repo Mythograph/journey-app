@@ -1,11 +1,197 @@
 ---
 import Base from "~/layouts/Base.astro";
+import { generateChart } from "~/lib/chart-engine/index.js";
+import type { Chart } from "~/lib/chart-engine/index.js";
+
+const PLANET_LABELS: Record<string, string> = {
+  Sun: "☉ Sun", Earth: "⊕ Earth", Moon: "☽ Moon",
+  Mercury: "☿ Mercury", Venus: "♀ Venus", Mars: "♂ Mars",
+  Jupiter: "♃ Jupiter", Saturn: "♄ Saturn", Uranus: "♅ Uranus",
+  Neptune: "♆ Neptune", Pluto: "♇ Pluto",
+  NorthNode: "☊ N. Node", SouthNode: "☋ S. Node",
+};
+
+let chart: Chart | null = null;
+let error: string | null = null;
+let formData = { date: "", time: "", city: "" };
+
+if (Astro.request.method === "POST") {
+  const body = await Astro.request.formData();
+  formData = {
+    date: String(body.get("date") ?? ""),
+    time: String(body.get("time") ?? ""),
+    city: String(body.get("city") ?? ""),
+  };
+  try {
+    chart = await generateChart(formData);
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Unknown error";
+  }
+}
 ---
 
 <Base title="Free Chart — Mythograph Journey">
-  <h1>Free bodygraph chart</h1>
-  <p class="mt-6 text-lg">Form ships Day 2.</p>
-  <p class="mt-4">
-    <a href="/">← back</a>
-  </p>
+  <div class="mx-auto max-w-2xl">
+    <h1 class="text-4xl font-light">Free bodygraph chart</h1>
+    <p class="mt-3 text-base opacity-70">
+      Enter your birth data to generate your Human Design chart.
+    </p>
+
+    <form method="POST" class="mt-8 grid gap-5">
+      <div class="grid gap-1.5">
+        <label for="date" class="text-sm font-medium">Birth date</label>
+        <input
+          id="date" name="date" type="date" required
+          value={formData.date}
+          class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+
+      <div class="grid gap-1.5">
+        <label for="time" class="text-sm font-medium">Birth time (local, 24h)</label>
+        <input
+          id="time" name="time" type="time" required
+          value={formData.time}
+          class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+
+      <div class="grid gap-1.5">
+        <label for="city" class="text-sm font-medium">Birth city</label>
+        <input
+          id="city" name="city" type="text" required placeholder="e.g. London, UK"
+          value={formData.city}
+          class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+
+      <button
+        type="submit"
+        class="mt-2 rounded bg-[#3b2f6e] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#4d3d8a] transition"
+      >
+        Generate chart
+      </button>
+    </form>
+
+    {error && (
+      <div class="mt-6 rounded border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+        {error}
+      </div>
+    )}
+
+    {chart && (
+      <section class="mt-10 space-y-8">
+        <!-- Core summary -->
+        <div class="rounded-xl border border-black/10 p-6 bg-white/60">
+          <h2 class="text-2xl font-light mb-4">Your Human Design</h2>
+          <dl class="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            <div>
+              <dt class="text-xs uppercase tracking-wide opacity-50">Type</dt>
+              <dd class="font-semibold text-lg">{chart.type}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-wide opacity-50">Strategy</dt>
+              <dd>{chart.strategy}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-wide opacity-50">Authority</dt>
+              <dd>{chart.authority}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-wide opacity-50">Profile</dt>
+              <dd>{chart.profile}</dd>
+            </div>
+            <div class="sm:col-span-2">
+              <dt class="text-xs uppercase tracking-wide opacity-50">Incarnation Cross</dt>
+              <dd>{chart.incarnationCross}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Bodygraph -->
+        <div class="rounded-xl border border-black/10 p-4 bg-white/60 text-center">
+          <h2 class="text-lg font-light mb-4">Bodygraph</h2>
+          <div class="inline-block" set:html={chart.bodygraphSvg} />
+          <p class="mt-3 text-xs opacity-50">
+            <span class="inline-block w-3 h-3 rounded-full bg-[#3b2f6e] mr-1"></span>Conscious &nbsp;
+            <span class="inline-block w-3 h-3 rounded-full bg-[#c0392b] mr-1"></span>Unconscious &nbsp;
+            <span class="inline-block w-3 h-3 rounded-full bg-[#6a1da0] mr-1"></span>Both
+          </p>
+        </div>
+
+        <!-- Planetary activations -->
+        <div class="rounded-xl border border-black/10 p-6 bg-white/60">
+          <h2 class="text-lg font-light mb-4">Planetary activations</h2>
+          <div class="grid sm:grid-cols-2 gap-6 text-sm">
+            <div>
+              <h3 class="text-xs uppercase tracking-wide opacity-50 mb-2">
+                Conscious (Personality)
+              </h3>
+              <table class="w-full">
+                <tbody>
+                  {chart.personalityActivations.map((a) => (
+                    <tr class="border-b border-black/5 last:border-0">
+                      <td class="py-1 pr-3 opacity-70">{PLANET_LABELS[a.planet] ?? a.planet}</td>
+                      <td class="py-1 text-right font-mono text-xs">
+                        {a.gate}.{a.line}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h3 class="text-xs uppercase tracking-wide opacity-50 mb-2">
+                Unconscious (Design)
+              </h3>
+              <table class="w-full">
+                <tbody>
+                  {chart.designActivations.map((a) => (
+                    <tr class="border-b border-black/5 last:border-0">
+                      <td class="py-1 pr-3 opacity-70">{PLANET_LABELS[a.planet] ?? a.planet}</td>
+                      <td class="py-1 text-right font-mono text-xs text-red-600">
+                        {a.gate}.{a.line}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Defined channels -->
+        {chart.definedChannels.length > 0 && (
+          <div class="rounded-xl border border-black/10 p-6 bg-white/60">
+            <h2 class="text-lg font-light mb-3">Defined channels</h2>
+            <div class="flex flex-wrap gap-2">
+              {chart.definedChannels.map(([a, b]) => (
+                <span class="rounded-full bg-[#3b2f6e]/10 px-3 py-1 text-xs font-mono">
+                  {a}–{b}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <!-- Upsell to Journey Narrative -->
+        <div class="rounded-xl border border-[#3b2f6e]/30 bg-[#3b2f6e]/5 p-6">
+          <h2 class="text-lg font-light mb-2">Go deeper with the Journey Narrative</h2>
+          <p class="text-sm opacity-70 mb-4">
+            A long-form personalised reading written in Cléa Hernández's voice — your design, your story.
+          </p>
+          <a
+            href="/#journey-narrative"
+            class="inline-block rounded bg-[#3b2f6e] px-5 py-2 text-sm font-medium text-white hover:bg-[#4d3d8a] transition"
+          >
+            Get your Journey Narrative — $37
+          </a>
+        </div>
+      </section>
+    )}
+
+    <p class="mt-8 text-sm">
+      <a href="/" class="opacity-50 hover:opacity-100 transition">← back</a>
+    </p>
+  </div>
 </Base>

@@ -1,11 +1,61 @@
 ---
 import Base from "~/layouts/Base.astro";
+import { getPurchase } from "~/lib/purchases.js";
 
 const { token } = Astro.params;
+
+const purchase = token ? await getPurchase(token) : null;
+
+if (!purchase) {
+  return Astro.redirect("/?error=invalid-token", 302);
+}
 ---
 
 <Base title="Your Journey Narrative — Mythograph">
-  <h1>Your Journey Narrative</h1>
-  <p class="mt-6 text-lg">Token: <code>{token}</code></p>
-  <p class="mt-4">Token gating + paid form ship Day 3.</p>
+  <div class="mx-auto max-w-2xl">
+    <p class="text-sm opacity-50 mb-6">
+      <a href="/" class="hover:opacity-100 transition">← Mythograph Journey</a>
+    </p>
+
+    <h1 class="text-4xl font-light">Your Journey Narrative</h1>
+    <p class="mt-3 text-base opacity-70">
+      Hello{purchase.name ? `, ${purchase.name}` : ""}. Your reading is being prepared.
+    </p>
+
+    <div class="mt-8 rounded-xl border border-[#3b2f6e]/20 bg-[#3b2f6e]/5 p-6 space-y-4">
+      <h2 class="text-lg font-medium text-[#3b2f6e]">Order confirmed</h2>
+      <dl class="text-sm grid gap-2">
+        <div class="flex gap-3">
+          <dt class="opacity-50 w-24 shrink-0">Email</dt>
+          <dd>{purchase.email}</dd>
+        </div>
+        <div class="flex gap-3">
+          <dt class="opacity-50 w-24 shrink-0">Ordered</dt>
+          <dd>{new Date(purchase.paidAt).toLocaleDateString("en-GB", {
+            day: "numeric", month: "long", year: "numeric"
+          })}</dd>
+        </div>
+        <div class="flex gap-3">
+          <dt class="opacity-50 w-24 shrink-0">Reference</dt>
+          <dd class="font-mono text-xs break-all">{purchase.stripeSessionId}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="mt-8 rounded-xl border border-black/10 p-6 bg-white/60 prose prose-sm max-w-none">
+      <h2>Your reading is on its way</h2>
+      <p>
+        Your Journey Narrative is being written in Cléa Hernández's voice. You will receive it by
+        email within 24–48 hours at <strong>{purchase.email}</strong>.
+      </p>
+      <p>
+        This page is your permanent reading link — bookmark it and return any time.
+        If you have questions, reply to the confirmation email.
+      </p>
+    </div>
+
+    <p class="mt-8 text-xs opacity-40">
+      Token: <code class="font-mono">{token}</code>
+    </p>
+  </div>
 </Base>

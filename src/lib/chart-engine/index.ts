@@ -1,20 +1,86 @@
-// Stub. Implementation lands Day 2.
-// See ./README.md for the pipeline.
+import { DateTime } from "luxon";
+import { geocodeCity } from "./geocode.js";
+import { getPlanetaryLongitudes, findSunLongitude } from "./astronomy.js";
+import {
+  toActivations,
+  deriveDefinedChannels,
+  deriveDefinedCenters,
+  deriveType,
+  deriveStrategy,
+  deriveAuthority,
+  deriveProfile,
+  deriveIncarnationCross,
+} from "./derivation.js";
+import { renderBodygraph } from "./render.js";
+import type { BirthData, Chart } from "./types.js";
 
-export interface BirthData {
-  date: string; // YYYY-MM-DD
-  time: string; // HH:mm (24h, local to birth city)
-  city: string;
-}
+export type { BirthData, Chart } from "./types.js";
 
-export interface Chart {
-  type: string;
-  strategy: string;
-  authority: string;
-  profile: string;
-  // gates, channels, centers, planetary activations, incarnation cross — Day 2
-}
+export async function generateChart(birth: BirthData): Promise<Chart> {
+  // 1. Geocode city → lat/lng + IANA timezone
+  const geo = await geocodeCity(birth.city);
 
-export async function generateChart(_birth: BirthData): Promise<Chart> {
-  throw new Error("chart-engine not yet implemented — Day 2");
+  // 2. Resolve birth moment: local date/time + timezone → UTC
+  const localDt = DateTime.fromFormat(
+    `${birth.date} ${birth.time}`,
+    "yyyy-MM-dd HH:mm",
+    { zone: geo.timezone },
+  );
+  if (!localDt.isValid) {
+    throw new Error(`Invalid birth date/time: ${localDt.invalidReason}`);
+  }
+  const birthUtc = localDt.toUTC().toJSDate();
+
+  // 3. Personality (Conscious) planetary positions
+  const personalityLons = getPlanetaryLongitudes(birthUtc);
+  const personalityActivations = toActivations(personalityLons);
+
+  // 4. Design (Unconscious): find the moment Sun was 88° before birth Sun
+  const designSunTarget = personalityLons.Sun - 88;
+  const designDate = findSunLongitude(designSunTarget, birthUtc);
+  const designLons = getPlanetaryLongitudes(designDate);
+  const designActivations = toActivations(designLons);
+
+  // 5. Collect all activated gates
+  const personalityGates = new Set(personalityActivations.map((a) => a.gate));
+  const designGates = new Set(designActivations.map((a) => a.gate));
+  const allGates = new Set([...personalityGates, ...designGates]);
+
+  // 6. Channels → Centers → Type / Strategy / Authority
+  const definedChannels = deriveDefinedChannels(allGates);
+  const definedCenters = deriveDefinedCenters(definedChannels);
+  const type = deriveType(definedCenters);
+  const strategy = deriveStrategy(type);
+  const authority = deriveAuthority(definedCenters, type);
+
+  // 7. Profile from Personality Sun line / Design Sun line
+  const pSun = personalityActivations.find((a) => a.planet === "Sun")!;
+  const dSun = designActivations.find((a) => a.planet === "Sun")!;
+  const profile = deriveProfile(pSun.line, dSun.line);
+
+  // 8. Incarnation Cross from Personality Sun gate + line
+  const incarnationCross = deriveIncarnationCross(pSun.gate, pSun.line);
+
+  // 9. SVG bodygraph
+  const bodygraphSvg = renderBodygraph({
+    definedCenters,
+    definedChannels,
+    personalityGates,
+    designGates,
+  });
+
+  return {
+    birthData: birth,
+    type,
+    strategy,
+    authority,
+    profile,
+    incarnationCross,
+    personalityActivations,
+    designActivations,
+    definedGates: allGates,
+    definedChannels,
+    definedCenters,
+    bodygraphSvg,
+  };
 }
