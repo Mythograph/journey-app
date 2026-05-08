@@ -66,4 +66,15 @@ export interface Chart {
 
   // Bodygraph SVG
   bodygraphSvg: string;
+
+  // Debug info
+  debug: {
+    geocodedLocation: string;
+    timezone: string;
+    birthUtc: string;
+    designDate: string;
+    personalitySunLon: number;
+    designSunLon: number;
+    allActivatedGates: number[];
+  };
 }

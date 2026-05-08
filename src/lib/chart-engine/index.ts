@@ -82,5 +82,14 @@ export async function generateChart(birth: BirthData): Promise<Chart> {
     definedChannels,
     definedCenters,
     bodygraphSvg,
+    debug: {
+      geocodedLocation: geo.displayName,
+      timezone: geo.timezone,
+      birthUtc: birthUtc.toISOString(),
+      designDate: designDate.toISOString(),
+      personalitySunLon: Math.round(personalityLons.Sun * 1000) / 1000,
+      designSunLon: Math.round(designLons.Sun * 1000) / 1000,
+      allActivatedGates: [...allGates].sort((a, b) => a - b),
+    },
   };
 }
