@@ -109,43 +109,42 @@ if (Astro.request.method === "POST") {
           </dl>
         </div>
 
-        <!-- Bodygraph + activation columns — break out to full page width -->
+        <!-- Bodygraph — full width -->
         <div class="rounded-xl border border-black/10 bg-white/60 overflow-hidden -mx-6">
           <h2 class="text-lg font-light px-6 pt-5 pb-2">Bodygraph</h2>
-          <div class="flex gap-1 px-2 pb-5 items-start">
+          <div class="px-4 pb-4">
+            <div class="w-full" set:html={chart.bodygraphSvg} />
+            <p class="mt-2 text-[9px] opacity-50 select-none text-center">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#111111] mr-1 align-middle"></span>Conscious &nbsp;
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#c0392b] mr-1 ml-2 align-middle"></span>Unconscious &nbsp;
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#d4740a] mr-1 ml-2 align-middle"></span>Both
+            </p>
+          </div>
+        </div>
 
+        <!-- Planetary activations — two columns below bodygraph -->
+        <div class="rounded-xl border border-black/10 bg-white/60 overflow-hidden">
+          <div class="grid grid-cols-2 divide-x divide-black/10">
             <!-- Unconscious / Design — left, red -->
-            <div class="flex-none w-[140px] text-[11px] leading-snug pt-1 pr-1">
-              <p class="text-[8px] font-bold uppercase tracking-widest text-[#c0392b] mb-2">Unconscious</p>
+            <div class="p-5 text-[12px] leading-snug">
+              <p class="text-[9px] font-bold uppercase tracking-widest text-[#c0392b] mb-3">Unconscious (Design)</p>
               {chart.designActivations.map((a) => (
-                <div class="flex items-baseline justify-between gap-0.5 py-[2px]">
-                  <span class="text-[#c0392b]/80 truncate">{PLANET_LABELS[a.planet] ?? a.planet}</span>
-                  <span class="font-mono font-semibold text-[#c0392b] tabular-nums shrink-0 text-[10.5px]">{a.gate}.{a.line}</span>
+                <div class="flex items-baseline justify-between gap-2 py-[3px]">
+                  <span class="text-[#c0392b]/80">{PLANET_LABELS[a.planet] ?? a.planet}</span>
+                  <span class="font-mono font-semibold text-[#c0392b] tabular-nums text-[11.5px]">{a.gate}.{a.line}</span>
                 </div>
               ))}
             </div>
-
-            <!-- Bodygraph SVG — centre -->
-            <div class="flex-1 min-w-0 text-center">
-              <div class="inline-block w-full" set:html={chart.bodygraphSvg} />
-              <p class="mt-2 text-[9px] opacity-50 select-none">
-                <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#111111] mr-1 align-middle"></span>Conscious &nbsp;
-                <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#c0392b] mr-1 ml-2 align-middle"></span>Unconscious &nbsp;
-                <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#d4740a] mr-1 ml-2 align-middle"></span>Both
-              </p>
-            </div>
-
             <!-- Conscious / Personality — right, black -->
-            <div class="flex-none w-[140px] text-[11px] leading-snug pt-1 pl-1">
-              <p class="text-[8px] font-bold uppercase tracking-widest text-[#111111] mb-2 opacity-60">Conscious</p>
+            <div class="p-5 text-[12px] leading-snug">
+              <p class="text-[9px] font-bold uppercase tracking-widest text-[#111111]/60 mb-3">Conscious (Personality)</p>
               {chart.personalityActivations.map((a) => (
-                <div class="flex items-baseline justify-between gap-0.5 py-[2px]">
-                  <span class="text-[#111111]/60 truncate">{PLANET_LABELS[a.planet] ?? a.planet}</span>
-                  <span class="font-mono font-semibold text-[#111111] tabular-nums shrink-0 text-[10.5px]">{a.gate}.{a.line}</span>
+                <div class="flex items-baseline justify-between gap-2 py-[3px]">
+                  <span class="text-[#111111]/60">{PLANET_LABELS[a.planet] ?? a.planet}</span>
+                  <span class="font-mono font-semibold text-[#111111] tabular-nums text-[11.5px]">{a.gate}.{a.line}</span>
                 </div>
               ))}
             </div>
-
           </div>
         </div>
 
