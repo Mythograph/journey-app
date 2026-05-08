@@ -42,7 +42,7 @@ const CENTER_LABEL: Record<CenterName, string> = {
 const C_PERSONALITY   = "#111111";   // conscious / personality
 const C_DESIGN        = "#c0392b";   // unconscious / design
 const C_BOTH          = "#6a1da0";   // gate active on both sides
-const C_INACTIVE      = "#d8d4e8";   // inactive lane segment
+const C_INACTIVE      = "#9e98b8";   // inactive lane segment — visible grey
 const C_GATE_OFF      = "#c0bcd4";   // gate number when not activated
 const C_DEF_FILL      = "#3a4f99";   // brand indigo — defined center fill
 const C_DEF_STROKE    = "#2d3f80";
@@ -121,7 +121,7 @@ function renderChannel(
   const gB_p = pGates.has(gB), gB_d = dGates.has(gB);
 
   function seg(ax: number, ay: number, bx: number, by: number, active: boolean, col: string): string {
-    return `<line x1="${f(ax)}" y1="${f(ay)}" x2="${f(bx)}" y2="${f(by)}" stroke="${active ? col : C_INACTIVE}" stroke-width="${active ? "2.5" : "1.2"}"/>`;
+    return `<line x1="${f(ax)}" y1="${f(ay)}" x2="${f(bx)}" y2="${f(by)}" stroke="${active ? col : C_INACTIVE}" stroke-width="2"/>`;
   }
 
   // Personality lane (right = −perp)
