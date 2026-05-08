@@ -1,20 +1,20 @@
 import type { CenterName } from "./types.js";
 import { CHANNELS } from "./data.js";
 
-const W = 580;
-const H = 600;
+const W = 700;
+const H = 660;
 
-// Body shifted right to leave room for left (design) gate column
+// ── Center positions [cx, cy] — scaled up ~1.3× from original ────────────────
 const POS: Record<CenterName, [number, number]> = {
-  Head:        [290,  55],
-  Ajna:        [290, 125],
-  Throat:      [290, 202],
-  G:           [290, 286],
-  Ego:         [382, 242],
-  Sacral:      [290, 384],
-  SolarPlexus: [382, 332],
-  Spleen:      [198, 332],
-  Root:        [290, 470],
+  Head:        [350,  60],
+  Ajna:        [350, 148],
+  Throat:      [350, 247],
+  G:           [350, 356],
+  Ego:         [470, 302],
+  Sacral:      [350, 484],
+  SolarPlexus: [470, 419],
+  Spleen:      [230, 419],
+  Root:        [350, 593],
 };
 
 type Shape = "tri-up" | "tri-down" | "square" | "diamond";
@@ -26,62 +26,54 @@ const CENTER_SHAPE: Record<CenterName, Shape> = {
 };
 
 const CENTER_R: Record<CenterName, number> = {
-  Head: 22, Ajna: 22, Throat: 28, G: 32, Ego: 21,
-  Sacral: 34, SolarPlexus: 24, Spleen: 24, Root: 25,
+  Head: 25, Ajna: 25, Throat: 34, G: 38, Ego: 24,
+  Sacral: 40, SolarPlexus: 27, Spleen: 27, Root: 28,
 };
 
 const CENTER_LABEL: Record<CenterName, string> = {
   Head: "Head", Ajna: "Ajna", Throat: "Throat",
   G: "G", Ego: "Ego", Sacral: "Sacral",
-  SolarPlexus: "SP", Spleen: "Spln", Root: "Root",
+  SolarPlexus: "SP", Spleen: "Spleen", Root: "Root",
 };
 
 // ── Colours ───────────────────────────────────────────────────────────────────
-const C_PERSONALITY   = "#1a1830";   // black  – conscious
-const C_DESIGN        = "#c0392b";   // red    – unconscious
-const C_INACTIVE      = "#d8d4e8";   // pale   – inactive lane segment
-const C_DEF_FILL      = "#3b2f6e";
-const C_DEF_STROKE    = "#2d2356";
+// Personality = conscious = black; Design = unconscious = red.
+// These match standard Human Design convention.
+const C_PERSONALITY   = "#111111";   // conscious / personality
+const C_DESIGN        = "#c0392b";   // unconscious / design
+const C_BOTH          = "#6a1da0";   // gate active on both sides
+const C_INACTIVE      = "#d8d4e8";   // inactive lane segment
+const C_GATE_OFF      = "#c0bcd4";   // gate number when not activated
+const C_DEF_FILL      = "#3a4f99";   // brand indigo — defined center fill
+const C_DEF_STROKE    = "#2d3f80";
 const C_UNDEF_FILL    = "#f6f4fb";
 const C_UNDEF_STROKE  = "#b0a8c8";
-const C_LABEL_DEF     = "#fff";
+const C_LABEL_DEF     = "#ffffff";
 const C_LABEL_UNDEF   = "#9590b4";
-const C_GATE_INACTIVE = "#c0bcd4";
-
-// ── Gate column ordering ──────────────────────────────────────────────────────
-// Gates ordered top-to-bottom by center position (Head → Root).
-// SolarPlexus and Spleen share the same y so their gates are interleaved by number.
-const GATE_COLUMN_ORDER: readonly number[] = [
-  // Head
-  61, 63, 64,
-  // Ajna
-  4, 11, 17, 24, 43, 47,
-  // Throat
-  8, 12, 16, 20, 23, 31, 33, 35, 45, 56, 62,
-  // Ego (sits between Throat and G)
-  21, 26, 40, 51,
-  // G
-  1, 2, 7, 10, 13, 15, 25, 46,
-  // SolarPlexus + Spleen (same vertical level, interleaved by gate number)
-  6, 18, 22, 28, 30, 32, 36, 37, 44, 48, 49, 50, 55, 57,
-  // Sacral
-  3, 5, 9, 14, 27, 29, 34, 42, 59,
-  // Root
-  19, 38, 39, 41, 52, 53, 54, 58, 60,
-];
-
-const COL_Y_START = 32;
-const COL_Y_STEP  = 8.3;
-const GATE_Y: Map<number, number> = new Map(
-  GATE_COLUMN_ORDER.map((g, i) => [g, COL_Y_START + i * COL_Y_STEP]),
-);
-
-const COL_P_X = 477;  // right  – personality / conscious
-const COL_D_X = 103;  // left   – design / unconscious
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function f(n: number): string { return n.toFixed(1); }
+
+// ── Gate positions ────────────────────────────────────────────────────────────
+// Pre-compute (x, y) for every gate so both channel labels and side columns
+// can share the same coordinates.
+
+interface GatePos { x: number; y: number; }
+
+function buildGatePositions(): Map<number, GatePos> {
+  const map = new Map<number, GatePos>();
+  for (const [gA, gB, cA, cB] of CHANNELS) {
+    const [x1, y1] = POS[cA];
+    const [x2, y2] = POS[cB];
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const nx = dx / len, ny = dy / len;
+    map.set(gA, { x: x1 + nx * len * 0.30, y: y1 + ny * len * 0.30 });
+    map.set(gB, { x: x1 + nx * len * 0.70, y: y1 + ny * len * 0.70 });
+  }
+  return map;
+}
 
 // ── Center shapes ─────────────────────────────────────────────────────────────
 
@@ -89,7 +81,7 @@ function renderShape(cx: number, cy: number, s: Shape, r: number, defined: boole
   const fill   = defined ? C_DEF_FILL   : C_UNDEF_FILL;
   const stroke = defined ? C_DEF_STROKE : C_UNDEF_STROKE;
   const sw = 1.5;
-  if (s === "square")  return `<rect x="${f(cx-r)}" y="${f(cy-r)}" width="${r*2}" height="${r*2}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+  if (s === "square")  return `<rect x="${f(cx-r)}" y="${f(cy-r)}" width="${r*2}" height="${r*2}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
   if (s === "diamond") return `<polygon points="${f(cx)},${f(cy-r)} ${f(cx+r)},${f(cy)} ${f(cx)},${f(cy+r)} ${f(cx-r)},${f(cy)}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
   if (s === "tri-up")  return `<polygon points="${f(cx)},${f(cy-r)} ${f(cx+r)},${f(cy+r)} ${f(cx-r)},${f(cy+r)}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
   /* tri-down */       return `<polygon points="${f(cx)},${f(cy+r)} ${f(cx+r)},${f(cy-r)} ${f(cx-r)},${f(cy-r)}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
@@ -98,26 +90,22 @@ function renderShape(cx: number, cy: number, s: Shape, r: number, defined: boole
 function renderLabel(cx: number, cy: number, s: Shape, r: number, defined: boolean, label: string): string {
   const color = defined ? C_LABEL_DEF : C_LABEL_UNDEF;
   const fw    = defined ? "700" : "400";
-  let ly = cy + 4.5;
-  if (s === "tri-up")   ly = cy + r * 0.42;
-  if (s === "tri-down") ly = cy - r * 0.15;
-  return `<text x="${f(cx)}" y="${f(ly)}" text-anchor="middle" font-size="10" font-family="sans-serif" fill="${color}" font-weight="${fw}">${label}</text>`;
+  let ly = cy + 5;
+  if (s === "tri-up")   ly = cy + r * 0.44;
+  if (s === "tri-down") ly = cy - r * 0.12;
+  return `<text x="${f(cx)}" y="${f(ly)}" text-anchor="middle" font-size="11" font-family="sans-serif" fill="${color}" font-weight="${fw}">${label}</text>`;
 }
 
 // ── Channel renderer ──────────────────────────────────────────────────────────
-// Each channel has two parallel lanes:
-//   RIGHT lane (−perp) = personality / conscious  (black)
-//   LEFT  lane (+perp) = design / unconscious      (red)
-//
-// Each lane is split at the channel midpoint. The gate-A half is coloured only
-// if gate A is active on that side; the gate-B half only if gate B is active.
-// Inactive halves render as pale grey. This gives the standard HD "half-channel"
-// activation look.
+// Two parallel lanes (RIGHT = personality, LEFT = design).
+// Each lane is split at the midpoint: the A-half is coloured only when gate A
+// is active on that side; the B-half only when gate B is active.
 
 function renderChannel(
   gA: number, gB: number,
   cA: CenterName, cB: CenterName,
   pGates: Set<number>, dGates: Set<number>,
+  gatePositions: Map<number, GatePos>,
 ): string {
   const [x1, y1] = POS[cA];
   const [x2, y2] = POS[cB];
@@ -126,63 +114,82 @@ function renderChannel(
   const dx = x2 - x1, dy = y2 - y1;
   const len = Math.sqrt(dx * dx + dy * dy);
   const nx = dx / len, ny = dy / len;
-  const px = -ny, py = nx;   // perpendicular (left-hand turn)
-  const OFF = 3.5;
+  const px = -ny, py = nx;   // perpendicular (left-hand turn = left for downward channels)
+  const OFF = 4;
 
   const gA_p = pGates.has(gA), gA_d = dGates.has(gA);
   const gB_p = pGates.has(gB), gB_d = dGates.has(gB);
 
-  // Helper: one lane segment
-  function seg(
-    ax: number, ay: number, bx: number, by: number,
-    active: boolean, baseCol: string,
-  ): string {
-    const col = active ? baseCol : C_INACTIVE;
-    const sw  = active ? "2" : "1";
-    return `<line x1="${f(ax)}" y1="${f(ay)}" x2="${f(bx)}" y2="${f(by)}" stroke="${col}" stroke-width="${sw}"/>`;
+  function seg(ax: number, ay: number, bx: number, by: number, active: boolean, col: string): string {
+    return `<line x1="${f(ax)}" y1="${f(ay)}" x2="${f(bx)}" y2="${f(by)}" stroke="${active ? col : C_INACTIVE}" stroke-width="${active ? "2.5" : "1.2"}"/>`;
   }
 
-  const rOff = OFF;  // right offset scalar (personality)
-  const lOff = OFF;  // left  offset scalar (design)
+  // Personality lane (right = −perp)
+  const p1 = seg(x1-px*OFF, y1-py*OFF, mx-px*OFF, my-py*OFF, gA_p, C_PERSONALITY);
+  const p2 = seg(mx-px*OFF, my-py*OFF, x2-px*OFF, y2-py*OFF, gB_p, C_PERSONALITY);
+  // Design lane (left = +perp)
+  const d1 = seg(x1+px*OFF, y1+py*OFF, mx+px*OFF, my+py*OFF, gA_d, C_DESIGN);
+  const d2 = seg(mx+px*OFF, my+py*OFF, x2+px*OFF, y2+py*OFF, gB_d, C_DESIGN);
 
-  // Personality lane (right = −perp): gA-half then gB-half
-  const p1 = seg(x1-px*rOff, y1-py*rOff, mx-px*rOff, my-py*rOff, gA_p, C_PERSONALITY);
-  const p2 = seg(mx-px*rOff, my-py*rOff, x2-px*rOff, y2-py*rOff, gB_p, C_PERSONALITY);
+  // Gate labels — shown for all 64 gates on the bodygraph
+  function gateLabel(gate: number, gx: number, gy: number, isP: boolean, isD: boolean): string {
+    const col = (isP && isD) ? C_BOTH : isP ? C_PERSONALITY : isD ? C_DESIGN : C_GATE_OFF;
+    const fw  = (isP || isD) ? "700" : "400";
+    // offset label perpendicular to channel, outward from the lanes
+    const lx = gx - px * (OFF + 10);
+    const ly = gy - py * (OFF + 10);
+    return `<text x="${f(lx)}" y="${f(ly+3)}" text-anchor="middle" font-size="8" font-family="monospace" fill="${col}" font-weight="${fw}">${gate}</text>`;
+  }
 
-  // Design lane (left = +perp): gA-half then gB-half
-  const d1 = seg(x1+px*lOff, y1+py*lOff, mx+px*lOff, my+py*lOff, gA_d, C_DESIGN);
-  const d2 = seg(mx+px*lOff, my+py*lOff, x2+px*lOff, y2+py*lOff, gB_d, C_DESIGN);
+  const posA = gatePositions.get(gA)!;
+  const posB = gatePositions.get(gB)!;
+  const labelA = gateLabel(gA, posA.x, posA.y, gA_p, gA_d);
+  const labelB = gateLabel(gB, posB.x, posB.y, gB_p, gB_d);
 
-  return [p1, p2, d1, d2].join("\n");
+  return [p1, p2, d1, d2, labelA, labelB].join("\n");
 }
 
-// ── Gate side columns ─────────────────────────────────────────────────────────
-// All 64 gates shown on both sides. Right = personality (black/grey).
-// Left = design (red/grey). Active gates are bold + full colour.
+// ── Activated-gate side columns ───────────────────────────────────────────────
+// Only the person's activated gates appear here, positioned at the same
+// y-coordinate as their gate is on the bodygraph. Right = personality/conscious,
+// left = design/unconscious.
 
-function renderGateColumns(pGates: Set<number>, dGates: Set<number>): string {
+function renderSideColumns(
+  pGates: Set<number>, dGates: Set<number>,
+  gatePositions: Map<number, GatePos>,
+): string {
   const parts: string[] = [];
 
-  // Column headers
-  parts.push(`<text x="${COL_P_X}" y="18" text-anchor="start" font-size="7.5" font-family="sans-serif" fill="${C_PERSONALITY}" font-weight="600" letter-spacing="0.5">CONSCIOUS</text>`);
-  parts.push(`<text x="${COL_D_X}" y="18" text-anchor="end"   font-size="7.5" font-family="sans-serif" fill="${C_DESIGN}"      font-weight="600" letter-spacing="0.5">UNCONSCIOUS</text>`);
+  const COL_P_X = 634;   // right column — personality
+  const COL_D_X =  66;   // left  column — design
 
-  for (const gate of GATE_COLUMN_ORDER) {
-    const y = GATE_Y.get(gate)!;
+  // Headers
+  parts.push(`<text x="${COL_P_X}" y="20" text-anchor="middle" font-size="7.5" font-family="sans-serif" fill="${C_PERSONALITY}" font-weight="600" letter-spacing="0.3">Conscious</text>`);
+  parts.push(`<text x="${COL_D_X}"  y="20" text-anchor="middle" font-size="7.5" font-family="sans-serif" fill="${C_DESIGN}"      font-weight="600" letter-spacing="0.3">Unconscious</text>`);
 
-    const isP = pGates.has(gate);
-    const isD = dGates.has(gate);
-
-    // Personality column (right)
+  // Personality gates (right column)
+  for (const gate of [...pGates].sort((a, b) => {
+    const ay = gatePositions.get(a)?.y ?? 999;
+    const by = gatePositions.get(b)?.y ?? 999;
+    return ay - by;
+  })) {
+    const pos = gatePositions.get(gate);
+    if (!pos) continue;
     parts.push(
-      `<text x="${COL_P_X}" y="${f(y+3)}" text-anchor="start" font-size="8" font-family="monospace" ` +
-      `fill="${isP ? C_PERSONALITY : C_GATE_INACTIVE}" font-weight="${isP ? "700" : "400"}">${gate}</text>`,
+      `<text x="${COL_P_X}" y="${f(pos.y + 3)}" text-anchor="middle" font-size="9" font-family="monospace" fill="${C_PERSONALITY}" font-weight="700">${gate}</text>`,
     );
+  }
 
-    // Design column (left)
+  // Design gates (left column)
+  for (const gate of [...dGates].sort((a, b) => {
+    const ay = gatePositions.get(a)?.y ?? 999;
+    const by = gatePositions.get(b)?.y ?? 999;
+    return ay - by;
+  })) {
+    const pos = gatePositions.get(gate);
+    if (!pos) continue;
     parts.push(
-      `<text x="${COL_D_X}" y="${f(y+3)}" text-anchor="end" font-size="8" font-family="monospace" ` +
-      `fill="${isD ? C_DESIGN : C_GATE_INACTIVE}" font-weight="${isD ? "700" : "400"}">${gate}</text>`,
+      `<text x="${COL_D_X}" y="${f(pos.y + 3)}" text-anchor="middle" font-size="9" font-family="monospace" fill="${C_DESIGN}" font-weight="700">${gate}</text>`,
     );
   }
 
@@ -201,16 +208,18 @@ export interface RenderInput {
 export function renderBodygraph({
   definedCenters, personalityGates, designGates,
 }: RenderInput): string {
+  const gatePositions = buildGatePositions();
+
   const parts: string[] = [
-    `<rect width="${W}" height="${H}" fill="#faf9f7"/>`,
+    `<rect width="${W}" height="${H}" fill="#fafaf7"/>`,
   ];
 
-  // Gate side columns (behind everything)
-  parts.push(renderGateColumns(personalityGates, designGates));
+  // Side columns (behind everything)
+  parts.push(renderSideColumns(personalityGates, designGates, gatePositions));
 
-  // Channels (behind centers)
+  // Channels + gate labels (behind centers)
   for (const [gA, gB, cA, cB] of CHANNELS) {
-    parts.push(renderChannel(gA, gB, cA, cB, personalityGates, designGates));
+    parts.push(renderChannel(gA, gB, cA, cB, personalityGates, designGates, gatePositions));
   }
 
   // Centers (on top)

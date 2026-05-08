@@ -31,7 +31,7 @@ if (Astro.request.method === "POST") {
 ---
 
 <Base title="Free Chart — Mythograph Journey">
-  <div class="mx-auto max-w-2xl">
+  <div class="mx-auto max-w-3xl">
     <h1 class="text-4xl font-light">Free bodygraph chart</h1>
     <p class="mt-3 text-base opacity-70">
       Enter your birth data to generate your Human Design chart.
@@ -43,7 +43,7 @@ if (Astro.request.method === "POST") {
         <input
           id="date" name="date" type="date" required
           value={formData.date}
-          class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3a4f99]"
         />
       </div>
 
@@ -52,7 +52,7 @@ if (Astro.request.method === "POST") {
         <input
           id="time" name="time" type="time" required
           value={formData.time}
-          class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3a4f99]"
         />
       </div>
 
@@ -61,13 +61,13 @@ if (Astro.request.method === "POST") {
         <input
           id="city" name="city" type="text" required placeholder="e.g. London, UK"
           value={formData.city}
-          class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3a4f99]"
         />
       </div>
 
       <button
         type="submit"
-        class="mt-2 rounded bg-[#3b2f6e] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#4d3d8a] transition"
+        class="mt-2 rounded bg-[#3a4f99] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#2d3f80] transition"
       >
         Generate chart
       </button>
@@ -113,7 +113,7 @@ if (Astro.request.method === "POST") {
           <h2 class="text-lg font-light mb-4">Bodygraph</h2>
           <div class="inline-block" set:html={chart.bodygraphSvg} />
           <p class="mt-3 text-xs opacity-50">
-            <span class="inline-block w-3 h-3 rounded-full bg-[#3b2f6e] mr-1"></span>Conscious &nbsp;
+            <span class="inline-block w-3 h-3 rounded-full bg-[#111111] mr-1"></span>Conscious &nbsp;
             <span class="inline-block w-3 h-3 rounded-full bg-[#c0392b] mr-1"></span>Unconscious &nbsp;
             <span class="inline-block w-3 h-3 rounded-full bg-[#6a1da0] mr-1"></span>Both
           </p>
@@ -166,7 +166,7 @@ if (Astro.request.method === "POST") {
             <h2 class="text-lg font-light mb-3">Defined channels</h2>
             <div class="flex flex-wrap gap-2">
               {chart.definedChannels.map(([a, b]) => (
-                <span class="rounded-full bg-[#3b2f6e]/10 px-3 py-1 text-xs font-mono">
+                <span class="rounded-full bg-[#3a4f99]/10 px-3 py-1 text-xs font-mono">
                   {a}–{b}
                 </span>
               ))}
@@ -189,14 +189,14 @@ if (Astro.request.method === "POST") {
         </details>
 
         <!-- Upsell to Journey Narrative -->
-        <div class="rounded-xl border border-[#3b2f6e]/30 bg-[#3b2f6e]/5 p-6">
+        <div class="rounded-xl border border-[#3a4f99]/30 bg-[#3a4f99]/5 p-6">
           <h2 class="text-lg font-light mb-2">Go deeper with the Journey Narrative</h2>
           <p class="text-sm opacity-70 mb-4">
             A long-form personalised reading written in Cléa Hernández's voice — your design, your story.
           </p>
           <a
             href="/#journey-narrative"
-            class="inline-block rounded bg-[#3b2f6e] px-5 py-2 text-sm font-medium text-white hover:bg-[#4d3d8a] transition"
+            class="inline-block rounded bg-[#3a4f99] px-5 py-2 text-sm font-medium text-white hover:bg-[#2d3f80] transition"
           >
             Get your Journey Narrative — $37
           </a>
