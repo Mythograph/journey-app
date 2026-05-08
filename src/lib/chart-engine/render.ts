@@ -41,7 +41,7 @@ const CENTER_LABEL: Record<CenterName, string> = {
 const C_PERSONALITY   = "#111111";
 const C_DESIGN        = "#c0392b";
 const C_BOTH          = "#d4740a";
-const C_INACTIVE_LINE = "#d0cce0";
+const C_INACTIVE_LINE = "#ddd8ee";
 const C_INACTIVE_GATE = "#9590b4";
 const C_DEF_FILL      = "#c05a3c";
 const C_DEF_STROKE    = "#9a3d22";
@@ -72,7 +72,7 @@ const GATE_POS: Record<number, [number, number]> = {
   16: [266, 352],
 
   // G — top toward Throat; bottom toward Sacral; right toward Ego
-   7: [340, 444],   1: [320, 444],  13: [300, 444],  10: [280, 444],
+   7: [334, 444],   1: [320, 444],  13: [300, 444],  10: [286, 444],
    2: [330, 500],  15: [310, 500],  46: [290, 500],
   25: [336, 462],
 
@@ -84,18 +84,18 @@ const GATE_POS: Record<number, [number, number]> = {
   27: [267, 601],  59: [350, 596],
   42: [290, 679],   9: [310, 679],   3: [330, 679],
 
-  // SolarPlexus — top cluster (Throat/Ego); bottom row (Root/Sacral)
-  37: [465, 458],  22: [452, 470],  36: [460, 487],
-   6: [432, 516],  55: [450, 519],  49: [468, 521],  30: [486, 519],
+  // SolarPlexus — top cluster toward Throat/Ego; bottom row toward Root/Sacral
+  37: [465, 458],  22: [460, 474],  36: [456, 489],
+   6: [437, 517],  55: [453, 519],  49: [469, 521],  30: [485, 519],
 
-  // Spleen — right column (Throat/G/Ego); bottom-right fan (Root/Sacral)
-  48: [165, 472],  44: [163, 490],  57: [170, 507],
-  50: [190, 515],  28: [198, 532],  32: [181, 542],  18: [164, 552],
+  // Spleen — right column toward Throat/G/Ego; bottom fan toward Root/Sacral
+  48: [160, 476],  44: [158, 494],  57: [165, 511],
+  50: [186, 518],  28: [193, 535],  32: [178, 545],  18: [161, 555],
 
-  // Root — three rows: center (Sacral), left fan (Spleen), right fan (SP)
+  // Root — center row (Sacral), left fan (Spleen), right fan (SP)
   53: [290, 716],  52: [310, 716],  60: [330, 716],
-  58: [264, 730],  54: [283, 736],  38: [299, 742],
-  39: [321, 742],  19: [337, 736],  41: [356, 730],
+  58: [268, 730],  54: [284, 736],  38: [300, 742],
+  39: [320, 742],  19: [336, 736],  41: [354, 730],
 };
 
 // ── Shape helpers ──────────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ function renderSilhouette(): string {
 }
 
 // ── Gate circles ───────────────────────────────────────────────────────────────
-const CIRC_R = 8;
+const CIRC_R = 7;
 
 function renderGateCircles(
   center: CenterName,
@@ -152,7 +152,7 @@ function renderGateCircles(
     else             { bg = "rgba(255,255,255,0.92)"; textCol = C_INACTIVE_GATE; strokeAttr = ` stroke="${C_UNDEF_STROKE}" stroke-width="0.75"`; }
     parts.push(
       `<circle cx="${gx}" cy="${gy}" r="${CIRC_R}" fill="${bg}"${strokeAttr}/>`,
-      `<text x="${gx}" y="${gy + 3}" text-anchor="middle" font-size="7.5" font-family="sans-serif" fill="${textCol}" font-weight="700">${gate}</text>`,
+      `<text x="${gx}" y="${gy + 3}" text-anchor="middle" font-size="7" font-family="sans-serif" fill="${textCol}" font-weight="700">${gate}</text>`,
     );
   }
   return `<g clip-path="url(#clip-${center})">${parts.join("")}</g>`;
@@ -175,8 +175,8 @@ function renderCenterLabel(cx: number, cy: number, s: Shape, r: number, def: boo
 }
 
 // ── Channel rendering ──────────────────────────────────────────────────────────
-const SW_ACTIVE   = 6;
-const SW_INACTIVE = 1.5;
+const SW_ACTIVE   = 5;
+const SW_INACTIVE = 0.75;
 
 function gateStyle(isP: boolean, isD: boolean): { col: string; sw: number } {
   if (isP && isD) return { col: C_BOTH,        sw: SW_ACTIVE };
