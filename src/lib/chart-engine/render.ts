@@ -57,45 +57,83 @@ function f(n: number): string { return n.toFixed(1); }
 // layout: position within the center shape, directed toward the connected center,
 // with enough spacing that gate circles don't visually collide.
 const GATE_POS: Record<number, [number, number]> = {
-  // Head — three gates along the bottom edge (toward Ajna)
-  63: [330, 108],  61: [310, 108],  64: [290, 108],
+  // Head (tri-up, cx=310, cy=68, r=50): apex(310,18), base y=118
+  // All gates → Ajna; placed along bottom base
+  64: [290, 110],  61: [310, 110],  63: [330, 110],
 
-  // Ajna — top row toward Head, bottom cluster near tip toward Throat
-  4:  [330, 150],  24: [310, 150],  47: [290, 150],
-  17: [323, 228],  11: [310, 228],  43: [297, 228],
+  // Ajna (tri-down, cx=310, cy=190, r=50): flat top y=140, apex(310,240)
+  // → Head: top edge
+  47: [290, 148],  24: [310, 148],   4: [330, 148],
+  // → Throat: near bottom tip (y=198 hw=21)
+  43: [296, 198],  11: [310, 198],  17: [324, 198],
 
-  // Throat — top toward Ajna; bottom toward G; sides toward Ego/SP/Spleen
-  62: [330, 282],  56: [310, 282],  23: [290, 282],
-  31: [334, 370],   8: [314, 370],  33: [294, 370],  20: [274, 370],
-  45: [354, 331],
-  12: [344, 345],  35: [352, 361],
-  16: [266, 352],
+  // Throat (square, cx=310, cy=325, r=54): top 271, bot 379, left 256, right 364
+  // → Ajna (top edge)
+  23: [292, 278],  56: [310, 278],  62: [328, 278],
+  // → G (bottom edge)
+  20: [278, 372],  33: [294, 372],   8: [310, 372],  31: [326, 372],
+  // → Ego (right edge, upper)
+  45: [355, 302],
+  // → SolarPlexus (right edge, mid/lower)
+  12: [355, 330],  35: [355, 356],
+  // → Spleen (left edge)
+  16: [263, 340],
 
-  // G — top toward Throat; bottom toward Sacral; right toward Ego
-   7: [334, 444],   1: [320, 444],  13: [300, 444],  10: [286, 444],
-   2: [330, 500],  15: [310, 500],  46: [290, 500],
-  25: [336, 462],
+  // G (diamond, cx=310, cy=472, r=60): hw(y)=60-|y-472|
+  // → Throat (top): y=438, hw=34, range 276-344
+  10: [283, 438],  13: [301, 438],   1: [319, 438],   7: [337, 438],
+  // → Sacral (bottom): y=496, hw=36, range 274-346
+  46: [286, 496],  15: [310, 496],   2: [334, 496],
+  // → Ego (right)
+  25: [355, 472],
 
-  // Ego — four gates spread across the small square
-  21: [432, 348],  26: [428, 374],  51: [434, 399],  40: [462, 408],
+  // Ego (square, cx=462, cy=378, r=38): top 340, bot 416, left 424, right 500
+  21: [432, 350],  // → Throat (left edge, upper)
+  51: [432, 395],  // → G (left edge, lower)
+  26: [438, 408],  // → Spleen (bottom edge, left)
+  40: [462, 408],  // → SolarPlexus (bottom edge, center)
 
-  // Sacral — top row (G/Throat side); mid sides (SP/Spleen); bottom (Root)
-  34: [270, 577],  29: [290, 577],   5: [310, 577],  14: [330, 577],
-  27: [267, 601],  59: [350, 596],
-  42: [290, 679],   9: [310, 679],   3: [330, 679],
+  // Sacral (square, cx=310, cy=628, r=64): top 564, bot 692, left 246, right 374
+  // → G / Throat (top edge)
+  34: [256, 572],  29: [292, 572],   5: [310, 572],  14: [328, 572],
+  // → Spleen (left edge)
+  27: [254, 610],
+  // → SolarPlexus (right edge)
+  59: [366, 600],
+  // → Root (bottom edge)
+  42: [292, 684],   9: [310, 684],   3: [328, 684],
 
-  // SolarPlexus — top cluster toward Throat/Ego; bottom row toward Root/Sacral
-  37: [465, 458],  22: [460, 474],  36: [456, 489],
-   6: [437, 517],  55: [453, 519],  49: [469, 521],  30: [485, 519],
+  // SolarPlexus (tri-up, cx=462, cy=504, r=56): apex(462,448), base y=560
+  // hw(y) = (y-448)/2
+  // → Throat (near top): y=482, hw=17
+  22: [454, 482],  36: [470, 482],
+  // → Ego (left side): y=500, hw=26
+  37: [444, 500],
+  // → Sacral (left side): y=520, hw=36
+   6: [434, 520],
+  // → Root (bottom base): y=550, hw=51
+  55: [448, 550],  49: [462, 550],  30: [476, 550],
 
-  // Spleen — right column toward Throat/G/Ego; bottom fan toward Root/Sacral
-  48: [160, 476],  44: [158, 494],  57: [165, 511],
-  50: [186, 518],  28: [193, 535],  32: [178, 545],  18: [161, 555],
+  // Spleen (tri-up, cx=158, cy=504, r=56): apex(158,448), base y=560
+  // right edge x_right(y) = 158 + (y-448)/2
+  // → Throat (upper-right)
+  48: [164, 478],
+  // → Ego (right side)
+  44: [170, 490],
+  // → G + Sacral (right side, mid)
+  57: [178, 506],
+  // → Sacral (right side, lower)
+  50: [184, 522],
+  // → Root (lower base)
+  18: [148, 550],  32: [163, 550],  28: [178, 550],
 
-  // Root — center row (Sacral), left fan (Spleen), right fan (SP)
-  53: [290, 716],  52: [310, 716],  60: [330, 716],
-  58: [268, 730],  54: [284, 736],  38: [300, 742],
-  39: [320, 742],  19: [336, 736],  41: [354, 730],
+  // Root (square, cx=310, cy=762, r=52): top 710, bot 814, left 258, right 362
+  // → Sacral (top edge)
+  53: [292, 718],  52: [310, 718],  60: [328, 718],
+  // → SolarPlexus (right edge)
+  41: [354, 732],  19: [354, 750],  39: [354, 768],
+  // → Spleen (left edge)
+  58: [266, 732],  54: [266, 750],  38: [266, 768],
 };
 
 // ── Shape helpers ──────────────────────────────────────────────────────────────
@@ -219,7 +257,6 @@ export function renderBodygraph({
 
   parts.push(renderDefs());
   parts.push(`<rect width="${W}" height="${H}" fill="#fafaf7"/>`);
-  parts.push(renderSilhouette());
 
   // 1 — channel bands (behind everything)
   for (const [gA, gB] of CHANNELS) {
