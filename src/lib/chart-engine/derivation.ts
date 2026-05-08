@@ -164,13 +164,18 @@ export function deriveIncarnationCross(
   personalitySunLine: number,
   designSunLine: number,
 ): string {
+  // RA:  profiles 1/3, 1/4, 2/4, 2/5, 3/5, 3/6, 4/6
+  // JUX: profile  4/1
+  // LA:  profiles 5/1, 5/2, 6/2, 6/3
   let crossType: "RA" | "JUX" | "LA";
   if (personalitySunLine <= 3) {
     crossType = "RA";
   } else if (personalitySunLine === 4 && designSunLine === 1) {
     crossType = "JUX";
+  } else if (personalitySunLine === 4) {
+    crossType = "RA"; // profile 4/6
   } else {
-    crossType = "LA";
+    crossType = "LA"; // personality lines 5 or 6
   }
   const key = `${personalitySunGate}/${crossType}`;
   return CROSS_NAMES[key] ?? `Cross of Gate ${personalitySunGate} (${crossType})`;
