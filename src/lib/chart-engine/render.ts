@@ -1,28 +1,28 @@
 import type { CenterName } from "./types.js";
-import { CHANNELS, CENTER_GATES } from "./data.js";
+import { CHANNELS } from "./data.js";
 
 // ── Canvas ─────────────────────────────────────────────────────────────────────
-const W = 500;
-const H = 900;
+const W = 520;
+const H = 960;
 
 // ── Center positions [cx, cy] ──────────────────────────────────────────────────
-// Spine centred at x=250. Side centres offset ±122px.
+// Spine centred at x=260. Side centres at ±130 px.
 const POS: Record<CenterName, [number, number]> = {
-  Head:        [250,  65],
-  Ajna:        [250, 188],
-  Throat:      [250, 334],
-  G:           [250, 490],
-  Ego:         [372, 400],
-  Sacral:      [250, 660],
-  SolarPlexus: [372, 540],
-  Spleen:      [128, 540],
-  Root:        [250, 800],
+  Head:        [260,  70],
+  Ajna:        [260, 200],
+  Throat:      [260, 370],
+  G:           [260, 530],
+  Ego:         [390, 452],
+  Sacral:      [260, 730],
+  SolarPlexus: [390, 620],
+  Spleen:      [130, 620],
+  Root:        [260, 872],
 };
 
-// Head/Ajna bigger, Throat smaller, SP/Spleen bigger, Ego unchanged
+// Head/Ajna bigger, Throat smaller, SP/Spleen bigger, Ego small
 const CENTER_R: Record<CenterName, number> = {
-  Head: 44, Ajna: 50, Throat: 46, G: 52, Ego: 36,
-  Sacral: 52, SolarPlexus: 56, Spleen: 56, Root: 52,
+  Head: 40, Ajna: 46, Throat: 40, G: 46, Ego: 24,
+  Sacral: 48, SolarPlexus: 48, Spleen: 48, Root: 44,
 };
 
 type Shape = "tri-up" | "tri-down" | "square" | "diamond";
@@ -36,20 +36,15 @@ const CENTER_SHAPE: Record<CenterName, Shape> = {
 const CENTER_LABEL: Record<CenterName, string> = {
   Head: "head", Ajna: "ajna", Throat: "throat",
   G: "G", Ego: "ego", Sacral: "sacral",
-  SolarPlexus: "sp", Spleen: "spleen", Root: "root",
-};
-
-// Max gate columns per center (controls gate number grid layout inside shape)
-const CENTER_GATE_COLS: Record<CenterName, number> = {
-  Head: 3, Ajna: 3, Throat: 4, G: 3,
-  Ego: 2, Sacral: 3, SolarPlexus: 4, Spleen: 4, Root: 3,
+  SolarPlexus: "solar\nplexus", Spleen: "spleen", Root: "root",
 };
 
 // ── Colours ────────────────────────────────────────────────────────────────────
 const C_PERSONALITY    = "#111111";
 const C_DESIGN         = "#c0392b";
+const C_BOTH           = "#6a1da0";
 const C_INACTIVE_LINE  = "#ccc8de";
-const C_INACTIVE_GATE  = "#aaa8c0";
+const C_INACTIVE_GATE  = "#b0aac8";
 const C_DEF_FILL       = "#c05a3c";
 const C_DEF_STROKE     = "#9a3d22";
 const C_UNDEF_FILL     = "#f0eef8";
@@ -62,9 +57,13 @@ function f(n: number): string { return n.toFixed(2); }
 
 interface GatePos { x: number; y: number; }
 
-// ── Gate positions (channel endpoints at center edge) ──────────────────────────
-const GATE_GAP  = 3;   // px from center edge to channel endpoint
-const GATE_STEP = 9;   // px between parallel channel lanes in a group
+// ── Gate positions (channel endpoints + label anchors) ─────────────────────────
+// Each gate sits OUTSIDE its center edge, directed toward the connected center.
+// Multiple channels between the same pair are spread perpendicularly so that
+// both ends form perfectly parallel lines.
+
+const GATE_GAP  = 20;  // px from center edge to gate-label anchor
+const GATE_STEP = 15;  // px between parallel gate slots in a group
 
 function buildGatePositions(): Map<number, GatePos> {
   const groups = new Map<string, typeof CHANNELS[number][]>();
@@ -121,72 +120,59 @@ function renderShape(cx: number, cy: number, s: Shape, r: number, def: boolean):
   return `<polygon points="${f(cx)},${f(cy+r)} ${f(cx+r)},${f(cy-r)} ${f(cx-r)},${f(cy-r)}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
 }
 
-// ── Gate numbers inside centers ────────────────────────────────────────────────
-function renderGatesInCenter(
-  center: CenterName,
-  cx: number, cy: number,
-  shape: Shape, r: number,
-  pGates: Set<number>, dGates: Set<number>,
-): string {
-  const gates = [...CENTER_GATES[center]];
-  const maxCols = CENTER_GATE_COLS[center];
-  const lineH = 11;
-  const colW  = 16;
-  const fs    = 8;
+// ── Center name label (inside shape) ──────────────────────────────────────────
+function renderCenterLabel(cx: number, cy: number, s: Shape, r: number, def: boolean, label: string): string {
+  const color = def ? C_LABEL_DEF : C_LABEL_UNDEF;
+  const fw = "500";
 
-  // Vertical center of the gate grid, offset by shape geometry
-  let gridCy: number;
-  if (shape === "square")    gridCy = cy + 5;
-  else if (shape === "diamond") gridCy = cy - 8;
-  else if (shape === "tri-up")  gridCy = cy + r * 0.12;
-  else                          gridCy = cy - r * 0.10; // tri-down
+  let baseY = cy + 4;
+  if (s === "tri-up")   baseY = cy + r * 0.35;
+  if (s === "tri-down") baseY = cy - r * 0.18;
 
-  // Build rows
-  const rows: number[][] = [];
-  for (let i = 0; i < gates.length; i += maxCols) {
-    rows.push(gates.slice(i, i + maxCols));
+  const lines = label.split("\n");
+  if (lines.length === 2) {
+    return [
+      `<text x="${f(cx)}" y="${f(baseY - 6)}" text-anchor="middle" font-size="10" font-family="sans-serif" fill="${color}" font-weight="${fw}">${lines[0]}</text>`,
+      `<text x="${f(cx)}" y="${f(baseY + 7)}" text-anchor="middle" font-size="10" font-family="sans-serif" fill="${color}" font-weight="${fw}">${lines[1]}</text>`,
+    ].join("\n");
   }
-  const totalH = (rows.length - 1) * lineH;
+  return `<text x="${f(cx)}" y="${f(baseY)}" text-anchor="middle" font-size="10" font-family="sans-serif" fill="${color}" font-weight="${fw}">${label}</text>`;
+}
 
+// ── Gate number labels — coloured badge squares, one per channel endpoint ─────
+// Badge colour: dark=personality only, red=design only, amber=both, white=undefined
+function renderGateLabels(
+  gatePositions: Map<number, GatePos>,
+  pGates: Set<number>,
+  dGates: Set<number>,
+): string {
+  const bw = 17, bh = 13, rx = 2.5;
   const parts: string[] = [];
-  rows.forEach((row, ri) => {
-    const y = gridCy - totalH / 2 + ri * lineH;
-    const rowSpan = (row.length - 1) * colW;
-    row.forEach((gate, ci) => {
-      const x = cx - rowSpan / 2 + ci * colW;
-      const isP = pGates.has(gate), isD = dGates.has(gate);
-      let col: string, fw: string;
-      if (isP && isD) { col = "#6a1da0"; fw = "700"; }
-      else if (isP)   { col = C_PERSONALITY; fw = "700"; }
-      else if (isD)   { col = C_DESIGN; fw = "700"; }
-      else            { col = C_INACTIVE_GATE; fw = "400"; }
-      parts.push(
-        `<text x="${f(x)}" y="${f(y + 3)}" text-anchor="middle" font-size="${fs}" ` +
-        `font-family="monospace" fill="${col}" font-weight="${fw}">${gate}</text>`,
-      );
-    });
-  });
+  for (const [gate, pos] of gatePositions) {
+    const isP = pGates.has(gate), isD = dGates.has(gate);
+    let bg: string, textCol: string, strokeCol: string, strokeW: string;
+    if (isP && isD)  { bg = "#d4740a"; textCol = "#fff"; strokeCol = "none"; strokeW = "0"; }
+    else if (isP)    { bg = "#1a1410"; textCol = "#fff"; strokeCol = "none"; strokeW = "0"; }
+    else if (isD)    { bg = "#c0392b"; textCol = "#fff"; strokeCol = "none"; strokeW = "0"; }
+    else             { bg = "#ffffff"; textCol = C_INACTIVE_GATE; strokeCol = "#c0b8d8"; strokeW = "0.75"; }
+    const x = pos.x, y = pos.y;
+    parts.push(
+      `<rect x="${f(x-bw/2)}" y="${f(y-bh/2)}" width="${bw}" height="${bh}" rx="${rx}" fill="${bg}" stroke="${strokeCol}" stroke-width="${strokeW}"/>`,
+      `<text x="${f(x)}" y="${f(y+3.5)}" text-anchor="middle" font-size="8.5" font-family="sans-serif" fill="${textCol}" font-weight="600">${gate}</text>`,
+    );
+  }
   return parts.join("\n");
 }
 
-// ── Center name label ──────────────────────────────────────────────────────────
-function renderCenterLabel(cx: number, cy: number, s: Shape, r: number, def: boolean, label: string): string {
-  const color = def ? C_LABEL_DEF : C_LABEL_UNDEF;
-  let labelY: number;
-  if (s === "square")   labelY = cy - r + 11;  // inside top of square
-  else if (s === "diamond") labelY = cy + r - 8; // inside bottom of diamond
-  else if (s === "tri-up")  labelY = cy + r - 9; // inside near base
-  else                      labelY = cy - r + 11; // tri-down: inside near wide top
-
-  return `<text x="${f(cx)}" y="${f(labelY)}" text-anchor="middle" font-size="9" font-family="sans-serif" fill="${color}" font-weight="500">${label}</text>`;
-}
-
 // ── Channel rendering ──────────────────────────────────────────────────────────
+// Dual-lane: personality lane (black) offset one side, design lane (red) other.
+// Each lane split at midpoint — only the half touching an active gate is coloured.
+
 const ARC_GROUPS = new Set(["Spleen__Root", "SolarPlexus__Root"]);
 
-const SW_ACTIVE   = 4.5;
+const SW_ACTIVE   = 5.5;
 const SW_INACTIVE = 1.5;
-const LANE_OFF    = 3.5;
+const LANE_OFF    = 3.5;  // px perpendicular offset for each lane
 
 function renderStraightChannel(
   gA: number, gB: number,
@@ -213,10 +199,10 @@ function renderStraightChannel(
     return `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="${fc}" stroke-width="${sw}" stroke-linecap="round"/>`;
   }
 
-  // Personality lane (right = −perp) — split at midpoint by gate
+  // Personality lane offset by −perp (right side), split at midpoint
   const p1 = seg(posA.x-px*O, posA.y-py*O, mx-px*O, my-py*O, gA_p, C_PERSONALITY);
   const p2 = seg(mx-px*O, my-py*O, posB.x-px*O, posB.y-py*O, gB_p, C_PERSONALITY);
-  // Design lane (left = +perp)
+  // Design lane offset by +perp (left side), split at midpoint
   const d1 = seg(posA.x+px*O, posA.y+py*O, mx+px*O, my+py*O, gA_d, C_DESIGN);
   const d2 = seg(mx+px*O, my+py*O, posB.x+px*O, posB.y+py*O, gB_d, C_DESIGN);
 
@@ -234,8 +220,8 @@ function renderArcChannel(
 
   const cx_mid = (pA.x + pB.x) / 2;
   const cy_mid = (pA.y + pB.y) / 2;
-  const isLeft = pA.x < 250;
-  const cpx = isLeft ? cx_mid - 175 : cx_mid + 175;
+  const isLeft = pA.x < 260;
+  const cpx = isLeft ? cx_mid - 155 : cx_mid + 155;
   const cpy = cy_mid;
 
   const dx = pB.x - pA.x, dy = pB.y - pA.y;
@@ -281,7 +267,7 @@ export function renderBodygraph({
     `<rect width="${W}" height="${H}" fill="#fafaf7"/>`,
   ];
 
-  // Channels behind centers
+  // 1. Channels (lowest layer)
   for (const [gA, gB, cA, cB] of CHANNELS) {
     const key = `${cA}__${cB}`;
     if (ARC_GROUPS.has(key)) {
@@ -291,13 +277,15 @@ export function renderBodygraph({
     }
   }
 
-  // Centers on top of channels
+  // 2. Gate number labels (above channels, behind centers)
+  parts.push(renderGateLabels(gatePositions, personalityGates, designGates));
+
+  // 3. Centers and their name labels (topmost)
   for (const name of Object.keys(POS) as CenterName[]) {
     const [cx, cy] = POS[name];
     const s = CENTER_SHAPE[name], r = CENTER_R[name];
     const def = definedCenters.has(name);
     parts.push(renderShape(cx, cy, s, r, def));
-    parts.push(renderGatesInCenter(name, cx, cy, s, r, personalityGates, designGates));
     parts.push(renderCenterLabel(cx, cy, s, r, def, CENTER_LABEL[name]));
   }
 

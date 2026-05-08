@@ -112,15 +112,15 @@ if (Astro.request.method === "POST") {
         <!-- Bodygraph + activation columns side by side -->
         <div class="rounded-xl border border-black/10 bg-white/60 overflow-hidden">
           <h2 class="text-lg font-light px-6 pt-5 pb-2">Bodygraph</h2>
-          <div class="flex gap-2 px-3 pb-5 items-start">
+          <div class="flex gap-1 px-2 pb-5 items-start">
 
             <!-- Unconscious / Design — left, red -->
-            <div class="flex-none w-[128px] text-[10.5px] leading-snug pt-2 pr-1">
-              <p class="text-[8.5px] font-semibold uppercase tracking-widest text-[#c0392b] mb-2 opacity-80">Unconscious</p>
+            <div class="flex-none w-[145px] text-[11px] leading-snug pt-1 pr-2">
+              <p class="text-[8px] font-bold uppercase tracking-widest text-[#c0392b] mb-2.5">Unconscious</p>
               {chart.designActivations.map((a) => (
-                <div class="flex items-baseline justify-between gap-1 py-[1.5px]">
-                  <span class="text-[#c0392b] opacity-75 truncate">{PLANET_LABELS[a.planet] ?? a.planet}</span>
-                  <span class="font-mono text-[#c0392b] tabular-nums shrink-0">{a.gate}.{a.line}</span>
+                <div class="flex items-baseline justify-between gap-1 py-[2px]">
+                  <span class="text-[#c0392b]/80 truncate">{PLANET_LABELS[a.planet] ?? a.planet}</span>
+                  <span class="font-mono font-semibold text-[#c0392b] tabular-nums shrink-0">{a.gate}.{a.line}</span>
                 </div>
               ))}
             </div>
@@ -128,19 +128,20 @@ if (Astro.request.method === "POST") {
             <!-- Bodygraph SVG — centre -->
             <div class="flex-1 min-w-0 text-center">
               <div class="inline-block w-full" set:html={chart.bodygraphSvg} />
-              <p class="mt-2 text-[9.5px] opacity-50 select-none">
-                <span class="inline-block w-2 h-2 rounded-full bg-[#111111] mr-1 align-middle"></span>Conscious &nbsp;
-                <span class="inline-block w-2 h-2 rounded-full bg-[#c0392b] mr-1 ml-2 align-middle"></span>Unconscious
+              <p class="mt-2 text-[9px] opacity-50 select-none">
+                <span class="inline-block w-2 h-2 rounded bg-[#1a1410] mr-1 align-middle"></span>Conscious &nbsp;
+                <span class="inline-block w-2 h-2 rounded bg-[#c0392b] mr-1 ml-2 align-middle"></span>Unconscious &nbsp;
+                <span class="inline-block w-2 h-2 rounded bg-[#d4740a] mr-1 ml-2 align-middle"></span>Both
               </p>
             </div>
 
             <!-- Conscious / Personality — right, black -->
-            <div class="flex-none w-[128px] text-[10.5px] leading-snug pt-2 pl-1">
-              <p class="text-[8.5px] font-semibold uppercase tracking-widest text-[#111111] mb-2 opacity-60">Conscious</p>
+            <div class="flex-none w-[145px] text-[11px] leading-snug pt-1 pl-2">
+              <p class="text-[8px] font-bold uppercase tracking-widest text-[#111111] mb-2.5 opacity-70">Conscious</p>
               {chart.personalityActivations.map((a) => (
-                <div class="flex items-baseline justify-between gap-1 py-[1.5px]">
-                  <span class="text-[#111111] opacity-60 truncate">{PLANET_LABELS[a.planet] ?? a.planet}</span>
-                  <span class="font-mono text-[#111111] tabular-nums shrink-0">{a.gate}.{a.line}</span>
+                <div class="flex items-baseline justify-between gap-1 py-[2px]">
+                  <span class="text-[#111111]/60 truncate">{PLANET_LABELS[a.planet] ?? a.planet}</span>
+                  <span class="font-mono font-semibold text-[#111111] tabular-nums shrink-0">{a.gate}.{a.line}</span>
                 </div>
               ))}
             </div>
