@@ -5,7 +5,7 @@ import { CHANNELS, CENTER_GATES } from "./data.js";
 const W = 620;
 const H = 860;
 
-// ── Center positions ───────────────────────────────────────────────────────────
+// ── Center positions & sizes ───────────────────────────────────────────────────
 const POS: Record<CenterName, [number, number]> = {
   Head:        [310,  68],
   Ajna:        [310, 190],
@@ -50,57 +50,53 @@ const C_UNDEF_STROKE  = "#bab2d0";
 const C_LABEL_DEF     = "#ffffff";
 const C_LABEL_UNDEF   = "#8a84aa";
 
-function f(n: number): string { return n.toFixed(2); }
+function f(n: number): string { return n.toFixed(1); }
 
-interface GatePos { x: number; y: number; }
+// ── Hardcoded gate positions ───────────────────────────────────────────────────
+// Each gate has one fixed (x,y) — derived from the traditional HD bodygraph
+// layout: position within the center shape, directed toward the connected center,
+// with enough spacing that gate circles don't visually collide.
+const GATE_POS: Record<number, [number, number]> = {
+  // Head — three gates along the bottom edge (toward Ajna)
+  63: [330, 108],  61: [310, 108],  64: [290, 108],
 
-// ── Gate positions ─────────────────────────────────────────────────────────────
-// Each gate circle sits at GATE_FRAC × radius from its center, directed toward
-// the connected center. Gates in the same center-pair group spread perpendicularly
-// so their channel lines form a visible parallel bundle between centers.
+  // Ajna — top row toward Head, bottom cluster near tip toward Throat
+  4:  [330, 150],  24: [310, 150],  47: [290, 150],
+  17: [323, 228],  11: [310, 228],  43: [297, 228],
 
-const GATE_FRAC = 0.80;  // gates near the center boundary edge
-const GATE_STEP = 13;    // px between parallel channels in the same corridor
+  // Throat — top toward Ajna; bottom toward G; sides toward Ego/SP/Spleen
+  62: [330, 282],  56: [310, 282],  23: [290, 282],
+  31: [334, 370],   8: [314, 370],  33: [294, 370],  20: [274, 370],
+  45: [354, 331],
+  12: [344, 345],  35: [352, 361],
+  16: [266, 352],
 
-function buildGatePositions(): Map<number, GatePos> {
-  const groups = new Map<string, typeof CHANNELS[number][]>();
-  for (const ch of CHANNELS) {
-    const key = `${ch[2]}__${ch[3]}`;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(ch);
-  }
+  // G — top toward Throat; bottom toward Sacral; right toward Ego
+   7: [340, 444],   1: [320, 444],  13: [300, 444],  10: [280, 444],
+   2: [330, 500],  15: [310, 500],  46: [290, 500],
+  25: [336, 462],
 
-  const map = new Map<number, GatePos>();
+  // Ego — four gates spread across the small square
+  21: [432, 348],  26: [428, 374],  51: [434, 399],  40: [462, 408],
 
-  for (const [, channels] of groups) {
-    const [, , cA, cB] = channels[0];
-    const [ax, ay] = POS[cA];
-    const [bx, by] = POS[cB];
-    const rA = CENTER_R[cA], rB = CENTER_R[cB];
+  // Sacral — top row (G/Throat side); mid sides (SP/Spleen); bottom (Root)
+  34: [270, 577],  29: [290, 577],   5: [310, 577],  14: [330, 577],
+  27: [267, 601],  59: [350, 596],
+  42: [290, 679],   9: [310, 679],   3: [330, 679],
 
-    const dx = bx - ax, dy = by - ay;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    const nx = dx / len, ny = dy / len;
-    const px = -ny, py = nx;  // perpendicular direction
+  // SolarPlexus — top cluster (Throat/Ego); bottom row (Root/Sacral)
+  37: [465, 458],  22: [452, 470],  36: [460, 487],
+   6: [432, 516],  55: [450, 519],  49: [468, 521],  30: [486, 519],
 
-    const n = channels.length;
-    const totalSpread = (n - 1) * GATE_STEP;
+  // Spleen — right column (Throat/G/Ego); bottom-right fan (Root/Sacral)
+  48: [165, 472],  44: [163, 490],  57: [170, 507],
+  50: [190, 515],  28: [198, 532],  32: [181, 542],  18: [164, 552],
 
-    // Gate anchors: inside each center near its facing edge
-    const baseAx = ax + nx * (rA * GATE_FRAC);
-    const baseAy = ay + ny * (rA * GATE_FRAC);
-    const baseBx = bx - nx * (rB * GATE_FRAC);
-    const baseBy = by - ny * (rB * GATE_FRAC);
-
-    channels.forEach((ch, i) => {
-      const [gA, gB] = ch;
-      const offset = -totalSpread / 2 + i * GATE_STEP;
-      if (!map.has(gA)) map.set(gA, { x: baseAx + px * offset, y: baseAy + py * offset });
-      if (!map.has(gB)) map.set(gB, { x: baseBx + px * offset, y: baseBy + py * offset });
-    });
-  }
-  return map;
-}
+  // Root — three rows: center (Sacral), left fan (Spleen), right fan (SP)
+  53: [290, 716],  52: [310, 716],  60: [330, 716],
+  58: [264, 730],  54: [283, 736],  38: [299, 742],
+  39: [321, 742],  19: [337, 736],  41: [356, 730],
+};
 
 // ── Shape helpers ──────────────────────────────────────────────────────────────
 function shapeAttrs(cx: number, cy: number, s: Shape, r: number): string {
@@ -110,7 +106,6 @@ function shapeAttrs(cx: number, cy: number, s: Shape, r: number): string {
     return `<polygon points="${f(cx)},${f(cy - r)} ${f(cx + r)},${f(cy)} ${f(cx)},${f(cy + r)} ${f(cx - r)},${f(cy)}"`;
   if (s === "tri-up")
     return `<polygon points="${f(cx)},${f(cy - r)} ${f(cx + r)},${f(cy + r)} ${f(cx - r)},${f(cy + r)}"`;
-  // tri-down
   return `<polygon points="${f(cx)},${f(cy + r)} ${f(cx + r)},${f(cy - r)} ${f(cx - r)},${f(cy - r)}"`;
 }
 
@@ -119,80 +114,67 @@ function renderShapeFill(cx: number, cy: number, s: Shape, r: number, def: boole
 }
 
 function renderShapeStroke(cx: number, cy: number, s: Shape, r: number, def: boolean): string {
-  const stroke = def ? C_DEF_STROKE : C_UNDEF_STROKE;
-  return shapeAttrs(cx, cy, s, r) + ` fill="none" stroke="${stroke}" stroke-width="2"/>`;
+  return shapeAttrs(cx, cy, s, r) + ` fill="none" stroke="${def ? C_DEF_STROKE : C_UNDEF_STROKE}" stroke-width="2"/>`;
 }
 
-// ── Clip-path defs (one per center) ───────────────────────────────────────────
+// ── Clip-path defs ─────────────────────────────────────────────────────────────
 function renderDefs(): string {
-  const clips: string[] = [];
-  for (const name of Object.keys(POS) as CenterName[]) {
+  const clips = (Object.keys(POS) as CenterName[]).map(name => {
     const [cx, cy] = POS[name];
-    const r = CENTER_R[name] - 1;
-    const s = CENTER_SHAPE[name];
-    clips.push(`<clipPath id="clip-${name}">${shapeAttrs(cx, cy, s, r)}/></clipPath>`);
-  }
+    return `<clipPath id="clip-${name}">${shapeAttrs(cx, cy, CENTER_SHAPE[name], CENTER_R[name])}/></clipPath>`;
+  });
   return `<defs>${clips.join("")}</defs>`;
 }
 
-// ── Body silhouette background ─────────────────────────────────────────────────
+// ── Body silhouette ────────────────────────────────────────────────────────────
 function renderSilhouette(): string {
-  // Simplified humanoid torso outline enclosing all centers
-  return `<path d="M 310,18 C 385,18 445,65 455,135 L 542,322 L 548,518 L 492,742 L 402,842 L 310,855 L 218,842 L 128,742 L 72,518 L 78,322 C 175,65 235,18 310,18 Z" fill="#ede9f6" opacity="0.40"/>`;
+  return `<path d="M 310,18 C 385,18 445,65 455,135 L 542,322 L 548,518 L 492,742 L 402,842 L 310,855 L 218,842 L 128,742 L 72,518 L 78,322 C 175,65 235,18 310,18 Z" fill="#ede9f6" opacity="0.38"/>`;
 }
 
-// ── Gate circles (clipped inside each center) ──────────────────────────────────
-const CIRC_R = 9;
+// ── Gate circles ───────────────────────────────────────────────────────────────
+const CIRC_R = 8;
 
 function renderGateCircles(
   center: CenterName,
-  gatePositions: Map<number, GatePos>,
   pGates: Set<number>,
   dGates: Set<number>,
 ): string {
   const parts: string[] = [];
   for (const gate of CENTER_GATES[center]) {
-    const pos = gatePositions.get(gate);
+    const pos = GATE_POS[gate];
     if (!pos) continue;
+    const [gx, gy] = pos;
     const isP = pGates.has(gate), isD = dGates.has(gate);
     let bg: string, textCol: string, strokeAttr: string;
-    if (isP && isD)  { bg = C_BOTH;                     textCol = "#fff"; strokeAttr = ""; }
-    else if (isP)    { bg = C_PERSONALITY;               textCol = "#fff"; strokeAttr = ""; }
-    else if (isD)    { bg = C_DESIGN;                    textCol = "#fff"; strokeAttr = ""; }
-    else             { bg = "rgba(255,255,255,0.92)";    textCol = C_INACTIVE_GATE; strokeAttr = ` stroke="${C_UNDEF_STROKE}" stroke-width="0.75"`; }
+    if (isP && isD)  { bg = C_BOTH;       textCol = "#fff"; strokeAttr = ""; }
+    else if (isP)    { bg = C_PERSONALITY; textCol = "#fff"; strokeAttr = ""; }
+    else if (isD)    { bg = C_DESIGN;      textCol = "#fff"; strokeAttr = ""; }
+    else             { bg = "rgba(255,255,255,0.92)"; textCol = C_INACTIVE_GATE; strokeAttr = ` stroke="${C_UNDEF_STROKE}" stroke-width="0.75"`; }
     parts.push(
-      `<circle cx="${f(pos.x)}" cy="${f(pos.y)}" r="${CIRC_R}" fill="${bg}"${strokeAttr}/>`,
-      `<text x="${f(pos.x)}" y="${f(pos.y + 3.5)}" text-anchor="middle" font-size="8" font-family="sans-serif" fill="${textCol}" font-weight="700">${gate}</text>`,
+      `<circle cx="${gx}" cy="${gy}" r="${CIRC_R}" fill="${bg}"${strokeAttr}/>`,
+      `<text x="${gx}" y="${gy + 3}" text-anchor="middle" font-size="7.5" font-family="sans-serif" fill="${textCol}" font-weight="700">${gate}</text>`,
     );
   }
   return `<g clip-path="url(#clip-${center})">${parts.join("")}</g>`;
 }
 
-// ── Center name labels ─────────────────────────────────────────────────────────
+// ── Center labels ──────────────────────────────────────────────────────────────
 function renderCenterLabel(cx: number, cy: number, s: Shape, r: number, def: boolean, label: string): string {
   const color = def ? C_LABEL_DEF : C_LABEL_UNDEF;
-  // For triangles, shift toward the "wide" end so the label avoids the tip
   let ly: number;
-  if (s === "tri-up")   ly = cy + r * 0.28;
+  if (s === "tri-up")    ly = cy + r * 0.28;
   else if (s === "tri-down") ly = cy - r * 0.28;
-  else                  ly = cy;
-
+  else                   ly = cy;
   const lines = label.split("\n");
   const fs = s === "diamond" ? 14 : 12;
   if (lines.length === 2) {
-    return [
-      `<text x="${f(cx)}" y="${f(ly - 7)}" text-anchor="middle" font-size="${fs}" font-family="sans-serif" fill="${color}" font-weight="500">${lines[0]}</text>`,
-      `<text x="${f(cx)}" y="${f(ly + 8)}" text-anchor="middle" font-size="${fs}" font-family="sans-serif" fill="${color}" font-weight="500">${lines[1]}</text>`,
-    ].join("");
+    return `<text x="${f(cx)}" y="${f(ly - 7)}" text-anchor="middle" font-size="${fs}" font-family="sans-serif" fill="${color}" font-weight="500">${lines[0]}</text>` +
+           `<text x="${f(cx)}" y="${f(ly + 8)}" text-anchor="middle" font-size="${fs}" font-family="sans-serif" fill="${color}" font-weight="500">${lines[1]}</text>`;
   }
   return `<text x="${f(cx)}" y="${f(ly + 4)}" text-anchor="middle" font-size="${fs}" font-family="sans-serif" fill="${color}" font-weight="500">${label}</text>`;
 }
 
 // ── Channel rendering ──────────────────────────────────────────────────────────
-// Each channel is a single band split at its midpoint; each half is coloured by
-// the activation state of the gate at that end. Center fills cover the interior
-// segments so channels appear to run between centers, not through them.
-
 const SW_ACTIVE   = 6;
 const SW_INACTIVE = 1.5;
 
@@ -206,17 +188,15 @@ function gateStyle(isP: boolean, isD: boolean): { col: string; sw: number } {
 function renderChannel(
   gA: number, gB: number,
   pGates: Set<number>, dGates: Set<number>,
-  gatePositions: Map<number, GatePos>,
 ): string {
-  const posA = gatePositions.get(gA), posB = gatePositions.get(gB);
+  const posA = GATE_POS[gA], posB = GATE_POS[gB];
   if (!posA || !posB) return "";
-  const mx = (posA.x + posB.x) / 2, my = (posA.y + posB.y) / 2;
+  const [ax, ay] = posA, [bx, by] = posB;
+  const mx = (ax + bx) / 2, my = (ay + by) / 2;
   const sA = gateStyle(pGates.has(gA), dGates.has(gA));
   const sB = gateStyle(pGates.has(gB), dGates.has(gB));
-  return [
-    `<line x1="${f(posA.x)}" y1="${f(posA.y)}" x2="${f(mx)}" y2="${f(my)}" stroke="${sA.col}" stroke-width="${sA.sw}" stroke-linecap="butt"/>`,
-    `<line x1="${f(mx)}" y1="${f(my)}" x2="${f(posB.x)}" y2="${f(posB.y)}" stroke="${sB.col}" stroke-width="${sB.sw}" stroke-linecap="butt"/>`,
-  ].join("");
+  return `<line x1="${ax}" y1="${ay}" x2="${mx}" y2="${my}" stroke="${sA.col}" stroke-width="${sA.sw}" stroke-linecap="butt"/>` +
+         `<line x1="${mx}" y1="${my}" x2="${bx}" y2="${by}" stroke="${sB.col}" stroke-width="${sB.sw}" stroke-linecap="butt"/>`;
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────────
@@ -232,7 +212,6 @@ export interface RenderInput {
 export function renderBodygraph({
   definedCenters, personalityGates, designGates,
 }: RenderInput): string {
-  const gatePositions = buildGatePositions();
   const names = Object.keys(POS) as CenterName[];
   const parts: string[] = [];
 
@@ -240,38 +219,34 @@ export function renderBodygraph({
   parts.push(`<rect width="${W}" height="${H}" fill="#fafaf7"/>`);
   parts.push(renderSilhouette());
 
-  // Layer 1 — channel bands (drawn behind centers)
+  // 1 — channel bands (behind everything)
   for (const [gA, gB] of CHANNELS) {
-    parts.push(renderChannel(gA, gB, personalityGates, designGates, gatePositions));
+    parts.push(renderChannel(gA, gB, personalityGates, designGates));
   }
 
-  // Layer 2 — center fills (cover channel interiors)
+  // 2 — center fills (cover channel interiors)
   for (const name of names) {
     const [cx, cy] = POS[name];
     parts.push(renderShapeFill(cx, cy, CENTER_SHAPE[name], CENTER_R[name], definedCenters.has(name)));
   }
 
-  // Layer 3 — gate circles (clipped to center shape)
+  // 3 — gate circles (clipped to center shape)
   for (const name of names) {
-    parts.push(renderGateCircles(name, gatePositions, personalityGates, designGates));
+    parts.push(renderGateCircles(name, personalityGates, designGates));
   }
 
-  // Layer 4 — center name labels
+  // 4 — center name labels
   for (const name of names) {
     const [cx, cy] = POS[name];
-    const s = CENTER_SHAPE[name], r = CENTER_R[name];
-    parts.push(renderCenterLabel(cx, cy, s, r, definedCenters.has(name), CENTER_LABEL[name]));
+    parts.push(renderCenterLabel(cx, cy, CENTER_SHAPE[name], CENTER_R[name], definedCenters.has(name), CENTER_LABEL[name]));
   }
 
-  // Layer 5 — center outlines
+  // 5 — center outlines
   for (const name of names) {
     const [cx, cy] = POS[name];
     parts.push(renderShapeStroke(cx, cy, CENTER_SHAPE[name], CENTER_R[name], definedCenters.has(name)));
   }
 
-  return [
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%;height:auto">`,
-    ...parts,
-    `</svg>`,
-  ].join("\n");
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%;height:auto">\n` +
+    parts.join("\n") + `\n</svg>`;
 }
