@@ -68,6 +68,7 @@ if (Astro.request.method === "POST") {
       <button
         type="submit"
         class="mt-2 rounded bg-[#3a4f99] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#2d3f80] transition"
+        style="color: white"
       >
         Generate chart
       </button>
@@ -108,55 +109,42 @@ if (Astro.request.method === "POST") {
           </dl>
         </div>
 
-        <!-- Bodygraph -->
-        <div class="rounded-xl border border-black/10 p-4 bg-white/60 text-center">
-          <h2 class="text-lg font-light mb-4">Bodygraph</h2>
-          <div class="inline-block" set:html={chart.bodygraphSvg} />
-          <p class="mt-3 text-xs opacity-50">
-            <span class="inline-block w-3 h-3 rounded-full bg-[#111111] mr-1"></span>Conscious &nbsp;
-            <span class="inline-block w-3 h-3 rounded-full bg-[#c0392b] mr-1"></span>Unconscious &nbsp;
-            <span class="inline-block w-3 h-3 rounded-full bg-[#6a1da0] mr-1"></span>Both
-          </p>
-        </div>
+        <!-- Bodygraph + activation columns side by side -->
+        <div class="rounded-xl border border-black/10 bg-white/60 overflow-hidden">
+          <h2 class="text-lg font-light px-6 pt-5 pb-2">Bodygraph</h2>
+          <div class="flex gap-2 px-3 pb-5 items-start">
 
-        <!-- Planetary activations -->
-        <div class="rounded-xl border border-black/10 p-6 bg-white/60">
-          <h2 class="text-lg font-light mb-4">Planetary activations</h2>
-          <div class="grid sm:grid-cols-2 gap-6 text-sm">
-            <div>
-              <h3 class="text-xs uppercase tracking-wide opacity-50 mb-2">
-                Conscious (Personality)
-              </h3>
-              <table class="w-full">
-                <tbody>
-                  {chart.personalityActivations.map((a) => (
-                    <tr class="border-b border-black/5 last:border-0">
-                      <td class="py-1 pr-3 opacity-70">{PLANET_LABELS[a.planet] ?? a.planet}</td>
-                      <td class="py-1 text-right font-mono text-xs">
-                        {a.gate}.{a.line}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <!-- Unconscious / Design — left, red -->
+            <div class="flex-none w-[128px] text-[10.5px] leading-snug pt-2 pr-1">
+              <p class="text-[8.5px] font-semibold uppercase tracking-widest text-[#c0392b] mb-2 opacity-80">Unconscious</p>
+              {chart.designActivations.map((a) => (
+                <div class="flex items-baseline justify-between gap-1 py-[1.5px]">
+                  <span class="text-[#c0392b] opacity-75 truncate">{PLANET_LABELS[a.planet] ?? a.planet}</span>
+                  <span class="font-mono text-[#c0392b] tabular-nums shrink-0">{a.gate}.{a.line}</span>
+                </div>
+              ))}
             </div>
-            <div>
-              <h3 class="text-xs uppercase tracking-wide opacity-50 mb-2">
-                Unconscious (Design)
-              </h3>
-              <table class="w-full">
-                <tbody>
-                  {chart.designActivations.map((a) => (
-                    <tr class="border-b border-black/5 last:border-0">
-                      <td class="py-1 pr-3 opacity-70">{PLANET_LABELS[a.planet] ?? a.planet}</td>
-                      <td class="py-1 text-right font-mono text-xs text-red-600">
-                        {a.gate}.{a.line}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+            <!-- Bodygraph SVG — centre -->
+            <div class="flex-1 min-w-0 text-center">
+              <div class="inline-block w-full" set:html={chart.bodygraphSvg} />
+              <p class="mt-2 text-[9.5px] opacity-50 select-none">
+                <span class="inline-block w-2 h-2 rounded-full bg-[#111111] mr-1 align-middle"></span>Conscious &nbsp;
+                <span class="inline-block w-2 h-2 rounded-full bg-[#c0392b] mr-1 ml-2 align-middle"></span>Unconscious
+              </p>
             </div>
+
+            <!-- Conscious / Personality — right, black -->
+            <div class="flex-none w-[128px] text-[10.5px] leading-snug pt-2 pl-1">
+              <p class="text-[8.5px] font-semibold uppercase tracking-widest text-[#111111] mb-2 opacity-60">Conscious</p>
+              {chart.personalityActivations.map((a) => (
+                <div class="flex items-baseline justify-between gap-1 py-[1.5px]">
+                  <span class="text-[#111111] opacity-60 truncate">{PLANET_LABELS[a.planet] ?? a.planet}</span>
+                  <span class="font-mono text-[#111111] tabular-nums shrink-0">{a.gate}.{a.line}</span>
+                </div>
+              ))}
+            </div>
+
           </div>
         </div>
 
@@ -188,7 +176,7 @@ if (Astro.request.method === "POST") {
           </dl>
         </details>
 
-        <!-- Upsell to Journey Narrative -->
+        <!-- Upsell -->
         <div class="rounded-xl border border-[#3a4f99]/30 bg-[#3a4f99]/5 p-6">
           <h2 class="text-lg font-light mb-2">Go deeper with the Journey Narrative</h2>
           <p class="text-sm opacity-70 mb-4">
@@ -196,7 +184,8 @@ if (Astro.request.method === "POST") {
           </p>
           <a
             href="/#journey-narrative"
-            class="inline-block rounded bg-[#3a4f99] px-5 py-2 text-sm font-medium text-white hover:bg-[#2d3f80] transition"
+            class="inline-block rounded bg-[#3a4f99] px-5 py-2 text-sm font-medium hover:bg-[#2d3f80] transition"
+            style="color: white"
           >
             Get your Journey Narrative — $37
           </a>
