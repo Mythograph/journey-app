@@ -41,7 +41,7 @@ const CENTER_LABEL: Record<CenterName, string> = {
 const C_PERSONALITY   = "#111111";
 const C_DESIGN        = "#c0392b";
 const C_BOTH          = "#d4740a";
-const C_INACTIVE_LINE = "#ddd8ee";
+const C_INACTIVE_LINE = "#b0a8d0";
 const C_INACTIVE_GATE = "#9590b4";
 const C_DEF_FILL      = "#c05a3c";
 const C_DEF_STROKE    = "#9a3d22";
@@ -215,7 +215,7 @@ function renderCenterLabel(cx: number, cy: number, s: Shape, r: number, def: boo
 
 // ── Channel rendering ──────────────────────────────────────────────────────────
 const SW_ACTIVE   = 6;
-const SW_INACTIVE = 0.75;
+const SW_INACTIVE = 1.5;
 
 function gateStyle(isP: boolean, isD: boolean): { col: string; sw: number } {
   if (isP && isD) return { col: C_BOTH,        sw: SW_ACTIVE };
@@ -234,8 +234,8 @@ function renderChannel(
   const mx = (ax + bx) / 2, my = (ay + by) / 2;
   const sA = gateStyle(pGates.has(gA), dGates.has(gA));
   const sB = gateStyle(pGates.has(gB), dGates.has(gB));
-  const dashA = sA.sw === SW_INACTIVE ? ` stroke-dasharray="3,4"` : "";
-  const dashB = sB.sw === SW_INACTIVE ? ` stroke-dasharray="3,4"` : "";
+  const dashA = sA.sw === SW_INACTIVE ? ` stroke-dasharray="6,4"` : "";
+  const dashB = sB.sw === SW_INACTIVE ? ` stroke-dasharray="6,4"` : "";
   return `<line x1="${ax}" y1="${ay}" x2="${mx}" y2="${my}" stroke="${sA.col}" stroke-width="${sA.sw}" stroke-linecap="butt"${dashA}/>` +
          `<line x1="${mx}" y1="${my}" x2="${bx}" y2="${by}" stroke="${sB.col}" stroke-width="${sB.sw}" stroke-linecap="butt"${dashB}/>`;
 }
