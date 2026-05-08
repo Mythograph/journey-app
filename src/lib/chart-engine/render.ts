@@ -34,7 +34,7 @@ const CENTER_SHAPE: Record<CenterName, Shape> = {
 const CENTER_LABEL: Record<CenterName, string> = {
   Head: "head", Ajna: "ajna", Throat: "throat",
   G: "G", Ego: "ego", Sacral: "sacral",
-  SolarPlexus: "solar\nplexus", Spleen: "spleen", Root: "root",
+  SolarPlexus: "solar plexus", Spleen: "spleen", Root: "root",
 };
 
 // ── Colours ────────────────────────────────────────────────────────────────────
@@ -64,26 +64,27 @@ const GATE_POS: Record<number, [number, number]> = {
   // Ajna (tri-down, cx=310, cy=190, r=50): flat top y=140, apex(310,240)
   // → Head: top edge
   47: [290, 148],  24: [310, 148],   4: [330, 148],
-  // → Throat: near bottom tip (y=198 hw=21)
-  43: [296, 198],  11: [310, 198],  17: [324, 198],
+  // → Throat: y=192 hw=24 range 286-334 (gates inset ≥3px from walls)
+  43: [296, 192],  11: [310, 192],  17: [324, 192],
 
   // Throat (square, cx=310, cy=325, r=54): top 271, bot 379, left 256, right 364
-  // → Ajna (top edge)
-  23: [292, 278],  56: [310, 278],  62: [328, 278],
-  // → G (bottom edge)
-  20: [278, 372],  33: [294, 372],   8: [310, 372],  31: [326, 372],
+  // → Ajna (top edge, y=282 so circles inset 4px from top wall)
+  23: [292, 282],  56: [310, 282],  62: [328, 282],
+  // → G (bottom edge, y=368 so circles inset 4px from bottom wall)
+  20: [278, 368],  33: [294, 368],   8: [310, 368],  31: [326, 368],
   // → Ego (right edge, upper)
   45: [355, 302],
   // → SolarPlexus (right edge, mid/lower)
   12: [355, 330],  35: [355, 356],
-  // → Spleen (left edge)
-  16: [263, 340],
+  // → Spleen (left edge, x=266 insets circles 3px from left wall)
+  16: [266, 340],
 
-  // G (diamond, cx=310, cy=472, r=60): hw(y)=60-|y-472|
-  // → Throat (top): y=438, hw=34, range 276-344
-  10: [283, 438],  13: [301, 438],   1: [319, 438],   7: [337, 438],
-  // → Sacral (bottom): y=496, hw=36, range 274-346
-  46: [286, 496],  15: [310, 496],   2: [334, 496],
+  // G (diamond, cx=310, cy=472, r=60)
+  // upper half edges: x_left=722-y, x_right=y-102
+  // → Throat (top): y=450, range 272-348, 4 gates at spacing 20px
+  10: [281, 450],  13: [301, 450],   1: [321, 450],   7: [341, 450],
+  // → Sacral (bottom): y=496, range 274-346, inset 3px
+  46: [285, 496],  15: [310, 496],   2: [335, 496],
   // → Ego (right)
   25: [355, 472],
 
@@ -200,7 +201,7 @@ function renderGateCircles(
 function renderCenterLabel(cx: number, cy: number, s: Shape, r: number, def: boolean, label: string): string {
   const color = def ? C_LABEL_DEF : C_LABEL_UNDEF;
   let ly: number;
-  if (s === "tri-up")    ly = cy + r * 0.6;
+  if (s === "tri-up")    ly = cy + r * 0.4;
   else if (s === "tri-down") ly = cy - r * 0.28;
   else                   ly = cy;
   const lines = label.split("\n");
