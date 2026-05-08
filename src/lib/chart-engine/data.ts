@@ -240,7 +240,7 @@ export const CROSS_NAMES: Record<string, string> = {
   "35/JUX": "Juxtaposition Cross of Experience",
   "35/LA": "Left Angle Cross of Separation",
 
-  "36/RA": "Right Angle Cross of the Eden",
+  "36/RA": "Right Angle Cross of Eden 1",
   "36/JUX": "Juxtaposition Cross of Crisis",
   "36/LA": "Left Angle Cross of the Plane",
 
