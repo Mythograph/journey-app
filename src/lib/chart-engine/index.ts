@@ -67,6 +67,8 @@ export async function generateChart(birth: BirthData): Promise<Chart> {
     definedChannels,
     personalityGates,
     designGates,
+    personalityActivations,
+    designActivations,
   });
 
   return {
