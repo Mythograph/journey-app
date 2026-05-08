@@ -162,7 +162,7 @@ function renderGateCircles(
 function renderCenterLabel(cx: number, cy: number, s: Shape, r: number, def: boolean, label: string): string {
   const color = def ? C_LABEL_DEF : C_LABEL_UNDEF;
   let ly: number;
-  if (s === "tri-up")    ly = cy + r * 0.28;
+  if (s === "tri-up")    ly = cy + r * 0.6;
   else if (s === "tri-down") ly = cy - r * 0.28;
   else                   ly = cy;
   const lines = label.split("\n");
@@ -175,7 +175,7 @@ function renderCenterLabel(cx: number, cy: number, s: Shape, r: number, def: boo
 }
 
 // ── Channel rendering ──────────────────────────────────────────────────────────
-const SW_ACTIVE   = 5;
+const SW_ACTIVE   = 6;
 const SW_INACTIVE = 0.75;
 
 function gateStyle(isP: boolean, isD: boolean): { col: string; sw: number } {
@@ -195,8 +195,10 @@ function renderChannel(
   const mx = (ax + bx) / 2, my = (ay + by) / 2;
   const sA = gateStyle(pGates.has(gA), dGates.has(gA));
   const sB = gateStyle(pGates.has(gB), dGates.has(gB));
-  return `<line x1="${ax}" y1="${ay}" x2="${mx}" y2="${my}" stroke="${sA.col}" stroke-width="${sA.sw}" stroke-linecap="butt"/>` +
-         `<line x1="${mx}" y1="${my}" x2="${bx}" y2="${by}" stroke="${sB.col}" stroke-width="${sB.sw}" stroke-linecap="butt"/>`;
+  const dashA = sA.sw === SW_INACTIVE ? ` stroke-dasharray="3,4"` : "";
+  const dashB = sB.sw === SW_INACTIVE ? ` stroke-dasharray="3,4"` : "";
+  return `<line x1="${ax}" y1="${ay}" x2="${mx}" y2="${my}" stroke="${sA.col}" stroke-width="${sA.sw}" stroke-linecap="butt"${dashA}/>` +
+         `<line x1="${mx}" y1="${my}" x2="${bx}" y2="${by}" stroke="${sB.col}" stroke-width="${sB.sw}" stroke-linecap="butt"${dashB}/>`;
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────────
