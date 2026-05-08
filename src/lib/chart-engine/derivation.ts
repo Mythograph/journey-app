@@ -11,9 +11,13 @@ import type { CenterName, HdType, Authority, PlanetActivation } from "./types.js
 import type { PlanetaryLongitudes } from "./astronomy.js";
 
 // ── Longitude → gate + line ───────────────────────────────────────────────────
+// The HD wheel starts 1.875° (= 2 line-widths) before the vernal equinox.
+// This constant is derived from reference charts and places Gate 41 at
+// the winter solstice (≈ 300° ecliptic), matching the HD New Year.
+const WHEEL_OFFSET = 1.875;
 
 export function longitudeToGateLine(lon: number): { gate: number; line: number } {
-  const norm = ((lon % 360) + 360) % 360;
+  const norm = (((lon + WHEEL_OFFSET) % 360) + 360) % 360;
   const gateIndex = Math.floor(norm / GATE_SIZE);
   const offsetWithin = norm - gateIndex * GATE_SIZE;
   const lineIndex = Math.min(Math.floor(offsetWithin / LINE_SIZE), 5);
@@ -150,11 +154,24 @@ export function deriveProfile(
 }
 
 // ── Incarnation Cross ─────────────────────────────────────────────────────────
+// Cross type is determined by the profile (personality + design sun lines):
+//   RA  = personality line 1-3
+//   JUX = personality line 4 AND design line 1
+//   LA  = personality line 4 (design line ≠ 1), or personality line 5-6
 
 export function deriveIncarnationCross(
   personalitySunGate: number,
   personalitySunLine: number,
+  designSunLine: number,
 ): string {
-  const key = `${personalitySunGate}/${personalitySunLine}`;
-  return CROSS_NAMES[key] ?? `Cross of Gate ${personalitySunGate} (Line ${personalitySunLine})`;
+  let crossType: "RA" | "JUX" | "LA";
+  if (personalitySunLine <= 3) {
+    crossType = "RA";
+  } else if (personalitySunLine === 4 && designSunLine === 1) {
+    crossType = "JUX";
+  } else {
+    crossType = "LA";
+  }
+  const key = `${personalitySunGate}/${crossType}`;
+  return CROSS_NAMES[key] ?? `Cross of Gate ${personalitySunGate} (${crossType})`;
 }

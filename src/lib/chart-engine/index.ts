@@ -59,7 +59,7 @@ export async function generateChart(birth: BirthData): Promise<Chart> {
   const profile = deriveProfile(pSun.line, dSun.line);
 
   // 8. Incarnation Cross from Personality Sun gate + line
-  const incarnationCross = deriveIncarnationCross(pSun.gate, pSun.line);
+  const incarnationCross = deriveIncarnationCross(pSun.gate, pSun.line, dSun.line);
 
   // 9. SVG bodygraph
   const bodygraphSvg = renderBodygraph({

@@ -94,522 +94,264 @@ for (const [center, gates] of Object.entries(CENTER_GATES) as [CenterName, reado
 export const MOTOR_CENTERS = new Set<CenterName>(["Sacral", "SolarPlexus", "Root", "Ego"]);
 
 // ── 192 Incarnation Crosses ───────────────────────────────────────────────────
-// Key: `${personalitySunGate}.${personalitySunLine}` → cross name
-// The cross is determined by the Personality Sun gate + line (profile line 1).
-// Each gate has 6 crosses; the full wheel generates 64×3=192 unique crosses
-// organised by Right Angle (RA), Juxtaposition (JX), Left Angle (LA).
-//
-// Format of key: `${sunGate}/${sunLine}` (personality sun gate and line)
+// Key: `${personalitySunGate}/${"RA"|"JUX"|"LA"}`
+// RA  = personality line 1-3
+// JUX = personality line 4 AND design line 1
+// LA  = personality line 4 (design line ≠1), or personality line 5-6
 export const CROSS_NAMES: Record<string, string> = {
-  // Gate 1 — Creativity / Self-Expression
-  "1/1": "Right Angle Cross of the Sphinx 1",
-  "1/2": "Right Angle Cross of the Sphinx 1",
-  "1/3": "Right Angle Cross of the Sphinx 1",
-  "1/4": "Juxtaposition Cross of the Self",
-  "1/5": "Left Angle Cross of the Clarion 2",
-  "1/6": "Left Angle Cross of the Clarion 2",
+  "1/RA": "Right Angle Cross of the Sphinx 1",
+  "1/JUX": "Juxtaposition Cross of the Self",
+  "1/LA": "Left Angle Cross of the Clarion 2",
 
-  // Gate 2 — The Direction of the Self
-  "2/1": "Right Angle Cross of the Sphinx 2",
-  "2/2": "Right Angle Cross of the Sphinx 2",
-  "2/3": "Right Angle Cross of the Sphinx 2",
-  "2/4": "Juxtaposition Cross of the Driver",
-  "2/5": "Left Angle Cross of the Clarion 1",
-  "2/6": "Left Angle Cross of the Clarion 1",
+  "2/RA": "Right Angle Cross of the Sphinx 2",
+  "2/JUX": "Juxtaposition Cross of the Driver",
+  "2/LA": "Left Angle Cross of the Clarion 1",
 
-  // Gate 3 — Ordering
-  "3/1": "Right Angle Cross of the Vessel of Love 3",
-  "3/2": "Right Angle Cross of the Vessel of Love 3",
-  "3/3": "Right Angle Cross of the Vessel of Love 3",
-  "3/4": "Juxtaposition Cross of Mutation",
-  "3/5": "Left Angle Cross of Mutation 2",
-  "3/6": "Left Angle Cross of Mutation 2",
+  "3/RA": "Right Angle Cross of the Vessel of Love 3",
+  "3/JUX": "Juxtaposition Cross of Mutation",
+  "3/LA": "Left Angle Cross of Mutation 2",
 
-  // Gate 4 — Youthful Folly
-  "4/1": "Right Angle Cross of the Vessel of Love 4",
-  "4/2": "Right Angle Cross of the Vessel of Love 4",
-  "4/3": "Right Angle Cross of the Vessel of Love 4",
-  "4/4": "Juxtaposition Cross of Formulization",
-  "4/5": "Left Angle Cross of Mutation 1",
-  "4/6": "Left Angle Cross of Mutation 1",
+  "4/RA": "Right Angle Cross of the Vessel of Love 4",
+  "4/JUX": "Juxtaposition Cross of Formulization",
+  "4/LA": "Left Angle Cross of Mutation 1",
 
-  // Gate 5 — Fixed Rhythms
-  "5/1": "Right Angle Cross of the Vessel of Love 1",
-  "5/2": "Right Angle Cross of the Vessel of Love 1",
-  "5/3": "Right Angle Cross of the Vessel of Love 1",
-  "5/4": "Juxtaposition Cross of Habits",
-  "5/5": "Left Angle Cross of the Vessel of Love 2",
-  "5/6": "Left Angle Cross of the Vessel of Love 2",
+  "5/RA": "Right Angle Cross of the Vessel of Love 1",
+  "5/JUX": "Juxtaposition Cross of Habits",
+  "5/LA": "Left Angle Cross of the Vessel of Love 2",
 
-  // Gate 6 — Conflict
-  "6/1": "Right Angle Cross of the Vessel of Love 2",
-  "6/2": "Right Angle Cross of the Vessel of Love 2",
-  "6/3": "Right Angle Cross of the Vessel of Love 2",
-  "6/4": "Juxtaposition Cross of Friction",
-  "6/5": "Left Angle Cross of the Vessel of Love 1",
-  "6/6": "Left Angle Cross of the Vessel of Love 1",
+  "6/RA": "Right Angle Cross of the Vessel of Love 2",
+  "6/JUX": "Juxtaposition Cross of Friction",
+  "6/LA": "Left Angle Cross of the Vessel of Love 1",
 
-  // Gate 7 — The Army
-  "7/1": "Right Angle Cross of the Sphinx 3",
-  "7/2": "Right Angle Cross of the Sphinx 3",
-  "7/3": "Right Angle Cross of the Sphinx 3",
-  "7/4": "Juxtaposition Cross of Interaction",
-  "7/5": "Left Angle Cross of the Clarion 4",
-  "7/6": "Left Angle Cross of the Clarion 4",
+  "7/RA": "Right Angle Cross of the Sphinx 3",
+  "7/JUX": "Juxtaposition Cross of Interaction",
+  "7/LA": "Left Angle Cross of the Clarion 4",
 
-  // Gate 8 — Holding Together
-  "8/1": "Right Angle Cross of Eden 1",
-  "8/2": "Right Angle Cross of Eden 1",
-  "8/3": "Right Angle Cross of Eden 1",
-  "8/4": "Juxtaposition Cross of Contribution",
-  "8/5": "Left Angle Cross of Informing 2",
-  "8/6": "Left Angle Cross of Informing 2",
+  "8/RA": "Right Angle Cross of Eden 1",
+  "8/JUX": "Juxtaposition Cross of Contribution",
+  "8/LA": "Left Angle Cross of Informing 2",
 
-  // Gate 9 — Focus
-  "9/1": "Right Angle Cross of the Vessel of Love 1",
-  "9/2": "Right Angle Cross of the Vessel of Love 1",
-  "9/3": "Right Angle Cross of the Vessel of Love 1",
-  "9/4": "Juxtaposition Cross of Focus",
-  "9/5": "Left Angle Cross of Demands 2",
-  "9/6": "Left Angle Cross of Demands 2",
+  "9/RA": "Right Angle Cross of the Vessel of Love 1",
+  "9/JUX": "Juxtaposition Cross of Focus",
+  "9/LA": "Left Angle Cross of Demands 2",
 
-  // Gate 10 — Treading
-  "10/1": "Right Angle Cross of the Sphinx 4",
-  "10/2": "Right Angle Cross of the Sphinx 4",
-  "10/3": "Right Angle Cross of the Sphinx 4",
-  "10/4": "Juxtaposition Cross of Behavior",
-  "10/5": "Left Angle Cross of the Clarion 3",
-  "10/6": "Left Angle Cross of the Clarion 3",
+  "10/RA": "Right Angle Cross of the Sphinx 4",
+  "10/JUX": "Juxtaposition Cross of Behavior",
+  "10/LA": "Left Angle Cross of the Clarion 3",
 
-  // Gate 11 — Peace
-  "11/1": "Right Angle Cross of Eden 2",
-  "11/2": "Right Angle Cross of Eden 2",
-  "11/3": "Right Angle Cross of Eden 2",
-  "11/4": "Juxtaposition Cross of Ideas",
-  "11/5": "Left Angle Cross of Informing 1",
-  "11/6": "Left Angle Cross of Informing 1",
+  "11/RA": "Right Angle Cross of Eden 2",
+  "11/JUX": "Juxtaposition Cross of Ideas",
+  "11/LA": "Left Angle Cross of Informing 1",
 
-  // Gate 12 — Standstill
-  "12/1": "Right Angle Cross of Planning 1",
-  "12/2": "Right Angle Cross of Planning 1",
-  "12/3": "Right Angle Cross of Planning 1",
-  "12/4": "Juxtaposition Cross of Caution",
-  "12/5": "Left Angle Cross of the Refinement 2",
-  "12/6": "Left Angle Cross of the Refinement 2",
+  "12/RA": "Right Angle Cross of Planning 1",
+  "12/JUX": "Juxtaposition Cross of Caution",
+  "12/LA": "Left Angle Cross of the Refinement 2",
 
-  // Gate 13 — The Fellowship of Man
-  "13/1": "Right Angle Cross of Eden 3",
-  "13/2": "Right Angle Cross of Eden 3",
-  "13/3": "Right Angle Cross of Eden 3",
-  "13/4": "Juxtaposition Cross of the Listener",
-  "13/5": "Left Angle Cross of Informing 4",
-  "13/6": "Left Angle Cross of Informing 4",
+  "13/RA": "Right Angle Cross of Eden 3",
+  "13/JUX": "Juxtaposition Cross of the Listener",
+  "13/LA": "Left Angle Cross of Informing 4",
 
-  // Gate 14 — Possession in Great Measure
-  "14/1": "Right Angle Cross of Eden 4",
-  "14/2": "Right Angle Cross of Eden 4",
-  "14/3": "Right Angle Cross of Eden 4",
-  "14/4": "Juxtaposition Cross of Power",
-  "14/5": "Left Angle Cross of Informing 3",
-  "14/6": "Left Angle Cross of Informing 3",
+  "14/RA": "Right Angle Cross of Eden 4",
+  "14/JUX": "Juxtaposition Cross of Power",
+  "14/LA": "Left Angle Cross of Informing 3",
 
-  // Gate 15 — Modesty
-  "15/1": "Right Angle Cross of the Vessel of Love 2",
-  "15/2": "Right Angle Cross of the Vessel of Love 2",
-  "15/3": "Right Angle Cross of the Vessel of Love 2",
-  "15/4": "Juxtaposition Cross of Extremes",
-  "15/5": "Left Angle Cross of the Vessel of Love 1",
-  "15/6": "Left Angle Cross of the Vessel of Love 1",
+  "15/RA": "Right Angle Cross of the Vessel of Love 2",
+  "15/JUX": "Juxtaposition Cross of Extremes",
+  "15/LA": "Left Angle Cross of the Vessel of Love 1",
 
-  // Gate 16 — Enthusiasm
-  "16/1": "Right Angle Cross of Planning 2",
-  "16/2": "Right Angle Cross of Planning 2",
-  "16/3": "Right Angle Cross of Planning 2",
-  "16/4": "Juxtaposition Cross of Experimentation",
-  "16/5": "Left Angle Cross of the Refinement 1",
-  "16/6": "Left Angle Cross of the Refinement 1",
+  "16/RA": "Right Angle Cross of Planning 2",
+  "16/JUX": "Juxtaposition Cross of Experimentation",
+  "16/LA": "Left Angle Cross of the Refinement 1",
 
-  // Gate 17 — Following
-  "17/1": "Right Angle Cross of the Sleeping Phoenix 1",
-  "17/2": "Right Angle Cross of the Sleeping Phoenix 1",
-  "17/3": "Right Angle Cross of the Sleeping Phoenix 1",
-  "17/4": "Juxtaposition Cross of Opinions",
-  "17/5": "Left Angle Cross of the Alpha 2",
-  "17/6": "Left Angle Cross of the Alpha 2",
+  "17/RA": "Right Angle Cross of the Sleeping Phoenix 1",
+  "17/JUX": "Juxtaposition Cross of Opinions",
+  "17/LA": "Left Angle Cross of the Alpha 2",
 
-  // Gate 18 — Work on What Has Been Spoilt
-  "18/1": "Right Angle Cross of Service 1",
-  "18/2": "Right Angle Cross of Service 1",
-  "18/3": "Right Angle Cross of Service 1",
-  "18/4": "Juxtaposition Cross of Correction",
-  "18/5": "Left Angle Cross of Defiance 2",
-  "18/6": "Left Angle Cross of Defiance 2",
+  "18/RA": "Right Angle Cross of Service 1",
+  "18/JUX": "Juxtaposition Cross of Correction",
+  "18/LA": "Left Angle Cross of Defiance 2",
 
-  // Gate 19 — Approach
-  "19/1": "Right Angle Cross of the Four Ways 1",
-  "19/2": "Right Angle Cross of the Four Ways 1",
-  "19/3": "Right Angle Cross of the Four Ways 1",
-  "19/4": "Juxtaposition Cross of Wanting",
-  "19/5": "Left Angle Cross of the Four Ways 2",
-  "19/6": "Left Angle Cross of the Four Ways 2",
+  "19/RA": "Right Angle Cross of the Four Ways 1",
+  "19/JUX": "Juxtaposition Cross of Wanting",
+  "19/LA": "Left Angle Cross of the Four Ways 2",
 
-  // Gate 20 — Contemplation
-  "20/1": "Right Angle Cross of the Sleeping Phoenix 2",
-  "20/2": "Right Angle Cross of the Sleeping Phoenix 2",
-  "20/3": "Right Angle Cross of the Sleeping Phoenix 2",
-  "20/4": "Juxtaposition Cross of the Now",
-  "20/5": "Left Angle Cross of the Alpha 1",
-  "20/6": "Left Angle Cross of the Alpha 1",
+  "20/RA": "Right Angle Cross of the Sleeping Phoenix 2",
+  "20/JUX": "Juxtaposition Cross of the Now",
+  "20/LA": "Left Angle Cross of the Alpha 1",
 
-  // Gate 21 — Biting Through
-  "21/1": "Right Angle Cross of the Sleeping Phoenix 3",
-  "21/2": "Right Angle Cross of the Sleeping Phoenix 3",
-  "21/3": "Right Angle Cross of the Sleeping Phoenix 3",
-  "21/4": "Juxtaposition Cross of Control",
-  "21/5": "Left Angle Cross of Wishes 2",
-  "21/6": "Left Angle Cross of Wishes 2",
+  "21/RA": "Right Angle Cross of the Sleeping Phoenix 3",
+  "21/JUX": "Juxtaposition Cross of Control",
+  "21/LA": "Left Angle Cross of Wishes 2",
 
-  // Gate 22 — Grace
-  "22/1": "Right Angle Cross of Planning 3",
-  "22/2": "Right Angle Cross of Planning 3",
-  "22/3": "Right Angle Cross of Planning 3",
-  "22/4": "Juxtaposition Cross of Grace",
-  "22/5": "Left Angle Cross of the Refinement 4",
-  "22/6": "Left Angle Cross of the Refinement 4",
+  "22/RA": "Right Angle Cross of Planning 3",
+  "22/JUX": "Juxtaposition Cross of Grace",
+  "22/LA": "Left Angle Cross of the Refinement 4",
 
-  // Gate 23 — Splitting Apart
-  "23/1": "Right Angle Cross of the Sleeping Phoenix 4",
-  "23/2": "Right Angle Cross of the Sleeping Phoenix 4",
-  "23/3": "Right Angle Cross of the Sleeping Phoenix 4",
-  "23/4": "Juxtaposition Cross of Assimilation",
-  "23/5": "Left Angle Cross of Wishes 1",
-  "23/6": "Left Angle Cross of Wishes 1",
+  "23/RA": "Right Angle Cross of the Sleeping Phoenix 4",
+  "23/JUX": "Juxtaposition Cross of Assimilation",
+  "23/LA": "Left Angle Cross of Wishes 1",
 
-  // Gate 24 — Return
-  "24/1": "Right Angle Cross of the Sleeping Phoenix 5",
-  "24/2": "Right Angle Cross of the Sleeping Phoenix 5",
-  "24/3": "Right Angle Cross of the Sleeping Phoenix 5",
-  "24/4": "Juxtaposition Cross of Rationalization",
-  "24/5": "Left Angle Cross of the Alpha 3",
-  "24/6": "Left Angle Cross of the Alpha 3",
+  "24/RA": "Right Angle Cross of the Sleeping Phoenix 5",
+  "24/JUX": "Juxtaposition Cross of Rationalization",
+  "24/LA": "Left Angle Cross of the Alpha 3",
 
-  // Gate 25 — Innocence
-  "25/1": "Right Angle Cross of the Vessel of Love 3",
-  "25/2": "Right Angle Cross of the Vessel of Love 3",
-  "25/3": "Right Angle Cross of the Vessel of Love 3",
-  "25/4": "Juxtaposition Cross of Innocence",
-  "25/5": "Left Angle Cross of the Vessel of Love 4",
-  "25/6": "Left Angle Cross of the Vessel of Love 4",
+  "25/RA": "Right Angle Cross of the Vessel of Love 3",
+  "25/JUX": "Juxtaposition Cross of Innocence",
+  "25/LA": "Left Angle Cross of the Vessel of Love 4",
 
-  // Gate 26 — The Taming Power of the Great
-  "26/1": "Right Angle Cross of the Sleeping Phoenix 6",
-  "26/2": "Right Angle Cross of the Sleeping Phoenix 6",
-  "26/3": "Right Angle Cross of the Sleeping Phoenix 6",
-  "26/4": "Juxtaposition Cross of the Trickster",
-  "26/5": "Left Angle Cross of the Alpha 4",
-  "26/6": "Left Angle Cross of the Alpha 4",
+  "26/RA": "Right Angle Cross of the Sleeping Phoenix 6",
+  "26/JUX": "Juxtaposition Cross of the Trickster",
+  "26/LA": "Left Angle Cross of the Alpha 4",
 
-  // Gate 27 — Nourishment
-  "27/1": "Right Angle Cross of the Unexpected 1",
-  "27/2": "Right Angle Cross of the Unexpected 1",
-  "27/3": "Right Angle Cross of the Unexpected 1",
-  "27/4": "Juxtaposition Cross of Caring",
-  "27/5": "Left Angle Cross of the Unexpected 2",
-  "27/6": "Left Angle Cross of the Unexpected 2",
+  "27/RA": "Right Angle Cross of the Unexpected 1",
+  "27/JUX": "Juxtaposition Cross of Caring",
+  "27/LA": "Left Angle Cross of the Unexpected 2",
 
-  // Gate 28 — Preponderance of the Great
-  "28/1": "Right Angle Cross of the Unexpected 2",
-  "28/2": "Right Angle Cross of the Unexpected 2",
-  "28/3": "Right Angle Cross of the Unexpected 2",
-  "28/4": "Juxtaposition Cross of the Game Player",
-  "28/5": "Left Angle Cross of the Unexpected 1",
-  "28/6": "Left Angle Cross of the Unexpected 1",
+  "28/RA": "Right Angle Cross of the Unexpected 2",
+  "28/JUX": "Juxtaposition Cross of the Game Player",
+  "28/LA": "Left Angle Cross of the Unexpected 1",
 
-  // Gate 29 — The Abysmal
-  "29/1": "Right Angle Cross of the Unexpected 3",
-  "29/2": "Right Angle Cross of the Unexpected 3",
-  "29/3": "Right Angle Cross of the Unexpected 3",
-  "29/4": "Juxtaposition Cross of Commitment",
-  "29/5": "Left Angle Cross of Uncertainty 2",
-  "29/6": "Left Angle Cross of Uncertainty 2",
+  "29/RA": "Right Angle Cross of the Unexpected 3",
+  "29/JUX": "Juxtaposition Cross of Commitment",
+  "29/LA": "Left Angle Cross of Uncertainty 2",
 
-  // Gate 30 — The Clinging Fire
-  "30/1": "Right Angle Cross of the Unexpected 4",
-  "30/2": "Right Angle Cross of the Unexpected 4",
-  "30/3": "Right Angle Cross of the Unexpected 4",
-  "30/4": "Juxtaposition Cross of Fates",
-  "30/5": "Left Angle Cross of Uncertainty 1",
-  "30/6": "Left Angle Cross of Uncertainty 1",
+  "30/RA": "Right Angle Cross of the Unexpected 4",
+  "30/JUX": "Juxtaposition Cross of Fates",
+  "30/LA": "Left Angle Cross of Uncertainty 1",
 
-  // Gate 31 — Influence
-  "31/1": "Right Angle Cross of the Sphinx 5",
-  "31/2": "Right Angle Cross of the Sphinx 5",
-  "31/3": "Right Angle Cross of the Sphinx 5",
-  "31/4": "Juxtaposition Cross of Influence",
-  "31/5": "Left Angle Cross of the Clarion 6",
-  "31/6": "Left Angle Cross of the Clarion 6",
+  "31/RA": "Right Angle Cross of the Sphinx 5",
+  "31/JUX": "Juxtaposition Cross of Influence",
+  "31/LA": "Left Angle Cross of the Clarion 6",
 
-  // Gate 32 — Duration
-  "32/1": "Right Angle Cross of Service 2",
-  "32/2": "Right Angle Cross of Service 2",
-  "32/3": "Right Angle Cross of Service 2",
-  "32/4": "Juxtaposition Cross of Conservation",
-  "32/5": "Left Angle Cross of Defiance 1",
-  "32/6": "Left Angle Cross of Defiance 1",
+  "32/RA": "Right Angle Cross of Service 2",
+  "32/JUX": "Juxtaposition Cross of Conservation",
+  "32/LA": "Left Angle Cross of Defiance 1",
 
-  // Gate 33 — Retreat
-  "33/1": "Right Angle Cross of Eden 5",
-  "33/2": "Right Angle Cross of Eden 5",
-  "33/3": "Right Angle Cross of Eden 5",
-  "33/4": "Juxtaposition Cross of Privacy",
-  "33/5": "Left Angle Cross of Informing 6",
-  "33/6": "Left Angle Cross of Informing 6",
+  "33/RA": "Right Angle Cross of Eden 5",
+  "33/JUX": "Juxtaposition Cross of Privacy",
+  "33/LA": "Left Angle Cross of Informing 6",
 
-  // Gate 34 — The Power of the Great
-  "34/1": "Right Angle Cross of Service 3",
-  "34/2": "Right Angle Cross of Service 3",
-  "34/3": "Right Angle Cross of Service 3",
-  "34/4": "Juxtaposition Cross of Power (34)",
-  "34/5": "Left Angle Cross of Defiance 3",
-  "34/6": "Left Angle Cross of Defiance 3",
+  "34/RA": "Right Angle Cross of Service 3",
+  "34/JUX": "Juxtaposition Cross of Power (34)",
+  "34/LA": "Left Angle Cross of Defiance 3",
 
-  // Gate 35 — Progress
-  "35/1": "Right Angle Cross of Planning 4",
-  "35/2": "Right Angle Cross of Planning 4",
-  "35/3": "Right Angle Cross of Planning 4",
-  "35/4": "Juxtaposition Cross of Change",
-  "35/5": "Left Angle Cross of the Refinement 3",
-  "35/6": "Left Angle Cross of the Refinement 3",
+  "35/RA": "Right Angle Cross of Planning 4",
+  "35/JUX": "Juxtaposition Cross of Change",
+  "35/LA": "Left Angle Cross of the Refinement 3",
 
-  // Gate 36 — Darkening of the Light
-  "36/1": "Right Angle Cross of Planning 5",
-  "36/2": "Right Angle Cross of Planning 5",
-  "36/3": "Right Angle Cross of Planning 5",
-  "36/4": "Juxtaposition Cross of Crisis",
-  "36/5": "Left Angle Cross of the Refinement 6",
-  "36/6": "Left Angle Cross of the Refinement 6",
+  "36/RA": "Right Angle Cross of Planning 5",
+  "36/JUX": "Juxtaposition Cross of Crisis",
+  "36/LA": "Left Angle Cross of the Refinement 6",
 
-  // Gate 37 — The Family
-  "37/1": "Right Angle Cross of Planning 6",
-  "37/2": "Right Angle Cross of Planning 6",
-  "37/3": "Right Angle Cross of Planning 6",
-  "37/4": "Juxtaposition Cross of Bargains",
-  "37/5": "Left Angle Cross of the Refinement 5",
-  "37/6": "Left Angle Cross of the Refinement 5",
+  "37/RA": "Right Angle Cross of Planning 6",
+  "37/JUX": "Juxtaposition Cross of Bargains",
+  "37/LA": "Left Angle Cross of the Refinement 5",
 
-  // Gate 38 — Opposition
-  "38/1": "Right Angle Cross of Service 4",
-  "38/2": "Right Angle Cross of Service 4",
-  "38/3": "Right Angle Cross of Service 4",
-  "38/4": "Juxtaposition Cross of Opposition",
-  "38/5": "Left Angle Cross of Defiance 4",
-  "38/6": "Left Angle Cross of Defiance 4",
+  "38/RA": "Right Angle Cross of Service 4",
+  "38/JUX": "Juxtaposition Cross of Opposition",
+  "38/LA": "Left Angle Cross of Defiance 4",
 
-  // Gate 39 — Obstruction
-  "39/1": "Right Angle Cross of the Four Ways 2",
-  "39/2": "Right Angle Cross of the Four Ways 2",
-  "39/3": "Right Angle Cross of the Four Ways 2",
-  "39/4": "Juxtaposition Cross of Provocation",
-  "39/5": "Left Angle Cross of the Four Ways 1",
-  "39/6": "Left Angle Cross of the Four Ways 1",
+  "39/RA": "Right Angle Cross of the Four Ways 2",
+  "39/JUX": "Juxtaposition Cross of Provocation",
+  "39/LA": "Left Angle Cross of the Four Ways 1",
 
-  // Gate 40 — Deliverance
-  "40/1": "Right Angle Cross of Service 5",
-  "40/2": "Right Angle Cross of Service 5",
-  "40/3": "Right Angle Cross of Service 5",
-  "40/4": "Juxtaposition Cross of Aloneness",
-  "40/5": "Left Angle Cross of Defiance 5",
-  "40/6": "Left Angle Cross of Defiance 5",
+  "40/RA": "Right Angle Cross of Service 5",
+  "40/JUX": "Juxtaposition Cross of Aloneness",
+  "40/LA": "Left Angle Cross of Defiance 5",
 
-  // Gate 41 — Decrease
-  "41/1": "Right Angle Cross of the Four Ways 3",
-  "41/2": "Right Angle Cross of the Four Ways 3",
-  "41/3": "Right Angle Cross of the Four Ways 3",
-  "41/4": "Juxtaposition Cross of Contraction",
-  "41/5": "Left Angle Cross of the Four Ways 4",
-  "41/6": "Left Angle Cross of the Four Ways 4",
+  "41/RA": "Right Angle Cross of the Four Ways 3",
+  "41/JUX": "Juxtaposition Cross of Contraction",
+  "41/LA": "Left Angle Cross of the Four Ways 4",
 
-  // Gate 42 — Increase
-  "42/1": "Right Angle Cross of the Unexpected 5",
-  "42/2": "Right Angle Cross of the Unexpected 5",
-  "42/3": "Right Angle Cross of the Unexpected 5",
-  "42/4": "Juxtaposition Cross of Completion",
-  "42/5": "Left Angle Cross of the Unexpected 4",
-  "42/6": "Left Angle Cross of the Unexpected 4",
+  "42/RA": "Right Angle Cross of the Unexpected 5",
+  "42/JUX": "Juxtaposition Cross of Completion",
+  "42/LA": "Left Angle Cross of the Unexpected 4",
 
-  // Gate 43 — Breakthrough
-  "43/1": "Right Angle Cross of the Sleeping Phoenix 7",
-  "43/2": "Right Angle Cross of the Sleeping Phoenix 7",
-  "43/3": "Right Angle Cross of the Sleeping Phoenix 7",
-  "43/4": "Juxtaposition Cross of Insight",
-  "43/5": "Left Angle Cross of Wishes 3",
-  "43/6": "Left Angle Cross of Wishes 3",
+  "43/RA": "Right Angle Cross of the Sleeping Phoenix 7",
+  "43/JUX": "Juxtaposition Cross of Insight",
+  "43/LA": "Left Angle Cross of Wishes 3",
 
-  // Gate 44 — Coming to Meet
-  "44/1": "Right Angle Cross of Service 6",
-  "44/2": "Right Angle Cross of Service 6",
-  "44/3": "Right Angle Cross of Service 6",
-  "44/4": "Juxtaposition Cross of Alertness",
-  "44/5": "Left Angle Cross of Defiance 6",
-  "44/6": "Left Angle Cross of Defiance 6",
+  "44/RA": "Right Angle Cross of Service 6",
+  "44/JUX": "Juxtaposition Cross of Alertness",
+  "44/LA": "Left Angle Cross of Defiance 6",
 
-  // Gate 45 — Gathering Together
-  "45/1": "Right Angle Cross of the Sleeping Phoenix 8",
-  "45/2": "Right Angle Cross of the Sleeping Phoenix 8",
-  "45/3": "Right Angle Cross of the Sleeping Phoenix 8",
-  "45/4": "Juxtaposition Cross of Gathering",
-  "45/5": "Left Angle Cross of Wishes 4",
-  "45/6": "Left Angle Cross of Wishes 4",
+  "45/RA": "Right Angle Cross of the Sleeping Phoenix 8",
+  "45/JUX": "Juxtaposition Cross of Gathering",
+  "45/LA": "Left Angle Cross of Wishes 4",
 
-  // Gate 46 — Pushing Upward
-  "46/1": "Right Angle Cross of the Unexpected 6",
-  "46/2": "Right Angle Cross of the Unexpected 6",
-  "46/3": "Right Angle Cross of the Unexpected 6",
-  "46/4": "Juxtaposition Cross of the Body",
-  "46/5": "Left Angle Cross of the Unexpected 5",
-  "46/6": "Left Angle Cross of the Unexpected 5",
+  "46/RA": "Right Angle Cross of the Unexpected 6",
+  "46/JUX": "Juxtaposition Cross of the Body",
+  "46/LA": "Left Angle Cross of the Unexpected 5",
 
-  // Gate 47 — Oppression
-  "47/1": "Right Angle Cross of the Sleeping Phoenix 9",
-  "47/2": "Right Angle Cross of the Sleeping Phoenix 9",
-  "47/3": "Right Angle Cross of the Sleeping Phoenix 9",
-  "47/4": "Juxtaposition Cross of Realization",
-  "47/5": "Left Angle Cross of Wishes 5",
-  "47/6": "Left Angle Cross of Wishes 5",
+  "47/RA": "Right Angle Cross of the Sleeping Phoenix 9",
+  "47/JUX": "Juxtaposition Cross of Realization",
+  "47/LA": "Left Angle Cross of Wishes 5",
 
-  // Gate 48 — The Well
-  "48/1": "Right Angle Cross of Planning 7",
-  "48/2": "Right Angle Cross of Planning 7",
-  "48/3": "Right Angle Cross of Planning 7",
-  "48/4": "Juxtaposition Cross of Depth",
-  "48/5": "Left Angle Cross of the Refinement 7",
-  "48/6": "Left Angle Cross of the Refinement 7",
+  "48/RA": "Right Angle Cross of Planning 7",
+  "48/JUX": "Juxtaposition Cross of Depth",
+  "48/LA": "Left Angle Cross of the Refinement 7",
 
-  // Gate 49 — Revolution
-  "49/1": "Right Angle Cross of the Four Ways 4",
-  "49/2": "Right Angle Cross of the Four Ways 4",
-  "49/3": "Right Angle Cross of the Four Ways 4",
-  "49/4": "Juxtaposition Cross of Principles",
-  "49/5": "Left Angle Cross of the Four Ways 3",
-  "49/6": "Left Angle Cross of the Four Ways 3",
+  "49/RA": "Right Angle Cross of the Four Ways 4",
+  "49/JUX": "Juxtaposition Cross of Principles",
+  "49/LA": "Left Angle Cross of the Four Ways 3",
 
-  // Gate 50 — The Cauldron
-  "50/1": "Right Angle Cross of the Unexpected 7",
-  "50/2": "Right Angle Cross of the Unexpected 7",
-  "50/3": "Right Angle Cross of the Unexpected 7",
-  "50/4": "Juxtaposition Cross of Values",
-  "50/5": "Left Angle Cross of the Unexpected 6",
-  "50/6": "Left Angle Cross of the Unexpected 6",
+  "50/RA": "Right Angle Cross of the Unexpected 7",
+  "50/JUX": "Juxtaposition Cross of Values",
+  "50/LA": "Left Angle Cross of the Unexpected 6",
 
-  // Gate 51 — The Arousing
-  "51/1": "Right Angle Cross of the Unexpected 8",
-  "51/2": "Right Angle Cross of the Unexpected 8",
-  "51/3": "Right Angle Cross of the Unexpected 8",
-  "51/4": "Juxtaposition Cross of Shock",
-  "51/5": "Left Angle Cross of the Unexpected 7",
-  "51/6": "Left Angle Cross of the Unexpected 7",
+  "51/RA": "Right Angle Cross of the Unexpected 8",
+  "51/JUX": "Juxtaposition Cross of Shock",
+  "51/LA": "Left Angle Cross of the Unexpected 7",
 
-  // Gate 52 — Keeping Still (Mountain)
-  "52/1": "Right Angle Cross of the Unexpected 9",
-  "52/2": "Right Angle Cross of the Unexpected 9",
-  "52/3": "Right Angle Cross of the Unexpected 9",
-  "52/4": "Juxtaposition Cross of Stillness",
-  "52/5": "Left Angle Cross of Demands 1",
-  "52/6": "Left Angle Cross of Demands 1",
+  "52/RA": "Right Angle Cross of the Unexpected 9",
+  "52/JUX": "Juxtaposition Cross of Stillness",
+  "52/LA": "Left Angle Cross of Demands 1",
 
-  // Gate 53 — Development
-  "53/1": "Right Angle Cross of the Four Ways 5",
-  "53/2": "Right Angle Cross of the Four Ways 5",
-  "53/3": "Right Angle Cross of the Four Ways 5",
-  "53/4": "Juxtaposition Cross of Beginnings",
-  "53/5": "Left Angle Cross of the Four Ways 6",
-  "53/6": "Left Angle Cross of the Four Ways 6",
+  "53/RA": "Right Angle Cross of the Four Ways 5",
+  "53/JUX": "Juxtaposition Cross of Beginnings",
+  "53/LA": "Left Angle Cross of the Four Ways 6",
 
-  // Gate 54 — The Marrying Maiden
-  "54/1": "Right Angle Cross of Service 7",
-  "54/2": "Right Angle Cross of Service 7",
-  "54/3": "Right Angle Cross of Service 7",
-  "54/4": "Juxtaposition Cross of Ambition",
-  "54/5": "Left Angle Cross of Defiance 7",
-  "54/6": "Left Angle Cross of Defiance 7",
+  "54/RA": "Right Angle Cross of Service 7",
+  "54/JUX": "Juxtaposition Cross of Ambition",
+  "54/LA": "Left Angle Cross of Defiance 7",
 
-  // Gate 55 — Abundance
-  "55/1": "Right Angle Cross of the Four Ways 6",
-  "55/2": "Right Angle Cross of the Four Ways 6",
-  "55/3": "Right Angle Cross of the Four Ways 6",
-  "55/4": "Juxtaposition Cross of Moods",
-  "55/5": "Left Angle Cross of the Four Ways 5",
-  "55/6": "Left Angle Cross of the Four Ways 5",
+  "55/RA": "Right Angle Cross of the Four Ways 6",
+  "55/JUX": "Juxtaposition Cross of Moods",
+  "55/LA": "Left Angle Cross of the Four Ways 5",
 
-  // Gate 56 — The Wanderer
-  "56/1": "Right Angle Cross of Eden 6",
-  "56/2": "Right Angle Cross of Eden 6",
-  "56/3": "Right Angle Cross of Eden 6",
-  "56/4": "Juxtaposition Cross of Stimulation",
-  "56/5": "Left Angle Cross of Informing 5",
-  "56/6": "Left Angle Cross of Informing 5",
+  "56/RA": "Right Angle Cross of Eden 6",
+  "56/JUX": "Juxtaposition Cross of Stimulation",
+  "56/LA": "Left Angle Cross of Informing 5",
 
-  // Gate 57 — The Gentle (Wind)
-  "57/1": "Right Angle Cross of the Sleeping Phoenix 10",
-  "57/2": "Right Angle Cross of the Sleeping Phoenix 10",
-  "57/3": "Right Angle Cross of the Sleeping Phoenix 10",
-  "57/4": "Juxtaposition Cross of Intuition",
-  "57/5": "Left Angle Cross of Wishes 6",
-  "57/6": "Left Angle Cross of Wishes 6",
+  "57/RA": "Right Angle Cross of the Sleeping Phoenix 10",
+  "57/JUX": "Juxtaposition Cross of Intuition",
+  "57/LA": "Left Angle Cross of Wishes 6",
 
-  // Gate 58 — The Joyous (Lake)
-  "58/1": "Right Angle Cross of Service 8",
-  "58/2": "Right Angle Cross of Service 8",
-  "58/3": "Right Angle Cross of Service 8",
-  "58/4": "Juxtaposition Cross of Vitality",
-  "58/5": "Left Angle Cross of Defiance 8",
-  "58/6": "Left Angle Cross of Defiance 8",
+  "58/RA": "Right Angle Cross of Service 8",
+  "58/JUX": "Juxtaposition Cross of Vitality",
+  "58/LA": "Left Angle Cross of Defiance 8",
 
-  // Gate 59 — Dispersion
-  "59/1": "Right Angle Cross of the Unexpected 10",
-  "59/2": "Right Angle Cross of the Unexpected 10",
-  "59/3": "Right Angle Cross of the Unexpected 10",
-  "59/4": "Juxtaposition Cross of Strategy",
-  "59/5": "Left Angle Cross of Uncertainty 3",
-  "59/6": "Left Angle Cross of Uncertainty 3",
+  "59/RA": "Right Angle Cross of the Unexpected 10",
+  "59/JUX": "Juxtaposition Cross of Strategy",
+  "59/LA": "Left Angle Cross of Uncertainty 3",
 
-  // Gate 60 — Limitation
-  "60/1": "Right Angle Cross of the Unexpected 11",
-  "60/2": "Right Angle Cross of the Unexpected 11",
-  "60/3": "Right Angle Cross of the Unexpected 11",
-  "60/4": "Juxtaposition Cross of Limitation",
-  "60/5": "Left Angle Cross of Uncertainty 4",
-  "60/6": "Left Angle Cross of Uncertainty 4",
+  "60/RA": "Right Angle Cross of the Unexpected 11",
+  "60/JUX": "Juxtaposition Cross of Limitation",
+  "60/LA": "Left Angle Cross of Uncertainty 4",
 
-  // Gate 61 — Inner Truth
-  "61/1": "Right Angle Cross of the Sleeping Phoenix 11",
-  "61/2": "Right Angle Cross of the Sleeping Phoenix 11",
-  "61/3": "Right Angle Cross of the Sleeping Phoenix 11",
-  "61/4": "Juxtaposition Cross of Mystery",
-  "61/5": "Left Angle Cross of Wishes 7",
-  "61/6": "Left Angle Cross of Wishes 7",
+  "61/RA": "Right Angle Cross of the Sleeping Phoenix 11",
+  "61/JUX": "Juxtaposition Cross of Mystery",
+  "61/LA": "Left Angle Cross of Wishes 7",
 
-  // Gate 62 — Preponderance of the Small
-  "62/1": "Right Angle Cross of the Sleeping Phoenix 12",
-  "62/2": "Right Angle Cross of the Sleeping Phoenix 12",
-  "62/3": "Right Angle Cross of the Sleeping Phoenix 12",
-  "62/4": "Juxtaposition Cross of Detail",
-  "62/5": "Left Angle Cross of Wishes 8",
-  "62/6": "Left Angle Cross of Wishes 8",
+  "62/RA": "Right Angle Cross of the Sleeping Phoenix 12",
+  "62/JUX": "Juxtaposition Cross of Detail",
+  "62/LA": "Left Angle Cross of Wishes 8",
 
-  // Gate 63 — After Completion
-  "63/1": "Right Angle Cross of the Sleeping Phoenix 13",
-  "63/2": "Right Angle Cross of the Sleeping Phoenix 13",
-  "63/3": "Right Angle Cross of the Sleeping Phoenix 13",
-  "63/4": "Juxtaposition Cross of Doubts",
-  "63/5": "Left Angle Cross of the Alpha 5",
-  "63/6": "Left Angle Cross of the Alpha 5",
+  "63/RA": "Right Angle Cross of the Sleeping Phoenix 13",
+  "63/JUX": "Juxtaposition Cross of Doubts",
+  "63/LA": "Left Angle Cross of the Alpha 5",
 
-  // Gate 64 — Before Completion
-  "64/1": "Right Angle Cross of the Sleeping Phoenix 14",
-  "64/2": "Right Angle Cross of the Sleeping Phoenix 14",
-  "64/3": "Right Angle Cross of the Sleeping Phoenix 14",
-  "64/4": "Juxtaposition Cross of Confusion",
-  "64/5": "Left Angle Cross of the Alpha 6",
-  "64/6": "Left Angle Cross of the Alpha 6",
+  "64/RA": "Right Angle Cross of the Sleeping Phoenix 14",
+  "64/JUX": "Juxtaposition Cross of Confusion",
+  "64/LA": "Left Angle Cross of the Alpha 6",
 };
