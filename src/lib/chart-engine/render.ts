@@ -214,14 +214,63 @@ function renderCenterLabel(cx: number, cy: number, s: Shape, r: number, def: boo
 }
 
 // ── Channel rendering ──────────────────────────────────────────────────────────
-const SW_ACTIVE   = 6;
-const SW_INACTIVE = 1.5;
+const SW_ACTIVE   = 5;
+const SW_INACTIVE = 1.4;
 
-function gateStyle(isP: boolean, isD: boolean): { col: string; sw: number } {
-  if (isP && isD) return { col: C_BOTH,        sw: SW_ACTIVE };
-  if (isP)        return { col: C_PERSONALITY,  sw: SW_ACTIVE };
-  if (isD)        return { col: C_DESIGN,        sw: SW_ACTIVE };
-  return           { col: C_INACTIVE_LINE,  sw: SW_INACTIVE };
+// Channels bow gently toward the canvas centerline so diagonal channels arc
+// inward and vertical channels stay nearly straight.
+const CANVAS_CX = 310;
+const CANVAS_CY = 430;
+
+function gateStyle(isP: boolean, isD: boolean): { col: string; active: boolean } {
+  if (isP && isD) return { col: C_BOTH,         active: true  };
+  if (isP)        return { col: C_PERSONALITY,  active: true  };
+  if (isD)        return { col: C_DESIGN,       active: true  };
+  return           { col: C_INACTIVE_LINE,      active: false };
+}
+
+// Cubic bezier control points: offset 1/3 and 2/3 along the line, perpendicular
+// toward the canvas center, magnitude proportional to line length. Near-vertical
+// channels (the middle-section spine) stay straight.
+function controlPoints(ax: number, ay: number, bx: number, by: number): [number, number, number, number] {
+  const dx = bx - ax, dy = by - ay;
+  const len = Math.hypot(dx, dy) || 1;
+  const mx = (ax + bx) / 2, my = (ay + by) / 2;
+  const isVertical = Math.abs(dx) / Math.max(Math.abs(dy), 1) < 0.25;
+  let nx = -dy / len, ny = dx / len;
+  if (nx * (CANVAS_CX - mx) + ny * (CANVAS_CY - my) < 0) { nx = -nx; ny = -ny; }
+  const bow = isVertical ? 0 : Math.min(18, len * 0.08);
+  return [
+    ax + dx / 3 + nx * bow, ay + dy / 3 + ny * bow,
+    ax + 2 * dx / 3 + nx * bow, ay + 2 * dy / 3 + ny * bow,
+  ];
+}
+
+// De Casteljau split of a cubic bezier at t=0.5. Returns the midpoint and the
+// two pairs of control points for the two half-curves.
+function splitHalf(
+  ax: number, ay: number, p1x: number, p1y: number, p2x: number, p2y: number, bx: number, by: number,
+): { mx: number; my: number; aC1x: number; aC1y: number; aC2x: number; aC2y: number; bC1x: number; bC1y: number; bC2x: number; bC2y: number } {
+  const m1x = (ax + p1x) / 2,  m1y = (ay + p1y) / 2;
+  const m2x = (p1x + p2x) / 2, m2y = (p1y + p2y) / 2;
+  const m3x = (p2x + bx) / 2,  m3y = (p2y + by) / 2;
+  const n1x = (m1x + m2x) / 2, n1y = (m1y + m2y) / 2;
+  const n2x = (m2x + m3x) / 2, n2y = (m2y + m3y) / 2;
+  const mx  = (n1x + n2x) / 2, my  = (n1y + n2y) / 2;
+  return {
+    mx, my,
+    aC1x: m1x, aC1y: m1y, aC2x: n1x, aC2y: n1y,
+    bC1x: n2x, bC1y: n2y, bC2x: m3x, bC2y: m3y,
+  };
+}
+
+function halfPath(
+  sx: number, sy: number, c1x: number, c1y: number, c2x: number, c2y: number, ex: number, ey: number,
+  col: string, active: boolean,
+): string {
+  const sw = active ? SW_ACTIVE : SW_INACTIVE;
+  const dash = active ? "" : ` stroke-dasharray="5,4"`;
+  return `<path d="M ${f(sx)} ${f(sy)} C ${f(c1x)} ${f(c1y)}, ${f(c2x)} ${f(c2y)}, ${f(ex)} ${f(ey)}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-linecap="round"${dash}/>`;
 }
 
 function renderChannel(
@@ -231,13 +280,12 @@ function renderChannel(
   const posA = GATE_POS[gA], posB = GATE_POS[gB];
   if (!posA || !posB) return "";
   const [ax, ay] = posA, [bx, by] = posB;
-  const mx = (ax + bx) / 2, my = (ay + by) / 2;
+  const [p1x, p1y, p2x, p2y] = controlPoints(ax, ay, bx, by);
   const sA = gateStyle(pGates.has(gA), dGates.has(gA));
   const sB = gateStyle(pGates.has(gB), dGates.has(gB));
-  const dashA = sA.sw === SW_INACTIVE ? ` stroke-dasharray="6,4"` : "";
-  const dashB = sB.sw === SW_INACTIVE ? ` stroke-dasharray="6,4"` : "";
-  return `<line x1="${ax}" y1="${ay}" x2="${mx}" y2="${my}" stroke="${sA.col}" stroke-width="${sA.sw}" stroke-linecap="butt"${dashA}/>` +
-         `<line x1="${mx}" y1="${my}" x2="${bx}" y2="${by}" stroke="${sB.col}" stroke-width="${sB.sw}" stroke-linecap="butt"${dashB}/>`;
+  const s = splitHalf(ax, ay, p1x, p1y, p2x, p2y, bx, by);
+  return halfPath(ax, ay, s.aC1x, s.aC1y, s.aC2x, s.aC2y, s.mx, s.my, sA.col, sA.active) +
+         halfPath(s.mx, s.my, s.bC1x, s.bC1y, s.bC2x, s.bC2y, bx, by, sB.col, sB.active);
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────────
