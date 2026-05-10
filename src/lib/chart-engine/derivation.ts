@@ -11,10 +11,15 @@ import type { CenterName, HdType, Authority, PlanetActivation } from "./types.js
 import type { PlanetaryLongitudes } from "./astronomy.js";
 
 // ── Longitude → gate + line ───────────────────────────────────────────────────
-// The HD wheel starts 1.875° (= 2 line-widths) before the vernal equinox.
-// This constant is derived from reference charts and places Gate 41 at
-// the winter solstice (≈ 300° ecliptic), matching the HD New Year.
-const WHEEL_OFFSET = 1.875;
+// The HD wheel is offset 1.75° from the tropical zodiac so that Gate 41
+// line 1 starts at exactly 302°00' (= 2°00' Aquarius), the canonical "HD
+// New Year" position when the Sun enters Gate 41 around January 22.
+// Validated against a known 1/4 Right Angle Cross of Tension chart
+// (1979-03-31 18:32 BST, Reading UK → Personality Sun 21.1, Design Sun 38.4).
+//
+//   gate index 54 (= Gate 41) starts at 54 * 5.625° − offset
+//   303.75° − 1.75° = 302.00° = 2°00' Aquarius  ✓
+const WHEEL_OFFSET = 1.75;
 
 export function longitudeToGateLine(lon: number): { gate: number; line: number } {
   const norm = (((lon + WHEEL_OFFSET) % 360) + 360) % 360;
@@ -68,26 +73,37 @@ export function deriveDefinedCenters(
 
 // ── Graph helpers for Type derivation ────────────────────────────────────────
 
-function isThroatConnectedToMotor(definedCenters: Set<CenterName>): boolean {
-  if (!definedCenters.has("Throat")) return false;
+// Two centers are "connected" only when an actual defined channel runs
+// between them — having both centers individually defined (via different
+// channels) is not enough.
+function isThroatConnectedToMotor(
+  definedChannels: [number, number][],
+): boolean {
+  // Build adjacency from defined channels only.
+  const adj = new Map<CenterName, Set<CenterName>>();
+  for (const [gA, gB] of definedChannels) {
+    const cA = GATE_CENTER[gA];
+    const cB = GATE_CENTER[gB];
+    if (!cA || !cB || cA === cB) continue;
+    if (!adj.has(cA)) adj.set(cA, new Set());
+    if (!adj.has(cB)) adj.set(cB, new Set());
+    adj.get(cA)!.add(cB);
+    adj.get(cB)!.add(cA);
+  }
 
-  // BFS from Throat through defined centers, check if we reach a Motor
+  if (!adj.has("Throat")) return false;
+
   const visited = new Set<CenterName>(["Throat"]);
   const queue: CenterName[] = ["Throat"];
-
   while (queue.length) {
     const current = queue.shift()!;
     if (MOTOR_CENTERS.has(current) && current !== "Throat") return true;
-
-    // Find neighbors via channels
-    for (const [gA, gB, cA, cB] of CHANNELS) {
-      void gA; void gB; // gate info not needed here
-      let neighbor: CenterName | null = null;
-      if (cA === current && definedCenters.has(cB)) neighbor = cB;
-      else if (cB === current && definedCenters.has(cA)) neighbor = cA;
-      if (neighbor && !visited.has(neighbor)) {
-        visited.add(neighbor);
-        queue.push(neighbor);
+    const neighbors = adj.get(current);
+    if (!neighbors) continue;
+    for (const n of neighbors) {
+      if (!visited.has(n)) {
+        visited.add(n);
+        queue.push(n);
       }
     }
   }
@@ -96,11 +112,14 @@ function isThroatConnectedToMotor(definedCenters: Set<CenterName>): boolean {
 
 // ── Type derivation ───────────────────────────────────────────────────────────
 
-export function deriveType(definedCenters: Set<CenterName>): HdType {
+export function deriveType(
+  definedCenters: Set<CenterName>,
+  definedChannels: [number, number][],
+): HdType {
   if (definedCenters.size === 0) return "Reflector";
 
   const hasSacral = definedCenters.has("Sacral");
-  const motorToThroat = isThroatConnectedToMotor(definedCenters);
+  const motorToThroat = isThroatConnectedToMotor(definedChannels);
 
   if (hasSacral) {
     return motorToThroat ? "Manifesting Generator" : "Generator";
@@ -128,6 +147,7 @@ export function deriveStrategy(type: HdType): string {
 
 export function deriveAuthority(
   definedCenters: Set<CenterName>,
+  definedChannels: [number, number][],
   type: HdType,
 ): Authority {
   if (type === "Reflector") return "Lunar";
@@ -135,7 +155,7 @@ export function deriveAuthority(
   if (definedCenters.has("Sacral")) return "Sacral";
   if (definedCenters.has("Spleen")) return "Splenic";
   if (definedCenters.has("Ego")) {
-    return isThroatConnectedToMotor(definedCenters)
+    return isThroatConnectedToMotor(definedChannels)
       ? "Ego Manifested"
       : "Ego Projected";
   }
