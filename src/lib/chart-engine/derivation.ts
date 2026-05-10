@@ -11,13 +11,15 @@ import type { CenterName, HdType, Authority, PlanetActivation } from "./types.js
 import type { PlanetaryLongitudes } from "./astronomy.js";
 
 // ── Longitude → gate + line ───────────────────────────────────────────────────
-// The HD wheel is offset 1.625° from the tropical zodiac so that Gate 41
-// line 1 starts at 302°7'30" (= 2°7'30" Aquarius), the canonical "HD New
-// Year" position when the Sun enters Gate 41 around January 22.
+// The HD wheel is offset 1.75° from the tropical zodiac so that Gate 41
+// line 1 starts at exactly 302°00' (= 2°00' Aquarius), the canonical "HD
+// New Year" position when the Sun enters Gate 41 around January 22.
+// Validated against a known 1/4 Right Angle Cross of Tension chart
+// (1979-03-31 18:32 BST, Reading UK → Personality Sun 21.1, Design Sun 38.4).
 //
 //   gate index 54 (= Gate 41) starts at 54 * 5.625° − offset
-//   303.75° − 1.625° = 302.125° = 302°7'30"  ✓
-const WHEEL_OFFSET = 1.625;
+//   303.75° − 1.75° = 302.00° = 2°00' Aquarius  ✓
+const WHEEL_OFFSET = 1.75;
 
 export function longitudeToGateLine(lon: number): { gate: number; line: number } {
   const norm = (((lon + WHEEL_OFFSET) % 360) + 360) % 360;
