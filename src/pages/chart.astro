@@ -2,6 +2,15 @@
 import Base from "~/layouts/Base.astro";
 import { generateChart } from "~/lib/chart-engine/index.js";
 import type { Chart } from "~/lib/chart-engine/index.js";
+import { CHANNELS } from "~/lib/chart-engine/data.js";
+import {
+  CHANNEL_DESCRIPTIONS,
+  TYPE_DESCRIPTIONS,
+  AUTHORITY_DESCRIPTIONS,
+  STRATEGY_DESCRIPTIONS,
+  PROFILE_DESCRIPTIONS,
+  channelKey,
+} from "~/lib/chart-engine/copy.js";
 
 const PLANET_LABELS: Record<string, string> = {
   Sun: "☉ Sun", Earth: "⊕ Earth", Moon: "☽ Moon",
@@ -10,6 +19,36 @@ const PLANET_LABELS: Record<string, string> = {
   Neptune: "♆ Neptune", Pluto: "♇ Pluto",
   NorthNode: "☊ N. Node", SouthNode: "☋ S. Node",
 };
+
+const CENTER_LABELS: Record<string, string> = {
+  Head: "Head", Ajna: "Ajna", Throat: "Throat", G: "G",
+  Ego: "Ego", Sacral: "Sacral", SolarPlexus: "Solar Plexus",
+  Spleen: "Spleen", Root: "Root",
+};
+
+interface ChannelInfo {
+  gateA: number;
+  gateB: number;
+  centerA: string;
+  centerB: string;
+  name: string;
+  description: string;
+}
+
+function lookupChannel(gateA: number, gateB: number): ChannelInfo | null {
+  for (const [a, b, ca, cb, name] of CHANNELS) {
+    if ((a === gateA && b === gateB) || (a === gateB && b === gateA)) {
+      const key = channelKey(gateA, gateB);
+      return {
+        gateA: a, gateB: b,
+        centerA: ca, centerB: cb,
+        name,
+        description: CHANNEL_DESCRIPTIONS[key] ?? "",
+      };
+    }
+  }
+  return null;
+}
 
 let chart: Chart | null = null;
 let error: string | null = null;
@@ -28,13 +67,20 @@ if (Astro.request.method === "POST") {
     error = e instanceof Error ? e.message : "Unknown error";
   }
 }
+
+const channelInfos: ChannelInfo[] = chart
+  ? chart.definedChannels
+      .map(([a, b]) => lookupChannel(a, b))
+      .filter((c): c is ChannelInfo => c !== null)
+  : [];
 ---
 
 <Base title="Free Chart — Mythograph Journey">
-  <div class="mx-auto max-w-3xl">
-    <h1 class="text-4xl font-light">Free bodygraph chart</h1>
+  <div class="mx-auto max-w-2xl">
+    <h1 class="text-4xl font-light">Your Human Design</h1>
     <p class="mt-3 text-base opacity-70">
-      Enter your birth data to generate your Human Design chart.
+      Enter your birth data. We'll begin with your defined channels — the
+      themes your life keeps returning to.
     </p>
 
     <form method="POST" class="mt-8 grid gap-5">
@@ -81,106 +127,140 @@ if (Astro.request.method === "POST") {
     )}
 
     {chart && (
-      <section class="mt-10 space-y-8">
-        <!-- Core summary -->
-        <div class="rounded-xl border border-black/10 p-6 bg-white/60">
-          <h2 class="text-2xl font-light mb-4">Your Human Design</h2>
-          <dl class="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-            <div>
-              <dt class="text-xs uppercase tracking-wide opacity-50">Type</dt>
-              <dd class="font-semibold text-lg">{chart.type}</dd>
-            </div>
-            <div>
-              <dt class="text-xs uppercase tracking-wide opacity-50">Strategy</dt>
-              <dd>{chart.strategy}</dd>
-            </div>
-            <div>
-              <dt class="text-xs uppercase tracking-wide opacity-50">Authority</dt>
-              <dd>{chart.authority}</dd>
-            </div>
-            <div>
-              <dt class="text-xs uppercase tracking-wide opacity-50">Profile</dt>
-              <dd>{chart.profile}</dd>
-            </div>
-            <div class="sm:col-span-2">
-              <dt class="text-xs uppercase tracking-wide opacity-50">Incarnation Cross</dt>
-              <dd>{chart.incarnationCross}</dd>
-            </div>
-          </dl>
-        </div>
+      <section class="mt-12 space-y-12">
 
-        <!-- Bodygraph — full width -->
-        <div class="rounded-xl border border-black/10 bg-white/60 overflow-hidden -mx-6">
-          <h2 class="text-lg font-light px-6 pt-5 pb-2">Bodygraph</h2>
-          <div class="px-4 pb-4">
-            <div class="w-full" set:html={chart.bodygraphSvg} />
-            <p class="mt-2 text-[9px] opacity-50 select-none text-center">
-              <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#111111] mr-1 align-middle"></span>Conscious &nbsp;
-              <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#c0392b] mr-1 ml-2 align-middle"></span>Unconscious &nbsp;
-              <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#d4740a] mr-1 ml-2 align-middle"></span>Both
+        <!-- Identity hero: tiny bodygraph fingerprint + type / profile / strategy / authority -->
+        <header class="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+          <div class="shrink-0 w-32 sm:w-36 opacity-90" set:html={chart.bodygraphSvg} />
+          <div class="grow">
+            <p class="text-xs uppercase tracking-widest opacity-50 mb-1.5">Profile {chart.profile}</p>
+            <h2 class="text-2xl sm:text-3xl font-light leading-tight">
+              {chart.authority === "None" ? chart.type : `${chart.authority} ${chart.type}`}
+            </h2>
+            <p class="mt-2 text-sm opacity-70">
+              <span class="font-medium">Strategy:</span> {chart.strategy}
             </p>
           </div>
-        </div>
+        </header>
 
-        <!-- Planetary activations — two columns below bodygraph -->
-        <div class="rounded-xl border border-black/10 bg-white/60 overflow-hidden">
-          <div class="grid grid-cols-2 divide-x divide-black/10">
-            <!-- Unconscious / Design — left, red -->
-            <div class="p-5 text-[12px] leading-snug">
+        <!-- Defined channels: the heart of the page -->
+        {channelInfos.length > 0 ? (
+          <section>
+            <h3 class="text-xs uppercase tracking-widest opacity-50 mb-4">Your defined channels</h3>
+            <div class="space-y-6">
+              {channelInfos.map((c) => (
+                <article class="border-l-2 border-[#c05a3c]/40 pl-5 py-1">
+                  <div class="flex items-baseline justify-between gap-3 mb-1.5">
+                    <h4 class="text-lg font-medium">
+                      <span>{c.name}</span>
+                      <span class="opacity-40 font-mono text-sm ml-2">{c.gateA}–{c.gateB}</span>
+                    </h4>
+                    <span class="text-[10px] uppercase tracking-wider opacity-40 whitespace-nowrap">
+                      {CENTER_LABELS[c.centerA]} → {CENTER_LABELS[c.centerB]}
+                    </span>
+                  </div>
+                  {c.description ? (
+                    <p class="text-[15px] leading-relaxed opacity-80">{c.description}</p>
+                  ) : (
+                    <p class="text-[13px] italic opacity-40">— no preview copy yet —</p>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section class="rounded-xl border border-black/10 p-5 bg-white/40">
+            <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Defined channels</h3>
+            <p class="text-sm opacity-70">
+              You have no fully-defined channels. This is rare and meaningful — your
+              design is highly responsive to your environment. The Journey Narrative
+              goes deeper into what that means for you.
+            </p>
+          </section>
+        )}
+
+        <!-- Type + Authority -->
+        <section class="grid gap-6 sm:grid-cols-2">
+          <div>
+            <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Type</h3>
+            <p class="text-base font-medium mb-1.5">{chart.type}</p>
+            <p class="text-[14px] leading-relaxed opacity-75">
+              {TYPE_DESCRIPTIONS[chart.type]}
+            </p>
+          </div>
+          <div>
+            <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Authority</h3>
+            <p class="text-base font-medium mb-1.5">{chart.authority}</p>
+            <p class="text-[14px] leading-relaxed opacity-75">
+              {AUTHORITY_DESCRIPTIONS[chart.authority]}
+            </p>
+          </div>
+        </section>
+
+        <!-- Profile + Incarnation Cross -->
+        <section class="grid gap-6 sm:grid-cols-2">
+          <div>
+            <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Profile {chart.profile}</h3>
+            <p class="text-[14px] leading-relaxed opacity-75">
+              {PROFILE_DESCRIPTIONS[chart.profile] ??
+                "Your profile shapes how you meet the world. The Journey Narrative goes into the lines and roles in depth."}
+            </p>
+          </div>
+          <div>
+            <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Incarnation Cross</h3>
+            <p class="text-base font-medium leading-snug">{chart.incarnationCross}</p>
+            <p class="text-[13px] leading-relaxed opacity-60 mt-1.5">
+              The thematic arc of your life — the role you're here to play. Explored in full
+              in the Journey Narrative.
+            </p>
+          </div>
+        </section>
+
+        <!-- Activations table (collapsed) -->
+        <details class="border-t border-black/10 pt-5">
+          <summary class="cursor-pointer text-xs uppercase tracking-widest opacity-50 hover:opacity-80">
+            Planetary activations
+          </summary>
+          <div class="mt-4 grid sm:grid-cols-2 gap-6 text-[12px] leading-snug">
+            <div>
               <p class="text-[9px] font-bold uppercase tracking-widest text-[#c0392b] mb-3">Unconscious (Design)</p>
               {chart.designActivations.map((a) => (
                 <div class="flex items-baseline justify-between gap-2 py-[3px]">
                   <span class="text-[#c0392b]/80">{PLANET_LABELS[a.planet] ?? a.planet}</span>
-                  <span class="font-mono font-semibold text-[#c0392b] tabular-nums text-[11.5px]">{a.gate}.{a.line}</span>
+                  <span class="font-mono font-semibold text-[#c0392b] tabular-nums">{a.gate}.{a.line}</span>
                 </div>
               ))}
             </div>
-            <!-- Conscious / Personality — right, black -->
-            <div class="p-5 text-[12px] leading-snug">
+            <div>
               <p class="text-[9px] font-bold uppercase tracking-widest text-[#111111]/60 mb-3">Conscious (Personality)</p>
               {chart.personalityActivations.map((a) => (
                 <div class="flex items-baseline justify-between gap-2 py-[3px]">
                   <span class="text-[#111111]/60">{PLANET_LABELS[a.planet] ?? a.planet}</span>
-                  <span class="font-mono font-semibold text-[#111111] tabular-nums text-[11.5px]">{a.gate}.{a.line}</span>
+                  <span class="font-mono font-semibold text-[#111111] tabular-nums">{a.gate}.{a.line}</span>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-
-        <!-- Defined channels -->
-        {chart.definedChannels.length > 0 && (
-          <div class="rounded-xl border border-black/10 p-6 bg-white/60">
-            <h2 class="text-lg font-light mb-3">Defined channels</h2>
-            <div class="flex flex-wrap gap-2">
-              {chart.definedChannels.map(([a, b]) => (
-                <span class="rounded-full bg-[#3a4f99]/10 px-3 py-1 text-xs font-mono">
-                  {a}–{b}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+        </details>
 
         <!-- Debug panel -->
-        <details class="rounded-xl border border-black/10 p-4 bg-white/60 text-xs font-mono">
-          <summary class="cursor-pointer opacity-50 hover:opacity-100">Debug info</summary>
+        <details class="text-xs font-mono opacity-50 hover:opacity-80">
+          <summary class="cursor-pointer">Debug info</summary>
           <dl class="mt-3 grid gap-1.5">
             <div><dt class="opacity-50">Location found</dt><dd>{chart.debug.geocodedLocation}</dd></div>
             <div><dt class="opacity-50">Timezone</dt><dd>{chart.debug.timezone}</dd></div>
             <div><dt class="opacity-50">Birth UTC</dt><dd>{chart.debug.birthUtc}</dd></div>
             <div><dt class="opacity-50">Design date UTC</dt><dd>{chart.debug.designDate}</dd></div>
-            <div><dt class="opacity-50">Personality Sun longitude</dt><dd>{chart.debug.personalitySunLon}°</dd></div>
-            <div><dt class="opacity-50">Design Sun longitude</dt><dd>{chart.debug.designSunLon}°</dd></div>
             <div><dt class="opacity-50">All activated gates</dt><dd>{chart.debug.allActivatedGates.join(", ")}</dd></div>
           </dl>
         </details>
 
         <!-- Upsell -->
-        <div class="rounded-xl border border-[#3a4f99]/30 bg-[#3a4f99]/5 p-6">
+        <div class="rounded-xl border border-[#3a4f99]/30 bg-[#3a4f99]/5 p-6 mt-4">
           <h2 class="text-lg font-light mb-2">Go deeper with the Journey Narrative</h2>
           <p class="text-sm opacity-70 mb-4">
-            A long-form personalised reading written in Cléa Hernández's voice — your design, your story.
+            A long-form personalised reading written in Cléa Hernández's voice — your channels,
+            your gates, your incarnation cross, told as one story.
           </p>
           <a
             href="/#journey-narrative"
@@ -193,7 +273,7 @@ if (Astro.request.method === "POST") {
       </section>
     )}
 
-    <p class="mt-8 text-sm">
+    <p class="mt-10 text-sm">
       <a href="/" class="opacity-50 hover:opacity-100 transition">← back</a>
     </p>
   </div>
