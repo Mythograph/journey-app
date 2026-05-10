@@ -7,9 +7,9 @@ import {
   CHANNEL_DESCRIPTIONS,
   TYPE_DESCRIPTIONS,
   AUTHORITY_DESCRIPTIONS,
-  STRATEGY_DESCRIPTIONS,
   PROFILE_DESCRIPTIONS,
   channelKey,
+  chartSynopsis,
 } from "~/lib/chart-engine/copy.js";
 
 const PLANET_LABELS: Record<string, string> = {
@@ -73,14 +73,16 @@ const channelInfos: ChannelInfo[] = chart
       .map(([a, b]) => lookupChannel(a, b))
       .filter((c): c is ChannelInfo => c !== null)
   : [];
+
+const synopsis = chart ? chartSynopsis(chart, channelInfos) : "";
 ---
 
-<Base title="Free Chart — Mythograph Journey">
+<Base title="Free Chart · Mythograph Journey">
   <div class="mx-auto max-w-2xl">
     <h1 class="text-4xl font-light">Your Human Design</h1>
     <p class="mt-3 text-base opacity-70">
-      Enter your birth data. We'll begin with your defined channels — the
-      themes your life keeps returning to.
+      Enter your birth data. We'll start with the through-line of your design,
+      then the channels that define it.
     </p>
 
     <form method="POST" class="mt-8 grid gap-5">
@@ -129,9 +131,9 @@ const channelInfos: ChannelInfo[] = chart
     {chart && (
       <section class="mt-12 space-y-12">
 
-        <!-- Identity hero: tiny bodygraph fingerprint + type / profile / strategy / authority -->
+        <!-- Identity hero: tiny bodygraph fingerprint + type / profile / authority -->
         <header class="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-          <div class="shrink-0 w-32 sm:w-36 opacity-90" set:html={chart.bodygraphSvg} />
+          <div class="shrink-0 w-32 sm:w-36 opacity-90 [&_text]:hidden" set:html={chart.bodygraphSvg} />
           <div class="grow">
             <p class="text-xs uppercase tracking-widest opacity-50 mb-1.5">Profile {chart.profile}</p>
             <h2 class="text-2xl sm:text-3xl font-light leading-tight">
@@ -142,6 +144,11 @@ const channelInfos: ChannelInfo[] = chart
             </p>
           </div>
         </header>
+
+        <!-- Synopsis: through-line of all elements -->
+        <section class="border-l-2 border-[#3a4f99]/40 pl-5 py-1">
+          <p class="text-[16px] leading-relaxed">{synopsis}</p>
+        </section>
 
         <!-- Defined channels: the heart of the page -->
         {channelInfos.length > 0 ? (
@@ -156,13 +163,13 @@ const channelInfos: ChannelInfo[] = chart
                       <span class="opacity-40 font-mono text-sm ml-2">{c.gateA}–{c.gateB}</span>
                     </h4>
                     <span class="text-[10px] uppercase tracking-wider opacity-40 whitespace-nowrap">
-                      {CENTER_LABELS[c.centerA]} → {CENTER_LABELS[c.centerB]}
+                      {CENTER_LABELS[c.centerA]} ↔ {CENTER_LABELS[c.centerB]}
                     </span>
                   </div>
                   {c.description ? (
                     <p class="text-[15px] leading-relaxed opacity-80">{c.description}</p>
                   ) : (
-                    <p class="text-[13px] italic opacity-40">— no preview copy yet —</p>
+                    <p class="text-[13px] italic opacity-40">No preview copy yet.</p>
                   )}
                 </article>
               ))}
@@ -172,9 +179,9 @@ const channelInfos: ChannelInfo[] = chart
           <section class="rounded-xl border border-black/10 p-5 bg-white/40">
             <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Defined channels</h3>
             <p class="text-sm opacity-70">
-              You have no fully-defined channels. This is rare and meaningful — your
-              design is highly responsive to your environment. The Journey Narrative
-              goes deeper into what that means for you.
+              You have no fully-defined channels. This is unusual and meaningful. Your
+              design is highly responsive to who and what is in the room with you.
+              The Journey Narrative goes deeper into what that means.
             </p>
           </section>
         )}
@@ -210,38 +217,40 @@ const channelInfos: ChannelInfo[] = chart
             <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Incarnation Cross</h3>
             <p class="text-base font-medium leading-snug">{chart.incarnationCross}</p>
             <p class="text-[13px] leading-relaxed opacity-60 mt-1.5">
-              The thematic arc of your life — the role you're here to play. Explored in full
-              in the Journey Narrative.
+              The thematic arc of your life. The role you are here to play.
+              The Journey Narrative reads it in full.
             </p>
           </div>
         </section>
 
-        <!-- Activations table (collapsed) -->
-        <details class="border-t border-black/10 pt-5">
-          <summary class="cursor-pointer text-xs uppercase tracking-widest opacity-50 hover:opacity-80">
-            Planetary activations
-          </summary>
-          <div class="mt-4 grid sm:grid-cols-2 gap-6 text-[12px] leading-snug">
+        <!-- Planetary activations: prominent, not hidden -->
+        <section>
+          <h3 class="text-base font-medium mb-4">Planetary activations</h3>
+          <div class="grid sm:grid-cols-2 gap-8 text-[14px] leading-snug">
             <div>
-              <p class="text-[9px] font-bold uppercase tracking-widest text-[#c0392b] mb-3">Unconscious (Design)</p>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-[#c0392b] mb-3">
+                Unconscious (Design)
+              </p>
               {chart.designActivations.map((a) => (
-                <div class="flex items-baseline justify-between gap-2 py-[3px]">
-                  <span class="text-[#c0392b]/80">{PLANET_LABELS[a.planet] ?? a.planet}</span>
+                <div class="flex items-baseline justify-between gap-3 py-1 border-b border-[#c0392b]/10 last:border-0">
+                  <span class="text-[#c0392b]/85">{PLANET_LABELS[a.planet] ?? a.planet}</span>
                   <span class="font-mono font-semibold text-[#c0392b] tabular-nums">{a.gate}.{a.line}</span>
                 </div>
               ))}
             </div>
             <div>
-              <p class="text-[9px] font-bold uppercase tracking-widest text-[#111111]/60 mb-3">Conscious (Personality)</p>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-[#111111]/65 mb-3">
+                Conscious (Personality)
+              </p>
               {chart.personalityActivations.map((a) => (
-                <div class="flex items-baseline justify-between gap-2 py-[3px]">
-                  <span class="text-[#111111]/60">{PLANET_LABELS[a.planet] ?? a.planet}</span>
+                <div class="flex items-baseline justify-between gap-3 py-1 border-b border-black/10 last:border-0">
+                  <span class="text-[#111111]/65">{PLANET_LABELS[a.planet] ?? a.planet}</span>
                   <span class="font-mono font-semibold text-[#111111] tabular-nums">{a.gate}.{a.line}</span>
                 </div>
               ))}
             </div>
           </div>
-        </details>
+        </section>
 
         <!-- Debug panel -->
         <details class="text-xs font-mono opacity-50 hover:opacity-80">
@@ -259,15 +268,15 @@ const channelInfos: ChannelInfo[] = chart
         <div class="rounded-xl border border-[#3a4f99]/30 bg-[#3a4f99]/5 p-6 mt-4">
           <h2 class="text-lg font-light mb-2">Go deeper with the Journey Narrative</h2>
           <p class="text-sm opacity-70 mb-4">
-            A long-form personalised reading written in Cléa Hernández's voice — your channels,
-            your gates, your incarnation cross, told as one story.
+            A long-form personalised reading written in Cléa Hernández's voice.
+            Your channels, your gates, your incarnation cross, told as one story.
           </p>
           <a
             href="/#journey-narrative"
             class="inline-block rounded bg-[#3a4f99] px-5 py-2 text-sm font-medium hover:bg-[#2d3f80] transition"
             style="color: white"
           >
-            Get your Journey Narrative — $37
+            Get your Journey Narrative ($37)
           </a>
         </div>
       </section>
