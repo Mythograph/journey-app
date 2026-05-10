@@ -49,9 +49,9 @@ export async function generateChart(birth: BirthData): Promise<Chart> {
   // 6. Channels → Centers → Type / Strategy / Authority
   const definedChannels = deriveDefinedChannels(allGates);
   const definedCenters = deriveDefinedCenters(definedChannels);
-  const type = deriveType(definedCenters);
+  const type = deriveType(definedCenters, definedChannels);
   const strategy = deriveStrategy(type);
-  const authority = deriveAuthority(definedCenters, type);
+  const authority = deriveAuthority(definedCenters, definedChannels, type);
 
   // 7. Profile from Personality Sun line / Design Sun line
   const pSun = personalityActivations.find((a) => a.planet === "Sun")!;
