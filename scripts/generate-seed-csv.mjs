@@ -140,10 +140,50 @@ for (const k of ["type","authority","profile","cross"]) {
 }
 fs.writeFileSync(path.join(outDir, "intros.csv"), csv(introRows));
 
-console.log("Wrote seed-csv/{channels,types,authorities,profiles,strategies,intros}.csv");
+// Gates: key (1–64), name, center (filled from data.ts), theme, gift,
+// shadow, keywords. Only `key` and `center` are pre-populated; the user
+// pastes her own gate copy into the rest.
+function extractCenterGates(src) {
+  const re = /export const CENTER_GATES[^=]*=\s*\{([\s\S]*?)\n\};/;
+  const m = src.match(re);
+  if (!m) throw new Error("Could not find CENTER_GATES");
+  const body = m[1];
+  const out = {}; // gate → center
+  const entryRe = /(\w+):\s*\[([\d,\s]+)\]/g;
+  let entry;
+  while ((entry = entryRe.exec(body)) !== null) {
+    const center = entry[1];
+    const gates = entry[2].split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n));
+    for (const g of gates) out[g] = center;
+  }
+  return out;
+}
+const CENTER_LABEL = {
+  Head: "Head", Ajna: "Ajna", Throat: "Throat", G: "G", Ego: "Ego",
+  Sacral: "Sacral", SolarPlexus: "Solar Plexus", Spleen: "Spleen", Root: "Root",
+};
+const GATE_CENTER = extractCenterGates(dataTs);
+const gateRows = [["key", "name", "center", "theme", "gift", "shadow", "keywords"]];
+for (let g = 1; g <= 64; g++) {
+  gateRows.push([String(g), "", CENTER_LABEL[GATE_CENTER[g]] ?? "", "", "", "", ""]);
+}
+fs.writeFileSync(path.join(outDir, "gates.csv"), csv(gateRows));
+
+// Lines: 384 rows (gate.line for each gate × 6 lines), description blank.
+const lineRows = [["key", "description"]];
+for (let g = 1; g <= 64; g++) {
+  for (let l = 1; l <= 6; l++) {
+    lineRows.push([`${g}.${l}`, ""]);
+  }
+}
+fs.writeFileSync(path.join(outDir, "lines.csv"), csv(lineRows));
+
+console.log("Wrote seed-csv/{channels,types,authorities,profiles,strategies,intros,gates,lines}.csv");
 console.log("Channel rows:    ", channelRows.length - 1);
 console.log("Type rows:       ", typeRows.length - 1);
 console.log("Authority rows:  ", authRows.length - 1);
 console.log("Profile rows:    ", profileRows.length - 1);
 console.log("Strategy rows:   ", stratRows.length - 1);
 console.log("Intro rows:      ", introRows.length - 1);
+console.log("Gate rows:       ", gateRows.length - 1, "(scaffold — fill in name + theme/gift/shadow/keywords from your sheet)");
+console.log("Line rows:       ", lineRows.length - 1, "(scaffold — fill in descriptions later)");

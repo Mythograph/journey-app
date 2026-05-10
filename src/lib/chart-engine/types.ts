@@ -44,6 +44,17 @@ export interface PlanetActivation {
   line: number;
 }
 
+// Per-gate narrative content (read from the copy sheet, used by the
+// Journey Narrative). All fields are optional in practice — if the
+// sheet row is empty, the consuming template should skip gracefully.
+export interface GateInfo {
+  name: string;
+  theme: string;
+  gift: string;
+  shadow: string;
+  keywords: string;
+}
+
 export interface Chart {
   // Meta
   birthData: BirthData;

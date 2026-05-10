@@ -6,13 +6,15 @@ The narrative copy on the free chart page (channel paragraphs, type / authority 
 
 1. **Create a new Google Sheet** named e.g. *"Mythograph Journey — Chart Copy"*.
 
-2. **Add six tabs**, named exactly:
+2. **Add eight tabs**, named exactly:
    - `Channels`
    - `Types`
    - `Authorities`
    - `Profiles`
    - `Strategies`
    - `Intros`
+   - `Gates`
+   - `Lines`
 
 3. **Import the seed CSVs** (in this folder) into each matching tab:
    - In each tab: **File → Import → Upload → choose the matching `.csv`**
@@ -47,16 +49,20 @@ That's it. From now on, every Netlify deploy regenerates `copy.ts` from the shee
 | `Profiles`   | `key` (`4/6`), `name`, `description`    | Both `name` and `description` are used. |
 | `Strategies` | `key`, `text`                           | Short — usually one sentence. |
 | `Intros`     | `key`, `text`                           | Keys: type, authority, profile, cross |
+| `Gates`      | `key` (1–64), `name`, `center`, `theme`, `gift`, `shadow`, `keywords` | `center` is pre-filled and display-only (read from `data.ts`). Other columns: paste your own gate copy. Empty cells are tolerated — used by the Journey Narrative. |
+| `Lines`      | `key` (e.g. `1.1`), `description`        | 384 rows (64 gates × 6 lines). Empty cells are tolerated — fill in as you write line-level depth. |
 
 ## What happens if the sheet has problems?
 
-The build fails loudly with a specific error:
+For the **chart-page tabs** (`Channels`, `Types`, `Authorities`, `Profiles`, `Strategies`, `Intros`), the build fails loudly on:
 - Missing key (e.g. *"Profiles: missing key '5/2'"*)
 - Empty cell (e.g. *"Channels: empty 'description' for key '4-63'"*)
 - Sheet not public (HTTP 401/403)
 - Wrong tab name
 
 The previous deploy stays live until the issue is fixed.
+
+For the **Journey Narrative tabs** (`Gates`, `Lines`), missing rows or empty cells are tolerated and just logged as warnings — these are filled in incrementally and shouldn't block deploys.
 
 ## Local development
 

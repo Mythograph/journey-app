@@ -115,10 +115,37 @@ function buildRecord(rows, keyCol, valueCol, expectedKeys, label) {
   return out;
 }
 
+// Permissive variant for in-progress copy: empty cells are allowed (the
+// consuming template should skip gracefully). Used for Gates and Lines while
+// the user is still filling them in.
+function buildOptionalRecord(rows, keyCol, expectedKeys, label) {
+  const objs = rowsToObjects(rows);
+  const out = {};
+  for (const o of objs) {
+    if (!o[keyCol]) continue;
+    if (out[o[keyCol]] !== undefined) {
+      throw new Error(`[sync-copy] ${label}: duplicate key "${o[keyCol]}"`);
+    }
+    out[o[keyCol]] = o;
+  }
+  const missing = expectedKeys.filter((k) => !(k in out));
+  if (missing.length) {
+    console.warn(`[sync-copy] ${label}: missing rows for keys: ${missing.slice(0, 5).join(", ")}${missing.length > 5 ? `, ... (+${missing.length - 5} more)` : ""}`);
+    for (const k of missing) out[k] = {};
+  }
+  return out;
+}
+
 const TYPES = ["Generator","Manifesting Generator","Manifestor","Projector","Reflector"];
 const AUTHORITIES = ["Emotional","Sacral","Splenic","Ego Manifested","Ego Projected","Self-Projected","Mental Projected","Lunar","None"];
 const PROFILES = ["1/3","1/4","2/4","2/5","3/5","3/6","4/6","4/1","5/1","5/2","6/2","6/3"];
 const INTRO_KEYS = ["type","authority","profile","cross"];
+const GATE_KEYS = Array.from({ length: 64 }, (_, i) => String(i + 1));
+const LINE_KEYS = (() => {
+  const out = [];
+  for (let g = 1; g <= 64; g++) for (let l = 1; l <= 6; l++) out.push(`${g}.${l}`);
+  return out;
+})();
 
 // Channels: keys come from data.ts; we read them dynamically so adding a
 // channel in data.ts auto-extends the expected list.
@@ -148,6 +175,20 @@ function tsRecord(record, indent = "  ") {
   return lines.join("\n");
 }
 
+// Numeric-keyed record of {name, theme, gift, shadow, keywords} per gate.
+function tsGateRecord(record, indent = "  ") {
+  const lines = [];
+  const keys = Object.keys(record).sort((a, b) => Number(a) - Number(b));
+  for (const k of keys) {
+    const r = record[k] ?? {};
+    const fields = ["name","theme","gift","shadow","keywords"]
+      .map((f) => `${f}: ${tsString(r[f] ?? "")}`)
+      .join(", ");
+    lines.push(`${indent}${k}: { ${fields} },`);
+  }
+  return lines.join("\n");
+}
+
 // ── Generate copy.ts ─────────────────────────────────────────────────────────
 
 function generateCopyTs(data) {
@@ -155,7 +196,7 @@ function generateCopyTs(data) {
 // DO NOT EDIT — your changes will be overwritten on the next deploy.
 // Source of truth: https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit
 
-import type { Authority, HdType, Chart } from "./types.js";
+import type { Authority, HdType, Chart, GateInfo } from "./types.js";
 
 // ── Concept intros ────────────────────────────────────────────────────────────
 
@@ -202,6 +243,22 @@ export const PROFILE_DESCRIPTIONS: Record<string, string> = {
 ${tsRecord(data.profileDescriptions)}
 };
 
+// ── Gates ─────────────────────────────────────────────────────────────────────
+// Per-gate copy used by the Journey Narrative. Empty fields are normal while
+// the sheet is being filled in; the narrative templates skip empty fields.
+
+export const GATE_INFO: Record<number, GateInfo> = {
+${tsGateRecord(data.gates)}
+};
+
+// ── Lines ─────────────────────────────────────────────────────────────────────
+// Per-gate-line copy (gate.line, e.g. "1.1"). Used by the Journey Narrative
+// for line-level depth. Empty values are tolerated.
+
+export const LINE_DESCRIPTIONS: Record<string, string> = {
+${tsRecord(data.lines)}
+};
+
 // ── Synopsis ──────────────────────────────────────────────────────────────────
 // A paragraph-long through-line that pulls together type, profile, authority,
 // strategy, defined channels, and incarnation cross. Generated dynamically per
@@ -246,14 +303,22 @@ async function main() {
 
   const expectedChannels = getExpectedChannelKeys();
 
-  const [chRows, tyRows, auRows, prRows, stRows, inRows] = await Promise.all([
+  const [chRows, tyRows, auRows, prRows, stRows, inRows, gaRows, liRows] = await Promise.all([
     fetchTab("Channels"),
     fetchTab("Types"),
     fetchTab("Authorities"),
     fetchTab("Profiles"),
     fetchTab("Strategies"),
     fetchTab("Intros"),
+    fetchTab("Gates"),
+    fetchTab("Lines"),
   ]);
+
+  const gateRowMap = buildOptionalRecord(gaRows, "key", GATE_KEYS, "Gates");
+  const gates = {};
+  for (const k of GATE_KEYS) {
+    gates[k] = gateRowMap[k] ?? {};
+  }
 
   const data = {
     channels: buildRecord(chRows, "key", "description", expectedChannels, "Channels"),
@@ -263,7 +328,17 @@ async function main() {
     profileDescriptions: buildRecord(prRows, "key", "description", PROFILES, "Profiles (description)"),
     strategies: buildRecord(stRows, "key", "text", TYPES, "Strategies"),
     intros: buildRecord(inRows, "key", "text", INTRO_KEYS, "Intros"),
+    gates,
+    lines: (() => {
+      const liMap = buildOptionalRecord(liRows, "key", LINE_KEYS, "Lines");
+      const out = {};
+      for (const k of LINE_KEYS) out[k] = liMap[k]?.description ?? "";
+      return out;
+    })(),
   };
+
+  const filledGates = Object.values(data.gates).filter((g) => g.name || g.gift || g.shadow).length;
+  const filledLines = Object.values(data.lines).filter((d) => d).length;
 
   const out = generateCopyTs(data);
   fs.writeFileSync(COPY_TS, out);
@@ -273,6 +348,7 @@ async function main() {
     `${Object.keys(data.authorities).length} authorities, ` +
     `${Object.keys(data.profileNames).length} profiles, ` +
     `${Object.keys(data.intros).length} intros.`);
+  console.log(`[sync-copy]   gates: ${filledGates}/64 filled, lines: ${filledLines}/384 filled.`);
 }
 
 main().catch((err) => {
