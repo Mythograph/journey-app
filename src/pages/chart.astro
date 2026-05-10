@@ -8,6 +8,11 @@ import {
   TYPE_DESCRIPTIONS,
   AUTHORITY_DESCRIPTIONS,
   PROFILE_DESCRIPTIONS,
+  PROFILE_NAMES,
+  TYPE_INTRO,
+  AUTHORITY_INTRO,
+  PROFILE_INTRO,
+  INCARNATION_CROSS_INTRO,
   channelKey,
   chartSynopsis,
 } from "~/lib/chart-engine/copy.js";
@@ -50,6 +55,15 @@ function lookupChannel(gateA: number, gateB: number): ChannelInfo | null {
   return null;
 }
 
+// Split a string into parts, marking "Journey Narrative" occurrences so they
+// can be rendered as links in the template.
+function withJourneyLinks(text: string): { text: string; isLink: boolean }[] {
+  return text.split(/(Journey Narrative)/g).map((part) => ({
+    text: part,
+    isLink: part === "Journey Narrative",
+  }));
+}
+
 let chart: Chart | null = null;
 let error: string | null = null;
 let formData = { date: "", time: "", city: "" };
@@ -75,15 +89,12 @@ const channelInfos: ChannelInfo[] = chart
   : [];
 
 const synopsis = chart ? chartSynopsis(chart, channelInfos) : "";
+const profileName = chart ? (PROFILE_NAMES[chart.profile] ?? chart.profile) : "";
 ---
 
 <Base title="Free Chart · Mythograph Journey">
   <div class="mx-auto max-w-2xl">
     <h1 class="text-4xl font-light">Your Human Design</h1>
-    <p class="mt-3 text-base opacity-70">
-      Enter your birth data. We'll start with the through-line of your design,
-      then the channels that define it.
-    </p>
 
     <form method="POST" class="mt-8 grid gap-5">
       <div class="grid gap-1.5">
@@ -96,7 +107,7 @@ const synopsis = chart ? chartSynopsis(chart, channelInfos) : "";
       </div>
 
       <div class="grid gap-1.5">
-        <label for="time" class="text-sm font-medium">Birth time (local, 24h)</label>
+        <label for="time" class="text-sm font-medium">Birth time (local, 12h)</label>
         <input
           id="time" name="time" type="time" required
           value={formData.time}
@@ -135,7 +146,7 @@ const synopsis = chart ? chartSynopsis(chart, channelInfos) : "";
         <header class="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
           <div class="shrink-0 w-32 sm:w-36 opacity-90 [&_text]:hidden" set:html={chart.bodygraphSvg} />
           <div class="grow">
-            <p class="text-xs uppercase tracking-widest opacity-50 mb-1.5">Profile {chart.profile}</p>
+            <p class="text-xs uppercase tracking-widest opacity-50 mb-1.5">Profile {chart.profile} · {profileName}</p>
             <h2 class="text-2xl sm:text-3xl font-light leading-tight">
               {chart.authority === "None" ? chart.type : `${chart.authority} ${chart.type}`}
             </h2>
@@ -147,10 +158,16 @@ const synopsis = chart ? chartSynopsis(chart, channelInfos) : "";
 
         <!-- Synopsis: through-line of all elements -->
         <section class="border-l-2 border-[#3a4f99]/40 pl-5 py-1">
-          <p class="text-[16px] leading-relaxed">{synopsis}</p>
+          <p class="text-[16px] leading-relaxed">
+            {withJourneyLinks(synopsis).map((p) =>
+              p.isLink
+                ? <a href="/#journey-narrative" class="underline decoration-dotted underline-offset-2 hover:decoration-solid">{p.text}</a>
+                : <Fragment>{p.text}</Fragment>
+            )}
+          </p>
         </section>
 
-        <!-- Defined channels: the heart of the page -->
+        <!-- Defined channels -->
         {channelInfos.length > 0 ? (
           <section>
             <h3 class="text-xs uppercase tracking-widest opacity-50 mb-4">Your defined channels</h3>
@@ -167,7 +184,13 @@ const synopsis = chart ? chartSynopsis(chart, channelInfos) : "";
                     </span>
                   </div>
                   {c.description ? (
-                    <p class="text-[15px] leading-relaxed opacity-80">{c.description}</p>
+                    <p class="text-[15px] leading-relaxed opacity-80">
+                      {withJourneyLinks(c.description).map((p) =>
+                        p.isLink
+                          ? <a href="/#journey-narrative" class="underline decoration-dotted underline-offset-2 hover:decoration-solid">{p.text}</a>
+                          : <Fragment>{p.text}</Fragment>
+                      )}
+                    </p>
                   ) : (
                     <p class="text-[13px] italic opacity-40">No preview copy yet.</p>
                   )}
@@ -180,52 +203,78 @@ const synopsis = chart ? chartSynopsis(chart, channelInfos) : "";
             <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Defined channels</h3>
             <p class="text-sm opacity-70">
               You have no fully-defined channels. This is unusual and meaningful. Your
-              design is highly responsive to who and what is in the room with you.
-              The Journey Narrative goes deeper into what that means.
+              design is highly responsive to who and what is in the room with you. The{" "}
+              <a href="/#journey-narrative" class="underline decoration-dotted underline-offset-2 hover:decoration-solid">Journey Narrative</a>
+              {" "}goes deeper into what that means.
             </p>
           </section>
         )}
 
-        <!-- Type + Authority -->
-        <section class="grid gap-6 sm:grid-cols-2">
-          <div>
-            <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Type</h3>
-            <p class="text-base font-medium mb-1.5">{chart.type}</p>
-            <p class="text-[14px] leading-relaxed opacity-75">
-              {TYPE_DESCRIPTIONS[chart.type]}
-            </p>
-          </div>
-          <div>
-            <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Authority</h3>
-            <p class="text-base font-medium mb-1.5">{chart.authority}</p>
-            <p class="text-[14px] leading-relaxed opacity-75">
-              {AUTHORITY_DESCRIPTIONS[chart.authority]}
-            </p>
-          </div>
-        </section>
-
-        <!-- Profile + Incarnation Cross -->
-        <section class="grid gap-6 sm:grid-cols-2">
-          <div>
-            <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Profile {chart.profile}</h3>
-            <p class="text-[14px] leading-relaxed opacity-75">
-              {PROFILE_DESCRIPTIONS[chart.profile] ??
-                "Your profile shapes how you meet the world. The Journey Narrative goes into the lines and roles in depth."}
-            </p>
-          </div>
-          <div>
-            <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Incarnation Cross</h3>
-            <p class="text-base font-medium leading-snug">{chart.incarnationCross}</p>
-            <p class="text-[13px] leading-relaxed opacity-60 mt-1.5">
-              The thematic arc of your life. The role you are here to play.
-              The Journey Narrative reads it in full.
-            </p>
-          </div>
-        </section>
-
-        <!-- Planetary activations: prominent, not hidden -->
+        <!-- Type -->
         <section>
-          <h3 class="text-base font-medium mb-4">Planetary activations</h3>
+          <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Type</h3>
+          <p class="text-[13px] leading-relaxed opacity-60 mb-3">{TYPE_INTRO}</p>
+          <p class="text-base font-medium mb-2">{chart.type}</p>
+          <p class="text-[15px] leading-relaxed opacity-85">
+            {withJourneyLinks(TYPE_DESCRIPTIONS[chart.type]).map((p) =>
+              p.isLink
+                ? <a href="/#journey-narrative" class="underline decoration-dotted underline-offset-2 hover:decoration-solid">{p.text}</a>
+                : <Fragment>{p.text}</Fragment>
+            )}
+          </p>
+        </section>
+
+        <!-- Authority -->
+        <section>
+          <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Authority</h3>
+          <p class="text-[13px] leading-relaxed opacity-60 mb-3">{AUTHORITY_INTRO}</p>
+          <p class="text-base font-medium mb-2">{chart.authority}</p>
+          <p class="text-[15px] leading-relaxed opacity-85">
+            {withJourneyLinks(AUTHORITY_DESCRIPTIONS[chart.authority]).map((p) =>
+              p.isLink
+                ? <a href="/#journey-narrative" class="underline decoration-dotted underline-offset-2 hover:decoration-solid">{p.text}</a>
+                : <Fragment>{p.text}</Fragment>
+            )}
+          </p>
+        </section>
+
+        <!-- Profile -->
+        <section>
+          <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Profile</h3>
+          <p class="text-[13px] leading-relaxed opacity-60 mb-3">{PROFILE_INTRO}</p>
+          <p class="text-base font-medium mb-2">
+            {chart.profile} · {profileName}
+          </p>
+          <p class="text-[15px] leading-relaxed opacity-85">
+            {withJourneyLinks(PROFILE_DESCRIPTIONS[chart.profile] ?? "Your profile shapes how you meet the world. The Journey Narrative goes into the lines and roles in depth.").map((p) =>
+              p.isLink
+                ? <a href="/#journey-narrative" class="underline decoration-dotted underline-offset-2 hover:decoration-solid">{p.text}</a>
+                : <Fragment>{p.text}</Fragment>
+            )}
+          </p>
+        </section>
+
+        <!-- Incarnation Cross -->
+        <section>
+          <h3 class="text-xs uppercase tracking-widest opacity-50 mb-2">Incarnation Cross</h3>
+          <p class="text-[13px] leading-relaxed opacity-60 mb-3">{INCARNATION_CROSS_INTRO}</p>
+          <p class="text-base font-medium leading-snug mb-2">{chart.incarnationCross}</p>
+          <p class="text-[15px] leading-relaxed opacity-85">
+            The thematic arc of your life, named.{" "}
+            <a href="/#journey-narrative" class="underline decoration-dotted underline-offset-2 hover:decoration-solid">The Journey Narrative</a>
+            {" "}reads yours in full.
+          </p>
+        </section>
+
+        <!-- Planetary activations -->
+        <section>
+          <h3 class="text-base font-medium mb-2">Planetary activations</h3>
+          <p class="text-[13px] leading-relaxed opacity-60 mb-4">
+            The 26 planetary positions that built your design. The unconscious column is your
+            Design (red): the imprint of who you are at the body level, set 88 days before birth.
+            The conscious column is your Personality (black): the imprint of who you experience
+            yourself to be, set at the moment of your birth.
+          </p>
           <div class="grid sm:grid-cols-2 gap-8 text-[14px] leading-snug">
             <div>
               <p class="text-[11px] font-bold uppercase tracking-widest text-[#c0392b] mb-3">
@@ -252,9 +301,9 @@ const synopsis = chart ? chartSynopsis(chart, channelInfos) : "";
           </div>
         </section>
 
-        <!-- Debug panel -->
+        <!-- Imprint info -->
         <details class="text-xs font-mono opacity-50 hover:opacity-80">
-          <summary class="cursor-pointer">Debug info</summary>
+          <summary class="cursor-pointer">Imprint info</summary>
           <dl class="mt-3 grid gap-1.5">
             <div><dt class="opacity-50">Location found</dt><dd>{chart.debug.geocodedLocation}</dd></div>
             <div><dt class="opacity-50">Timezone</dt><dd>{chart.debug.timezone}</dd></div>
@@ -265,7 +314,7 @@ const synopsis = chart ? chartSynopsis(chart, channelInfos) : "";
         </details>
 
         <!-- Upsell -->
-        <div class="rounded-xl border border-[#3a4f99]/30 bg-[#3a4f99]/5 p-6 mt-4">
+        <div id="journey-narrative-upsell" class="rounded-xl border border-[#3a4f99]/30 bg-[#3a4f99]/5 p-6 mt-4">
           <h2 class="text-lg font-light mb-2">Go deeper with the Journey Narrative</h2>
           <p class="text-sm opacity-70 mb-4">
             A long-form personalised reading written in Cléa Hernández's voice.
