@@ -217,8 +217,8 @@ function renderCenterLabel(cx: number, cy: number, s: Shape, r: number, def: boo
 const SW_ACTIVE   = 5;
 const SW_INACTIVE = 1.4;
 
-// Channels bow gently toward the canvas centerline so diagonal channels arc
-// inward and vertical channels stay nearly straight.
+// Diagonal channels bow gently outward from the canvas center, framing the
+// bodygraph; near-vertical channels stay straight.
 const CANVAS_CX = 310;
 const CANVAS_CY = 430;
 
@@ -230,15 +230,16 @@ function gateStyle(isP: boolean, isD: boolean): { col: string; active: boolean }
 }
 
 // Cubic bezier control points: offset 1/3 and 2/3 along the line, perpendicular
-// toward the canvas center, magnitude proportional to line length. Near-vertical
-// channels (the middle-section spine) stay straight.
+// outward from the canvas center, magnitude proportional to line length.
+// Near-vertical channels (the middle-section spine) stay straight.
 function controlPoints(ax: number, ay: number, bx: number, by: number): [number, number, number, number] {
   const dx = bx - ax, dy = by - ay;
   const len = Math.hypot(dx, dy) || 1;
   const mx = (ax + bx) / 2, my = (ay + by) / 2;
   const isVertical = Math.abs(dx) / Math.max(Math.abs(dy), 1) < 0.25;
   let nx = -dy / len, ny = dx / len;
-  if (nx * (CANVAS_CX - mx) + ny * (CANVAS_CY - my) < 0) { nx = -nx; ny = -ny; }
+  // Bow outward: flip the perpendicular so it points away from canvas center.
+  if (nx * (CANVAS_CX - mx) + ny * (CANVAS_CY - my) > 0) { nx = -nx; ny = -ny; }
   const bow = isVertical ? 0 : Math.min(18, len * 0.08);
   return [
     ax + dx / 3 + nx * bow, ay + dy / 3 + ny * bow,
