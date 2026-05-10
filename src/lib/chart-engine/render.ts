@@ -240,7 +240,7 @@ function controlPoints(ax: number, ay: number, bx: number, by: number): [number,
   let nx = -dy / len, ny = dx / len;
   // Bow outward: flip the perpendicular so it points away from canvas center.
   if (nx * (CANVAS_CX - mx) + ny * (CANVAS_CY - my) > 0) { nx = -nx; ny = -ny; }
-  const bow = isVertical ? 0 : Math.min(18, len * 0.08);
+  const bow = isVertical ? 0 : Math.min(110, len * 0.38);
   return [
     ax + dx / 3 + nx * bow, ay + dy / 3 + ny * bow,
     ax + 2 * dx / 3 + nx * bow, ay + 2 * dy / 3 + ny * bow,
