@@ -1,6 +1,7 @@
 ---
 import Base from "~/layouts/Base.astro";
-import { getPurchase } from "~/lib/purchases.js";
+import { getPurchase, updatePurchase } from "~/lib/purchases.js";
+import type { BirthData } from "~/lib/chart-engine/types.js";
 
 const { token } = Astro.params;
 
@@ -9,6 +10,28 @@ const purchase = token ? await getPurchase(token) : null;
 if (!purchase) {
   return Astro.redirect("/?error=invalid-token", 302);
 }
+
+// POST: save birth data, redirect back to GET
+if (Astro.request.method === "POST") {
+  const body = await Astro.request.formData();
+  const birthData: BirthData = {
+    date: String(body.get("date") ?? ""),
+    time: String(body.get("time") ?? ""),
+    city: String(body.get("city") ?? ""),
+  };
+  if (birthData.date && birthData.time && birthData.city) {
+    await updatePurchase(purchase.token, { birthData });
+  }
+  return Astro.redirect(`/journey/${token}`, 303);
+}
+
+const hasBirthData = Boolean(purchase.birthData);
+const hasNarrative = Boolean(purchase.narrative);
+
+// Pre-format narrative paragraphs for server-side rendering
+const narrativeParagraphs = hasNarrative
+  ? (purchase.narrative ?? "").split(/\n\n+/).filter(Boolean)
+  : [];
 ---
 
 <Base title="Your Journey Narrative — Mythograph">
@@ -19,11 +42,14 @@ if (!purchase) {
 
     <h1 class="text-4xl font-light">Your Journey Narrative</h1>
     <p class="mt-3 text-base opacity-70">
-      Hello{purchase.name ? `, ${purchase.name}` : ""}. Your reading is being prepared.
+      Hello{purchase.name ? `, ${purchase.name}` : ""}
+      {!hasBirthData && ". To generate your reading, enter your birth details below."}
+      {hasBirthData && !hasNarrative && ". Your narrative is being written now."}
+      {hasNarrative && ". Your reading is ready."}
     </p>
 
-    <div class="mt-8 rounded-xl border border-[#3b2f6e]/20 bg-[#3b2f6e]/5 p-6 space-y-4">
-      <h2 class="text-lg font-medium text-[#3b2f6e]">Order confirmed</h2>
+    {/* ── Order confirmation card ── */}
+    <div class="mt-6 rounded-xl border border-[#3b2f6e]/20 bg-[#3b2f6e]/5 p-5 space-y-2">
       <dl class="text-sm grid gap-2">
         <div class="flex gap-3">
           <dt class="opacity-50 w-24 shrink-0">Email</dt>
@@ -35,26 +61,129 @@ if (!purchase) {
             day: "numeric", month: "long", year: "numeric"
           })}</dd>
         </div>
-        <div class="flex gap-3">
-          <dt class="opacity-50 w-24 shrink-0">Reference</dt>
-          <dd class="font-mono text-xs break-all">{purchase.stripeSessionId}</dd>
-        </div>
       </dl>
     </div>
 
-    <div class="mt-8 rounded-xl border border-black/10 p-6 bg-white/60 prose prose-sm max-w-none">
-      <h2>Your reading is on its way</h2>
-      <p>
-        Your Journey Narrative is being written in Cléa Hernández's voice. You will receive it by
-        email within 24–48 hours at <strong>{purchase.email}</strong>.
-      </p>
-      <p>
-        This page is your permanent reading link — bookmark it and return any time.
-        If you have questions, reply to the confirmation email.
-      </p>
-    </div>
+    {/* ── State 1: no birth data — show form ── */}
+    {!hasBirthData && (
+      <section class="mt-10">
+        <h2 class="text-xl font-light mb-1">Enter your birth details</h2>
+        <p class="text-sm opacity-60 mb-6">
+          Your narrative is generated from your exact birth data. This page is your permanent
+          reading link — you only need to enter this once.
+        </p>
+        <form method="POST" class="grid gap-5">
+          <div class="grid gap-1.5">
+            <label for="date" class="text-sm font-medium">Birth date</label>
+            <input
+              id="date" name="date" type="date" required
+              class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3a4f99]"
+            />
+          </div>
+          <div class="grid gap-1.5">
+            <label for="time" class="text-sm font-medium">Birth time (local)</label>
+            <input
+              id="time" name="time" type="time" required
+              class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3a4f99]"
+            />
+          </div>
+          <div class="grid gap-1.5">
+            <label for="city" class="text-sm font-medium">Birth city</label>
+            <input
+              id="city" name="city" type="text" required placeholder="e.g. London, UK"
+              class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3a4f99]"
+            />
+          </div>
+          <button
+            type="submit"
+            class="mt-2 rounded bg-[#3a4f99] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#2d3f80] transition"
+            style="color: white"
+          >
+            Generate my reading
+          </button>
+        </form>
+      </section>
+    )}
 
-    <p class="mt-8 text-xs opacity-40">
+    {/* ── State 2: birth data present, narrative not yet generated ── */}
+    {hasBirthData && !hasNarrative && (
+      <section class="mt-10" id="generating-section">
+        <div id="generating-status" class="rounded-xl border border-black/10 p-6 bg-white/60 space-y-3">
+          <p class="text-sm font-medium">Writing your narrative…</p>
+          <div class="h-1 w-full rounded bg-black/10 overflow-hidden">
+            <div id="progress-bar" class="h-full bg-[#3a4f99] rounded transition-all duration-500" style="width: 5%"></div>
+          </div>
+        </div>
+        <div
+          id="narrative-output"
+          class="mt-6 rounded-xl border border-black/10 p-6 bg-white/60 prose prose-sm max-w-none hidden"
+        ></div>
+        <script define:vars={{ token }}>
+          (function () {
+            const output = document.getElementById("narrative-output");
+            const status = document.getElementById("generating-status");
+            const progressBar = document.getElementById("progress-bar");
+
+            let fullText = "";
+            let charCount = 0;
+            const estimatedTotal = 5000; // ~1000 words * 5 chars
+
+            const es = new EventSource(`/api/generate-narrative?token=${encodeURIComponent(token)}`);
+
+            es.onmessage = (e) => {
+              if (e.data === "[DONE]") {
+                es.close();
+                status.classList.add("hidden");
+                output.classList.remove("hidden");
+                // Replace final rendered text with proper paragraph structure
+                output.innerHTML = fullText
+                  .split(/\n\n+/)
+                  .filter(Boolean)
+                  .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+                  .join("");
+                return;
+              }
+              try {
+                const payload = JSON.parse(e.data);
+                if (payload.error) {
+                  es.close();
+                  status.innerHTML = `<p class="text-red-600 text-sm">Error: ${payload.error}. Please refresh to try again.</p>`;
+                  return;
+                }
+                if (payload.text) {
+                  fullText += payload.text;
+                  charCount += payload.text.length;
+                  // Update progress bar
+                  const pct = Math.min(95, Math.round((charCount / estimatedTotal) * 100));
+                  progressBar.style.width = pct + "%";
+                  // Show streaming text
+                  output.classList.remove("hidden");
+                  output.textContent = fullText;
+                }
+              } catch {}
+            };
+
+            es.onerror = () => {
+              es.close();
+              if (!fullText) {
+                status.innerHTML = `<p class="text-red-600 text-sm">Connection lost. Please refresh to try again.</p>`;
+              }
+            };
+          })();
+        </script>
+      </section>
+    )}
+
+    {/* ── State 3: narrative ready ── */}
+    {hasNarrative && (
+      <article class="mt-10 rounded-xl border border-black/10 p-6 bg-white/60 prose prose-sm max-w-none">
+        {narrativeParagraphs.map((para) => (
+          <p>{para}</p>
+        ))}
+      </article>
+    )}
+
+    <p class="mt-8 text-xs opacity-30">
       Token: <code class="font-mono">{token}</code>
     </p>
   </div>

@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "crypto";
+import type { BirthData } from "./chart-engine/types.js";
 
 export interface Purchase {
   token: string;
@@ -6,6 +7,8 @@ export interface Purchase {
   name: string;
   stripeSessionId: string;
   paidAt: string; // ISO timestamp
+  birthData?: BirthData;
+  narrative?: string;
 }
 
 // ── Token creation ─────────────────────────────────────────────────────────────
@@ -68,4 +71,11 @@ export async function getPurchase(token: string): Promise<Purchase | null> {
   } catch {
     return null;
   }
+}
+
+export async function updatePurchase(token: string, updates: Partial<Omit<Purchase, "token">>): Promise<boolean> {
+  const purchase = await getPurchase(token);
+  if (!purchase) return false;
+  await savePurchase({ ...purchase, ...updates });
+  return true;
 }
