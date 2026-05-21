@@ -14,10 +14,68 @@ export interface PlanetaryLongitudes {
   Pluto: number;
   NorthNode: number;
   SouthNode: number; // always 180° from NorthNode
+  Chiron: number;
 }
 
 function normLon(lon: number): number {
   return ((lon % 360) + 360) % 360;
+}
+
+function toRad(deg: number): number { return deg * Math.PI / 180; }
+function toDeg(rad: number): number { return rad * 180 / Math.PI; }
+
+// Chiron's geocentric ecliptic longitude via Keplerian orbital elements.
+// Elements at epoch J2000.0 (JD 2451545.0) from JPL SBDB.
+function chironLongitude(date: Date): number {
+  const a = 13.6484;       // semi-major axis, AU
+  const e = 0.38018;       // eccentricity
+  const i = toRad(6.9330); // inclination
+  const W = toRad(209.389);// longitude of ascending node
+  const w = toRad(339.255);// argument of perihelion
+  const M0 = toRad(14.9462);// mean anomaly at J2000
+  const n = toRad(360 / 18424.5); // mean motion deg/day → rad/day
+
+  const jd = Astronomy.MakeTime(date).ut + 2451545.0;
+  const dt = jd - 2451545.0; // days since J2000
+
+  // Mean anomaly at date
+  let M = M0 + n * dt;
+  M = ((M % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+
+  // Solve Kepler's equation M = E - e*sin(E) by Newton-Raphson
+  let E = M;
+  for (let k = 0; k < 10; k++) {
+    const dE = (M - E + e * Math.sin(E)) / (1 - e * Math.cos(E));
+    E += dE;
+    if (Math.abs(dE) < 1e-10) break;
+  }
+
+  // True anomaly
+  const nu = 2 * Math.atan2(
+    Math.sqrt(1 + e) * Math.sin(E / 2),
+    Math.sqrt(1 - e) * Math.cos(E / 2),
+  );
+
+  const r = a * (1 - e * Math.cos(E));
+
+  // Heliocentric ecliptic coordinates
+  const xH = r * (Math.cos(W) * Math.cos(nu + w) - Math.sin(W) * Math.sin(nu + w) * Math.cos(i));
+  const yH = r * (Math.sin(W) * Math.cos(nu + w) + Math.cos(W) * Math.sin(nu + w) * Math.cos(i));
+  const zH = r * (Math.sin(nu + w) * Math.sin(i));
+
+  // Earth's heliocentric position via negating the Sun's geocentric vector
+  const sunVec = Astronomy.HelioVector(Astronomy.Body.Earth, date);
+  const xE = sunVec.x;
+  const yE = sunVec.y;
+  const zE = sunVec.z;
+
+  // Geocentric vector of Chiron
+  const dx = xH - xE;
+  const dy = yH - yE;
+  // zG unused — we only need the ecliptic plane projection for longitude
+  void zH; void zE;
+
+  return normLon(toDeg(Math.atan2(dy, dx)));
 }
 
 function eclipticLon(body: Astronomy.Body, date: Date): number {
@@ -63,6 +121,7 @@ export function getPlanetaryLongitudes(date: Date): PlanetaryLongitudes {
     Pluto:     eclipticLon(Astronomy.Body.Pluto,   date),
     NorthNode: northNodeLon,
     SouthNode: normLon(northNodeLon + 180),
+    Chiron:    chironLongitude(date),
   };
 }
 

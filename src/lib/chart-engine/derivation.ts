@@ -34,7 +34,7 @@ export function longitudeToGateLine(lon: number): { gate: number; line: number }
 const PLANET_ORDER = [
   "Sun", "Earth", "Moon", "Mercury", "Venus", "Mars",
   "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto",
-  "NorthNode", "SouthNode",
+  "NorthNode", "SouthNode", "Chiron",
 ] as const;
 
 export function toActivations(lons: PlanetaryLongitudes): PlanetActivation[] {
