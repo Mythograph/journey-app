@@ -28,6 +28,7 @@ const handler: Handler = async (event) => {
       accumulated += chunk;
     }
     await updatePurchase(token, { narrative: accumulated });
+    console.log(`generate-bg: saved narrative for token ${token.slice(0, 10)}… (${accumulated.length} chars)`);
 
     const makeUrl = process.env.MAKE_NARRATIVE_WEBHOOK_URL;
     if (makeUrl && accumulated) {
@@ -37,8 +38,8 @@ const handler: Handler = async (event) => {
         body: JSON.stringify({ email: purchase.email, name: purchase.name, narrative: accumulated }),
       });
     }
-  } catch {
-    // Polling client will surface a timeout message after ~150s
+  } catch (err) {
+    console.error("generate-bg: generation failed", err);
   }
 
   return { statusCode: 200 };

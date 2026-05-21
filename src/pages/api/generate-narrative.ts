@@ -21,13 +21,18 @@ export const GET: APIRoute = async ({ url }) => {
     });
   }
 
-  // Trigger the background function (returns 202 immediately; generates for up to 15 min).
+  // Trigger the background function and wait for its 202 before returning,
+  // so the Lambda doesn't freeze and abort the request mid-flight.
   const bgUrl = `${url.origin}/.netlify/functions/generate-bg-background`;
-  fetch(bgUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
-  }).catch(() => {});
+  try {
+    await fetch(bgUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+  } catch (err) {
+    console.error("generate-narrative: failed to trigger bg function", err);
+  }
 
   return new Response(JSON.stringify({ status: "generating" }), {
     headers: { "Content-Type": "application/json" },
