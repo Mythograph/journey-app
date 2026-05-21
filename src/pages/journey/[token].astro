@@ -1,17 +1,15 @@
 ---
-import Base from "~/layouts/Base.astro";
+import "~/styles/global.css";
 import { getPurchase, updatePurchase } from "~/lib/purchases.js";
 import type { BirthData } from "~/lib/chart-engine/types.js";
 
 const { token } = Astro.params;
-
 const purchase = token ? await getPurchase(token) : null;
 
 if (!purchase) {
   return Astro.redirect("/?error=invalid-token", 302);
 }
 
-// POST: save birth data, redirect back to GET
 if (Astro.request.method === "POST") {
   const body = await Astro.request.formData();
   const birthData: BirthData = {
@@ -28,163 +26,388 @@ if (Astro.request.method === "POST") {
 const hasBirthData = Boolean(purchase.birthData);
 const hasNarrative = Boolean(purchase.narrative);
 
-// Pre-format narrative paragraphs for server-side rendering
-const narrativeParagraphs = hasNarrative
-  ? (purchase.narrative ?? "").split(/\n\n+/).filter(Boolean)
-  : [];
+const SECTION_META: Record<string, { num: string; title: string }> = {
+  "THE ORDINARY WORLD":                  { num: "I",    title: "The Ordinary World" },
+  "THE CALL":                            { num: "II",   title: "The Call" },
+  "THE THRESHOLD":                       { num: "III",  title: "Crossing Into the Unknown" },
+  "THE DESCENT":                         { num: "IV",   title: "Initiations and Early Trials" },
+  "THE ABYSS":                           { num: "V",    title: "The Central Ordeal" },
+  "THE HELPERS AND ALLIES":              { num: "VI",   title: "The Helpers and Allies" },
+  "THE ROAD OF TRIALS":                  { num: "VII",  title: "The Recurring Tests" },
+  "THE SPIRITUAL PATH":                  { num: "VIII", title: "The Invisible Current" },
+  "THE CORE WOUND AND THE VOCATION":     { num: "IX",   title: "The Fight Worth Having" },
+  "THE ELIXIR":                          { num: "X",    title: "What I Carry Back" },
+  "THE VOICE":                           { num: "XI",   title: "How I Transmit" },
+  "THE RETURN":                          { num: "XII",  title: "Leaning Into the Fullness" },
+  "WHO I AM":                            { num: "XIII", title: "A Recap" },
+  "THE LARGER STORY":                    { num: "XIV",  title: "The Larger Story" },
+};
+
+const HEADING_KEYS = Object.keys(SECTION_META);
+
+function parseSections(text: string) {
+  const sections: { num: string; title: string; paragraphs: string[] }[] = [];
+  let current: typeof sections[0] | null = null;
+
+  const blocks = text.split(/\n\n+/);
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (!trimmed) continue;
+
+    const firstLine = trimmed.split("\n")[0].trim()
+      .replace(/^#+\s*/, "")
+      .replace(/\*\*/g, "");
+
+    const matchKey = HEADING_KEYS.find(k =>
+      firstLine === k ||
+      firstLine.startsWith(k + " ") ||
+      firstLine.startsWith(k + "—") ||
+      firstLine.startsWith(k + " —")
+    );
+
+    if (matchKey) {
+      if (current) sections.push(current);
+      const meta = SECTION_META[matchKey];
+      current = { num: meta.num, title: meta.title, paragraphs: [] };
+      const rest = trimmed.slice(firstLine.length).trim();
+      if (rest) current.paragraphs.push(rest.replace(/\n/g, " "));
+    } else if (current) {
+      current.paragraphs.push(trimmed.replace(/\n/g, " "));
+    }
+  }
+
+  if (current) sections.push(current);
+  return sections;
+}
+
+const narrativeSections = hasNarrative ? parseSections(purchase.narrative!) : [];
+const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
+  day: "numeric", month: "long", year: "numeric"
+});
 ---
 
-<Base title="Your Journey Narrative — Mythograph">
-  <div class="mx-auto max-w-2xl">
-    <p class="text-sm opacity-50 mb-6">
-      <a href="/" class="hover:opacity-100 transition">← Mythograph Journey</a>
-    </p>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{purchase.name ? `${purchase.name} — Journey Narrative` : "Your Journey Narrative"} · Mythograph</title>
+    <style>
+      @media print {
+        .no-print { display: none !important; }
+        nav, footer { display: none !important; }
+        body { background: white !important; }
+        .narrative-section { page-break-inside: avoid; }
+        @page { margin: 2.5cm 3cm; }
+      }
+    </style>
+  </head>
+  <body class="bg-[#FAFAF7] text-[#1A1410] antialiased">
 
-    <h1 class="text-4xl font-light">Your Journey Narrative</h1>
-    <p class="mt-3 text-base opacity-70">
-      Hello{purchase.name ? `, ${purchase.name}` : ""}
-      {!hasBirthData && ". To generate your reading, enter your birth details below."}
-      {hasBirthData && !hasNarrative && ". Your narrative is being written now."}
-      {hasNarrative && ". Your reading is ready."}
-    </p>
+    <!-- Nav -->
+    <nav class="no-print border-b border-[#E8E0D6] px-6 py-4 flex items-center justify-between">
+      <a
+        href="/"
+        class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#7A6D5E] hover:text-[#1A1410] transition no-underline"
+        style="font-family: 'DM Sans', sans-serif"
+      >Mythograph</a>
+      {hasNarrative && (
+        <button
+          onclick="window.print()"
+          class="text-[11px] font-medium tracking-[0.07em] uppercase px-5 py-2 rounded bg-[#C05A3C] text-white hover:bg-[#a84e33] transition"
+          style="font-family: 'DM Sans', sans-serif"
+        >
+          Download PDF
+        </button>
+      )}
+    </nav>
 
-    {/* ── Order confirmation card ── */}
-    <div class="mt-6 rounded-xl border border-[#3b2f6e]/20 bg-[#3b2f6e]/5 p-5 space-y-2">
-      <dl class="text-sm grid gap-2">
-        <div class="flex gap-3">
-          <dt class="opacity-50 w-24 shrink-0">Email</dt>
-          <dd>{purchase.email}</dd>
-        </div>
-        <div class="flex gap-3">
-          <dt class="opacity-50 w-24 shrink-0">Ordered</dt>
-          <dd>{new Date(purchase.paidAt).toLocaleDateString("en-GB", {
-            day: "numeric", month: "long", year: "numeric"
-          })}</dd>
-        </div>
-      </dl>
-    </div>
+    <div class="max-w-2xl mx-auto px-6">
 
-    {/* ── State 1: no birth data — show form ── */}
-    {!hasBirthData && (
-      <section class="mt-10">
-        <h2 class="text-xl font-light mb-1">Enter your birth details</h2>
-        <p class="text-sm opacity-60 mb-6">
-          Your narrative is generated from your exact birth data. This page is your permanent
-          reading link — you only need to enter this once.
-        </p>
-        <form method="POST" class="grid gap-5">
-          <div class="grid gap-1.5">
-            <label for="date" class="text-sm font-medium">Birth date</label>
-            <input
-              id="date" name="date" type="date" required
-              class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3a4f99]"
-            />
-          </div>
-          <div class="grid gap-1.5">
-            <label for="time" class="text-sm font-medium">Birth time (local)</label>
-            <input
-              id="time" name="time" type="time" required
-              class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3a4f99]"
-            />
-          </div>
-          <div class="grid gap-1.5">
-            <label for="city" class="text-sm font-medium">Birth city</label>
-            <input
-              id="city" name="city" type="text" required placeholder="e.g. London, UK"
-              class="rounded border border-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3a4f99]"
-            />
-          </div>
-          <button
-            type="submit"
-            class="mt-2 rounded bg-[#3a4f99] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#2d3f80] transition"
-            style="color: white"
+      <!-- Hero -->
+      <header class="pt-16 pb-14 border-b border-[#E8E0D6] text-center">
+        <p
+          class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C05A3C] mb-6"
+          style="font-family: 'DM Sans', sans-serif"
+        >Your Journey Narrative</p>
+        <h1
+          class="text-[#1A1410]"
+          style="font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: clamp(2.25rem, 6vw, 3.75rem); letter-spacing: -0.03em; line-height: 1.05"
+        >
+          {purchase.name ? `The Journey of ${purchase.name}` : "Your Journey Narrative"}
+        </h1>
+        <p
+          class="mt-5 text-sm text-[#7A6D5E]"
+          style="font-family: 'DM Sans', sans-serif"
+        >A Human Design reading by Cléa Hernández</p>
+
+        {!hasNarrative && (
+          <p
+            class="no-print mt-3 text-xs text-[#7A6D5E]"
+            style="font-family: 'DM Sans', sans-serif"
           >
-            Generate my reading
-          </button>
-        </form>
-      </section>
-    )}
+            {purchase.email} · {orderedDate}
+          </p>
+        )}
+      </header>
 
-    {/* ── State 2: birth data present, narrative not yet generated ── */}
-    {hasBirthData && !hasNarrative && (
-      <section class="mt-10" id="generating-section">
-        <div id="generating-status" class="rounded-xl border border-black/10 p-6 bg-white/60 space-y-3">
-          <p class="text-sm font-medium">Writing your narrative…</p>
-          <div class="h-1 w-full rounded bg-black/10 overflow-hidden">
-            <div id="progress-bar" class="h-full bg-[#3a4f99] rounded transition-all duration-500" style="width: 5%"></div>
+      <!-- STATE 1: Birth data form -->
+      {!hasBirthData && (
+        <section class="no-print py-14">
+          <p
+            class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C05A3C] mb-3"
+            style="font-family: 'DM Sans', sans-serif"
+          >Step One</p>
+          <h2
+            class="text-[#1A1410] mb-2"
+            style="font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: 1.875rem; letter-spacing: -0.02em; line-height: 1.2"
+          >Enter your birth details</h2>
+          <p
+            class="text-sm text-[#7A6D5E] mb-10 leading-relaxed"
+            style="font-family: 'DM Sans', sans-serif"
+          >
+            Your narrative is generated from your exact birth data. This page is your permanent
+            reading link — you only need to enter this once.
+          </p>
+          <form method="POST" class="grid gap-6">
+            <div class="grid gap-2">
+              <label
+                for="date"
+                class="text-[10px] font-medium tracking-[0.1em] uppercase text-[#7A6D5E]"
+                style="font-family: 'DM Sans', sans-serif"
+              >Birth date</label>
+              <input
+                id="date" name="date" type="date" required
+                class="rounded border border-[#D4C9BB] bg-white px-4 py-3 text-sm text-[#1A1410] focus:outline-none focus:ring-2 focus:ring-[#3A4F99] focus:border-transparent transition"
+                style="font-family: 'DM Sans', sans-serif"
+              />
+            </div>
+            <div class="grid gap-2">
+              <label
+                for="time"
+                class="text-[10px] font-medium tracking-[0.1em] uppercase text-[#7A6D5E]"
+                style="font-family: 'DM Sans', sans-serif"
+              >Birth time (local)</label>
+              <input
+                id="time" name="time" type="time" required
+                class="rounded border border-[#D4C9BB] bg-white px-4 py-3 text-sm text-[#1A1410] focus:outline-none focus:ring-2 focus:ring-[#3A4F99] focus:border-transparent transition"
+                style="font-family: 'DM Sans', sans-serif"
+              />
+            </div>
+            <div class="grid gap-2">
+              <label
+                for="city"
+                class="text-[10px] font-medium tracking-[0.1em] uppercase text-[#7A6D5E]"
+                style="font-family: 'DM Sans', sans-serif"
+              >Birth city</label>
+              <input
+                id="city" name="city" type="text" required placeholder="e.g. London, UK"
+                class="rounded border border-[#D4C9BB] bg-white px-4 py-3 text-sm text-[#1A1410] placeholder:text-[#B0A499] focus:outline-none focus:ring-2 focus:ring-[#3A4F99] focus:border-transparent transition"
+                style="font-family: 'DM Sans', sans-serif"
+              />
+            </div>
+            <button
+              type="submit"
+              class="mt-2 rounded bg-[#C05A3C] px-7 py-3 text-[11px] font-medium tracking-[0.07em] uppercase text-white hover:bg-[#a84e33] transition w-full"
+              style="font-family: 'DM Sans', sans-serif"
+            >Generate my reading</button>
+          </form>
+        </section>
+      )}
+
+      <!-- STATE 2: Generating -->
+      {hasBirthData && !hasNarrative && (
+        <section class="no-print py-14" id="generating-section">
+          <div id="generating-status" class="rounded-lg border border-[#E8E0D6] bg-white px-6 py-8 text-center">
+            <p
+              class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C05A3C] mb-3"
+              style="font-family: 'DM Sans', sans-serif"
+            >Writing now</p>
+            <p
+              class="text-sm text-[#7A6D5E] mb-6"
+              style="font-family: 'DM Sans', sans-serif"
+            >Your narrative is being composed. This takes about a minute.</p>
+            <div class="h-px w-full bg-[#E8E0D6] overflow-hidden rounded">
+              <div
+                id="progress-bar"
+                class="h-full bg-[#C05A3C] transition-all duration-700"
+                style="width: 5%"
+              ></div>
+            </div>
           </div>
-        </div>
-        <div
-          id="narrative-output"
-          class="mt-6 rounded-xl border border-black/10 p-6 bg-white/60 prose prose-sm max-w-none hidden"
-        ></div>
-        <script define:vars={{ token }}>
-          (function () {
-            const output = document.getElementById("narrative-output");
-            const status = document.getElementById("generating-status");
-            const progressBar = document.getElementById("progress-bar");
 
-            let fullText = "";
-            let charCount = 0;
-            const estimatedTotal = 5000; // ~1000 words * 5 chars
+          <div id="narrative-stream" class="mt-10 hidden"></div>
 
-            const es = new EventSource(`/api/generate-narrative?token=${encodeURIComponent(token)}`);
+          <div id="pdf-btn-wrap" class="no-print mt-10 text-center hidden">
+            <button
+              onclick="window.print()"
+              class="text-[11px] font-medium tracking-[0.07em] uppercase px-7 py-3 rounded bg-[#C05A3C] text-white hover:bg-[#a84e33] transition"
+              style="font-family: 'DM Sans', sans-serif"
+            >Download PDF</button>
+          </div>
 
-            es.onmessage = (e) => {
-              if (e.data === "[DONE]") {
-                es.close();
-                status.classList.add("hidden");
-                output.classList.remove("hidden");
-                // Replace final rendered text with proper paragraph structure
-                output.innerHTML = fullText
-                  .split(/\n\n+/)
-                  .filter(Boolean)
-                  .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
-                  .join("");
-                return;
+          <script define:vars={{ token, sectionMetaJson: JSON.stringify(Object.fromEntries(Object.entries({
+            "THE ORDINARY WORLD":              { num: "I",    title: "The Ordinary World" },
+            "THE CALL":                        { num: "II",   title: "The Call" },
+            "THE THRESHOLD":                   { num: "III",  title: "Crossing Into the Unknown" },
+            "THE DESCENT":                     { num: "IV",   title: "Initiations and Early Trials" },
+            "THE ABYSS":                       { num: "V",    title: "The Central Ordeal" },
+            "THE HELPERS AND ALLIES":          { num: "VI",   title: "The Helpers and Allies" },
+            "THE ROAD OF TRIALS":              { num: "VII",  title: "The Recurring Tests" },
+            "THE SPIRITUAL PATH":              { num: "VIII", title: "The Invisible Current" },
+            "THE CORE WOUND AND THE VOCATION": { num: "IX",   title: "The Fight Worth Having" },
+            "THE ELIXIR":                      { num: "X",    title: "What I Carry Back" },
+            "THE VOICE":                       { num: "XI",   title: "How I Transmit" },
+            "THE RETURN":                      { num: "XII",  title: "Leaning Into the Fullness" },
+            "WHO I AM":                        { num: "XIII", title: "A Recap" },
+            "THE LARGER STORY":                { num: "XIV",  title: "The Larger Story" },
+          }))) }}>
+            (function () {
+              const SECTION_META = JSON.parse(sectionMetaJson);
+              const HEADING_KEYS = Object.keys(SECTION_META);
+
+              function parseSections(text) {
+                const sections = [];
+                let current = null;
+                const blocks = text.split(/\n\n+/);
+                for (const block of blocks) {
+                  const trimmed = block.trim();
+                  if (!trimmed) continue;
+                  const firstLine = trimmed.split("\n")[0].trim()
+                    .replace(/^#+\s*/, "").replace(/\*\*/g, "");
+                  const matchKey = HEADING_KEYS.find(k =>
+                    firstLine === k || firstLine.startsWith(k + " ") ||
+                    firstLine.startsWith(k + "—") || firstLine.startsWith(k + " —")
+                  );
+                  if (matchKey) {
+                    if (current) sections.push(current);
+                    const meta = SECTION_META[matchKey];
+                    current = { num: meta.num, title: meta.title, paragraphs: [] };
+                    const rest = trimmed.slice(firstLine.length).trim();
+                    if (rest) current.paragraphs.push(rest.replace(/\n/g, " "));
+                  } else if (current) {
+                    current.paragraphs.push(trimmed.replace(/\n/g, " "));
+                  }
+                }
+                if (current) sections.push(current);
+                return sections;
               }
-              try {
-                const payload = JSON.parse(e.data);
-                if (payload.error) {
+
+              function sectionHTML(s, first) {
+                const paras = s.paragraphs.map(p =>
+                  `<p style="font-family:'DM Sans',sans-serif;font-size:17px;line-height:1.65;color:#1A1410;margin-bottom:1.25rem">${p}</p>`
+                ).join("");
+                return `<div class="narrative-section" style="${first ? "" : "margin-top:4rem"}">
+                  <p style="font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:#C05A3C;margin-bottom:0.5rem">${s.num}</p>
+                  <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:600;font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-0.02em;line-height:1.2;color:#1A1410;margin-bottom:1.25rem">${s.title}</h2>
+                  <div style="border-top:1px solid #E8E0D6;padding-top:1.5rem">${paras}</div>
+                </div>`;
+              }
+
+              const streamDiv = document.getElementById("narrative-stream");
+              const status   = document.getElementById("generating-status");
+              const bar      = document.getElementById("progress-bar");
+              const pdfWrap  = document.getElementById("pdf-btn-wrap");
+
+              let fullText = "";
+              let charCount = 0;
+              const estimated = 14000;
+
+              const es = new EventSource(`/api/generate-narrative?token=${encodeURIComponent(token)}`);
+
+              es.onmessage = (e) => {
+                if (e.data === "[DONE]") {
                   es.close();
-                  status.innerHTML = `<p class="text-red-600 text-sm">Error: ${payload.error}. Please refresh to try again.</p>`;
+                  status.classList.add("hidden");
+                  const sections = parseSections(fullText);
+                  if (sections.length > 0) {
+                    streamDiv.innerHTML = sections.map((s, i) => sectionHTML(s, i === 0)).join("");
+                  } else {
+                    streamDiv.innerHTML = fullText
+                      .split(/\n\n+/).filter(Boolean)
+                      .map(p => `<p style="font-family:'DM Sans',sans-serif;font-size:17px;line-height:1.65;margin-bottom:1.25rem">${p}</p>`)
+                      .join("");
+                  }
+                  streamDiv.classList.remove("hidden");
+                  pdfWrap?.classList.remove("hidden");
                   return;
                 }
-                if (payload.text) {
-                  fullText += payload.text;
-                  charCount += payload.text.length;
-                  // Update progress bar
-                  const pct = Math.min(95, Math.round((charCount / estimatedTotal) * 100));
-                  progressBar.style.width = pct + "%";
-                  // Show streaming text
-                  output.classList.remove("hidden");
-                  output.textContent = fullText;
+                try {
+                  const payload = JSON.parse(e.data);
+                  if (payload.error) {
+                    es.close();
+                    status.innerHTML = `<p style="font-family:'DM Sans',sans-serif;font-size:14px;color:#C05A3C">Error: ${payload.error}. Please refresh to try again.</p>`;
+                    return;
+                  }
+                  if (payload.text) {
+                    fullText += payload.text;
+                    charCount += payload.text.length;
+                    bar.style.width = Math.min(95, Math.round((charCount / estimated) * 100)) + "%";
+                    streamDiv.classList.remove("hidden");
+                    streamDiv.style.cssText = "font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.7;color:#7A6D5E;white-space:pre-wrap;padding:1rem 0";
+                    streamDiv.textContent = fullText;
+                  }
+                } catch {}
+              };
+
+              es.onerror = () => {
+                es.close();
+                if (!fullText) {
+                  status.innerHTML = `<p style="font-family:'DM Sans',sans-serif;font-size:14px;color:#C05A3C">Connection lost. Please refresh to try again.</p>`;
                 }
-              } catch {}
-            };
+              };
+            })();
+          </script>
+        </section>
+      )}
 
-            es.onerror = () => {
-              es.close();
-              if (!fullText) {
-                status.innerHTML = `<p class="text-red-600 text-sm">Connection lost. Please refresh to try again.</p>`;
-              }
-            };
-          })();
-        </script>
-      </section>
-    )}
+      <!-- STATE 3: Narrative ready -->
+      {hasNarrative && (
+        <article class="py-14 pb-20" id="narrative-content">
+          {narrativeSections.length > 0 ? (
+            narrativeSections.map((section, i) => (
+              <div class={`narrative-section${i > 0 ? " mt-16" : ""}`}>
+                <p
+                  class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C05A3C] mb-2"
+                  style="font-family: 'DM Sans', sans-serif"
+                >{section.num}</p>
+                <h2
+                  class="text-[#1A1410] mb-5"
+                  style="font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -0.02em; line-height: 1.2"
+                >{section.title}</h2>
+                <div class="border-t border-[#E8E0D6] pt-6">
+                  {section.paragraphs.map(p => (
+                    <p
+                      class="text-[17px] leading-[1.65] text-[#1A1410] mb-5"
+                      style="font-family: 'DM Sans', sans-serif"
+                    >{p}</p>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            (purchase.narrative ?? "").split(/\n\n+/).filter(Boolean).map(para => (
+              <p
+                class="text-[17px] leading-[1.65] text-[#1A1410] mb-5"
+                style="font-family: 'DM Sans', sans-serif"
+              >{para}</p>
+            ))
+          )}
+        </article>
+      )}
 
-    {/* ── State 3: narrative ready ── */}
-    {hasNarrative && (
-      <article class="mt-10 rounded-xl border border-black/10 p-6 bg-white/60 prose prose-sm max-w-none">
-        {narrativeParagraphs.map((para) => (
-          <p>{para}</p>
-        ))}
-      </article>
-    )}
+      <!-- Footer -->
+      <footer class="no-print border-t border-[#E8E0D6] py-10 text-center">
+        <p
+          class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#7A6D5E]"
+          style="font-family: 'DM Sans', sans-serif"
+        >Mythograph</p>
+        <p
+          class="mt-1 text-xs text-[#B0A499]"
+          style="font-family: 'DM Sans', sans-serif"
+        >A reading by Cléa Hernández</p>
+      </footer>
 
-    <p class="mt-8 text-xs opacity-30">
-      Token: <code class="font-mono">{token}</code>
-    </p>
-  </div>
-</Base>
+    </div>
+  </body>
+</html>

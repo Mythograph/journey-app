@@ -87,7 +87,8 @@ VOICE RULES (strict):
 - No em dashes. No "not X, but Y" constructions.
 - No bullet points in the output — flowing prose only
 - Do not use: "vibration", "manifestation" (as mystical concept), "universe" as agent, "resonance", "authentic self", "awakening", "frequency"
-- Preserve each section heading exactly as shown
+- Plain text only — no markdown symbols whatsoever (no #, ##, **, *, _, or --- dividers)
+- Write each section heading on its own line exactly as shown, then a blank line, then the prose
 
 Write the narrative section by section, following this structure. Each DATA block contains the specific meaning to weave into that section — do not quote it verbatim, use it as the content to express in your own rendering of the voice.
 

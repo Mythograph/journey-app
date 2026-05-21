@@ -45,6 +45,17 @@ export const GET: APIRoute = async ({ url }) => {
         }
         // Save the complete narrative to Netlify Blobs
         await updatePurchase(token, { narrative: accumulated });
+
+        // Fire-and-forget: send to Make.com for email delivery
+        const makeUrl = import.meta.env.MAKE_NARRATIVE_WEBHOOK_URL;
+        if (makeUrl && accumulated) {
+          fetch(makeUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: purchase.email, name: purchase.name, narrative: accumulated }),
+          }).catch(() => {});
+        }
+
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Generation failed";
