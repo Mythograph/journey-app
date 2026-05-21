@@ -12,9 +12,6 @@ export interface Purchase {
 }
 
 // ── Token creation ─────────────────────────────────────────────────────────────
-// Token = random 24 bytes (base64url) prefixed with an HMAC of the email
-// so we can verify it is legitimate without a DB round-trip on every request,
-// while still being able to look up by token.
 
 export function createPurchaseToken(email: string, sessionId: string): string {
   const secret = import.meta.env.TOKEN_SECRET ?? "dev-secret-change-me";
@@ -27,43 +24,40 @@ export function createPurchaseToken(email: string, sessionId: string): string {
 }
 
 // ── Storage ───────────────────────────────────────────────────────────────────
-// Uses Netlify Blobs when available (production), falls back to an in-process
-// Map for local dev. The Map is not shared between instances but is fine for
-// testing — replace with a persistent KV if you need multi-process dev.
+// Uses @netlify/blobs in production, falls back to an in-process Map for local
+// dev (not persistent across restarts, but fine for manual testing).
 
 type Store = {
   get(key: string): Promise<string | null>;
   set(key: string, value: string): Promise<void>;
 };
 
-function getStore(): Store {
-  // Netlify Blobs are injected into the runtime globals in production.
-  // We import lazily so the module doesn't crash in local dev.
-  const globalAny = globalThis as Record<string, unknown>;
+const devMap = new Map<string, string>();
 
-  if (typeof globalAny["netlifyBlobsStore"] === "function") {
-    const raw = globalAny["netlifyBlobsStore"]("journey-purchases");
+async function getStore(): Promise<Store> {
+  try {
+    const { getStore: netlifyGetStore } = await import("@netlify/blobs");
+    const store = netlifyGetStore("journey-purchases");
     return {
-      get: (k) => raw.get(k, { type: "text" }),
-      set: (k, v) => raw.set(k, v),
+      get: (k) => store.get(k),
+      set: (k, v) => store.set(k, v),
+    };
+  } catch {
+    // Local dev fallback
+    return {
+      get: async (k) => devMap.get(k) ?? null,
+      set: async (k, v) => { devMap.set(k, v); },
     };
   }
-
-  // Fallback: module-level Map (dev only)
-  const devMap = new Map<string, string>();
-  return {
-    get: async (k) => devMap.get(k) ?? null,
-    set: async (k, v) => { devMap.set(k, v); },
-  };
 }
 
 export async function savePurchase(purchase: Purchase): Promise<void> {
-  const store = getStore();
+  const store = await getStore();
   await store.set(purchase.token, JSON.stringify(purchase));
 }
 
 export async function getPurchase(token: string): Promise<Purchase | null> {
-  const store = getStore();
+  const store = await getStore();
   const raw = await store.get(token);
   if (!raw) return null;
   try {
