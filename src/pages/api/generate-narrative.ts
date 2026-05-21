@@ -1,9 +1,7 @@
 import type { APIRoute } from "astro";
-import { getPurchase, updatePurchase } from "../../lib/purchases.js";
-import { generateChart } from "../../lib/chart-engine/index.js";
-import { streamNarrative } from "../../lib/narrative.js";
+import { getPurchase } from "../../lib/purchases.js";
 
-export const GET: APIRoute = async ({ url, locals }) => {
+export const GET: APIRoute = async ({ url }) => {
   const token = url.searchParams.get("token");
 
   if (!token) {
@@ -23,32 +21,13 @@ export const GET: APIRoute = async ({ url, locals }) => {
     });
   }
 
-  // Start generation in background — returns immediately so the function
-  // doesn't time out. waitUntil() keeps the Lambda alive after the response.
-  const { context } = (locals as any).netlify;
-  context.waitUntil(
-    (async () => {
-      try {
-        const chart = await generateChart(purchase.birthData!);
-        let accumulated = "";
-        for await (const chunk of streamNarrative(chart, purchase.name)) {
-          accumulated += chunk;
-        }
-        await updatePurchase(token, { narrative: accumulated });
-
-        const makeUrl = import.meta.env.MAKE_NARRATIVE_WEBHOOK_URL;
-        if (makeUrl && accumulated) {
-          fetch(makeUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: purchase.email, name: purchase.name, narrative: accumulated }),
-          }).catch(() => {});
-        }
-      } catch {
-        // Generation failed — client will show timeout message after ~120s
-      }
-    })()
-  );
+  // Trigger the background function (returns 202 immediately; generates for up to 15 min).
+  const bgUrl = `${url.origin}/.netlify/functions/generate-bg-background`;
+  fetch(bgUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  }).catch(() => {});
 
   return new Response(JSON.stringify({ status: "generating" }), {
     headers: { "Content-Type": "application/json" },

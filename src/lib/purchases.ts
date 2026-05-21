@@ -14,7 +14,7 @@ export interface Purchase {
 // ── Token creation ─────────────────────────────────────────────────────────────
 
 export function createPurchaseToken(email: string, sessionId: string): string {
-  const secret = import.meta.env.TOKEN_SECRET ?? "dev-secret-change-me";
+  const secret = process.env.TOKEN_SECRET ?? "dev-secret-change-me";
   const rand = randomBytes(18).toString("base64url");
   const hmac = createHash("sha256")
     .update(`${secret}:${email}:${sessionId}`)

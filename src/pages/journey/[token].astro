@@ -1,7 +1,8 @@
 ---
 import "~/styles/global.css";
 import { getPurchase, updatePurchase } from "~/lib/purchases.js";
-import type { BirthData } from "~/lib/chart-engine/types.js";
+import { generateChart } from "~/lib/chart-engine/index.js";
+import type { BirthData, Chart } from "~/lib/chart-engine/types.js";
 
 const { token } = Astro.params;
 const purchase = token ? await getPurchase(token) : null;
@@ -45,8 +46,63 @@ const SECTION_META: Record<string, { num: string; title: string }> = {
 
 const HEADING_KEYS = Object.keys(SECTION_META);
 
+// ── Gate annotations ──────────────────────────────────────────────────────────
+
+const PLANET_HDNAME: Record<string, string> = {
+  sun: "Sun", earth: "Earth", moon: "Moon", mercury: "Mercury",
+  venus: "Venus", mars: "Mars", jupiter: "Jupiter", saturn: "Saturn",
+  uranus: "Uranus", neptune: "Neptune", pluto: "Pluto",
+  north_node: "NorthNode", south_node: "SouthNode", chiron: "Chiron",
+};
+const PLANET_LABEL: Record<string, string> = {
+  sun: "Sun", earth: "Earth", moon: "Moon", mercury: "Mercury",
+  venus: "Venus", mars: "Mars", jupiter: "Jupiter", saturn: "Saturn",
+  uranus: "Uranus", neptune: "Neptune", pluto: "Pluto",
+  north_node: "North Node", south_node: "South Node", chiron: "Chiron",
+};
+
+// Which planets feed each section (matches the narrative prompt structure)
+const SECTION_PLANETS: Record<string, { planet: string; pos: "conscious" | "unconscious" }[]> = {
+  "THE ORDINARY WORLD":              [{ planet: "uranus",     pos: "conscious" }, { planet: "uranus",     pos: "unconscious" }],
+  "THE CALL":                        [{ planet: "sun",        pos: "conscious" }, { planet: "sun",        pos: "unconscious" }],
+  "THE THRESHOLD":                   [],
+  "THE DESCENT":                     [{ planet: "south_node", pos: "conscious" }, { planet: "south_node", pos: "unconscious" },
+                                      { planet: "pluto",      pos: "conscious" }, { planet: "pluto",      pos: "unconscious" }],
+  "THE ABYSS":                       [{ planet: "chiron",     pos: "conscious" }, { planet: "chiron",     pos: "unconscious" }],
+  "THE HELPERS AND ALLIES":          [{ planet: "moon",       pos: "conscious" }, { planet: "moon",       pos: "unconscious" }],
+  "THE ROAD OF TRIALS":              [{ planet: "saturn",     pos: "conscious" }, { planet: "saturn",     pos: "unconscious" },
+                                      { planet: "jupiter",    pos: "conscious" }, { planet: "jupiter",    pos: "unconscious" }],
+  "THE SPIRITUAL PATH":              [{ planet: "neptune",    pos: "conscious" }, { planet: "neptune",    pos: "unconscious" }],
+  "THE CORE WOUND AND THE VOCATION": [{ planet: "mars",       pos: "unconscious"}, { planet: "mars",      pos: "conscious"   }],
+  "THE ELIXIR":                      [{ planet: "sun",        pos: "conscious" }, { planet: "sun",        pos: "unconscious" },
+                                      { planet: "earth",      pos: "conscious" }, { planet: "earth",      pos: "unconscious" }],
+  "THE VOICE":                       [{ planet: "mercury",    pos: "conscious" }, { planet: "mercury",    pos: "unconscious" },
+                                      { planet: "venus",      pos: "conscious" }, { planet: "venus",      pos: "unconscious" }],
+  "THE RETURN":                      [{ planet: "north_node", pos: "conscious" }, { planet: "north_node", pos: "unconscious" }],
+  "WHO I AM":                        [],
+  "THE LARGER STORY":                [{ planet: "uranus",     pos: "conscious" }, { planet: "pluto",      pos: "conscious"   }],
+};
+
+interface GateTag { planet: string; gate: number; pos: "conscious" | "unconscious" }
+
+function getGateTags(chart: Chart, sectionKey: string): GateTag[] {
+  const refs = SECTION_PLANETS[sectionKey] ?? [];
+  return refs.flatMap(({ planet, pos }) => {
+    const hdName = PLANET_HDNAME[planet];
+    if (!hdName) return [];
+    const activations = pos === "conscious" ? chart.personalityActivations : chart.designActivations;
+    const gate = activations.find(a => a.planet === hdName)?.gate ?? null;
+    return gate !== null ? [{ planet, gate, pos }] : [];
+  });
+}
+
+// Generate chart for gate annotations (fast: pure calculation, no API call)
+const chart: Chart | null = purchase.birthData ? await generateChart(purchase.birthData) : null;
+
+// ── Section parsing ───────────────────────────────────────────────────────────
+
 function parseSections(text: string) {
-  const sections: { num: string; title: string; paragraphs: string[] }[] = [];
+  const sections: { key: string; num: string; title: string; paragraphs: string[] }[] = [];
   let current: typeof sections[0] | null = null;
 
   const blocks = text.split(/\n\n+/);
@@ -68,7 +124,7 @@ function parseSections(text: string) {
     if (matchKey) {
       if (current) sections.push(current);
       const meta = SECTION_META[matchKey];
-      current = { num: meta.num, title: meta.title, paragraphs: [] };
+      current = { key: matchKey, num: meta.num, title: meta.title, paragraphs: [] };
       const rest = trimmed.slice(firstLine.length).trim();
       if (rest) current.paragraphs.push(rest.replace(/\n/g, " "));
     } else if (current) {
@@ -276,24 +332,58 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
       <!-- STATE 3: Narrative ready -->
       {hasNarrative && (
         <article class="py-14 pb-20" id="narrative-content">
+          {/* Gate legend — shown once, before the first section */}
+          {chart && (
+            <p
+              class="text-[10px] text-[#B0A499] mb-10 text-center"
+              style="font-family: 'DM Sans', sans-serif"
+            >
+              Gate annotations: <span class="text-[#1A1410]">Personality</span> (what you know and identify with)
+              · <span class="text-[#7A6D5E]">Design</span> (what others sense in you)
+            </p>
+          )}
+
           {narrativeSections.length > 0 ? (
-            narrativeSections.map((section, i) => (
-              <div class={`narrative-section${i > 0 ? " mt-16" : ""}`}>
-                <p
-                  class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C05A3C] mb-2"
-                  style="font-family: 'DM Sans', sans-serif"
-                >{section.num}</p>
-                <h2 class="mb-5">{section.title}</h2>
-                <div class="border-t border-[#E8E0D6] pt-6">
-                  {section.paragraphs.map(p => (
+            narrativeSections.map((section, i) => {
+              const tags = chart ? getGateTags(chart, section.key) : [];
+              return (
+                <div class={`narrative-section${i > 0 ? " mt-16" : ""}`}>
+                  <p
+                    class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C05A3C] mb-2"
+                    style="font-family: 'DM Sans', sans-serif"
+                  >{section.num}</p>
+                  <h2 class="mb-3">{section.title}</h2>
+
+                  {/* Gate tags */}
+                  {tags.length > 0 && (
                     <p
-                      class="text-[17px] leading-[1.65] text-[#1A1410] mb-5"
+                      class="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] mb-5"
                       style="font-family: 'DM Sans', sans-serif"
-                    >{p}</p>
-                  ))}
+                    >
+                      {tags.map((tag, ti) => (
+                        <span>
+                          {ti > 0 && <span class="text-[#D4C9BB] mr-4">·</span>}
+                          <span
+                            class="font-medium"
+                            style={`color: ${tag.pos === "conscious" ? "#1A1410" : "#7A6D5E"}`}
+                          >Gate {tag.gate}</span>
+                          <span class="text-[#B0A499] ml-1">{PLANET_LABEL[tag.planet]}</span>
+                        </span>
+                      ))}
+                    </p>
+                  )}
+
+                  <div class="border-t border-[#E8E0D6] pt-6">
+                    {section.paragraphs.map(p => (
+                      <p
+                        class="text-[17px] leading-[1.65] text-[#1A1410] mb-5"
+                        style="font-family: 'DM Sans', sans-serif"
+                      >{p}</p>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             (purchase.narrative ?? "").split(/\n\n+/).filter(Boolean).map(para => (
               <p

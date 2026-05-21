@@ -279,7 +279,7 @@ Total length: 2000–2500 words. Write all sections now, in order, as one contin
 // ── Stream ────────────────────────────────────────────────────────────────────
 
 export async function* streamNarrative(chart: Chart, name: string): AsyncGenerator<string> {
-  const apiKey = import.meta.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
 
   const anthropic = new Anthropic({ apiKey });
