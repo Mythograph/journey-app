@@ -21,9 +21,10 @@ export const GET: APIRoute = async ({ url }) => {
     });
   }
 
-  // Trigger the background function and wait for its 202 before returning,
-  // so the Lambda doesn't freeze and abort the request mid-flight.
-  const bgUrl = `${url.origin}/.netlify/functions/generate-bg-background`;
+  // Use Netlify's injected URL env var (canonical site URL) as the base;
+  // url.origin can resolve to an internal address inside a Lambda.
+  const siteUrl = process.env.URL ?? url.origin;
+  const bgUrl = `${siteUrl}/.netlify/functions/generate-bg-background`;
   try {
     await fetch(bgUrl, {
       method: "POST",
