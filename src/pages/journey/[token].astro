@@ -136,14 +136,10 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
         >
           {purchase.name ? `The Journey of ${purchase.name}` : "Your Journey Narrative"}
         </h1>
-        <p
-          class="mt-5 text-sm text-[#7A6D5E]"
-          style="font-family: 'DM Sans', sans-serif"
-        >A Human Design reading by Cléa Hernández</p>
 
         {!hasNarrative && (
           <p
-            class="no-print mt-3 text-xs text-[#7A6D5E]"
+            class="no-print mt-4 text-xs text-[#7A6D5E]"
             style="font-family: 'DM Sans', sans-serif"
           >
             {purchase.email} · {orderedDate}
@@ -215,147 +211,63 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
         </section>
       )}
 
-      <!-- STATE 2: Generating -->
+      <!-- STATE 2: Generating (polls /api/narrative-ready every 3 s, reloads when done) -->
       {hasBirthData && !hasNarrative && (
-        <section class="no-print py-14" id="generating-section">
-          <div id="generating-status" class="rounded-lg border border-[#E8E0D6] bg-white px-6 py-8 text-center">
+        <section class="no-print py-14">
+          <div id="generating-status" class="rounded-lg border border-[#E8E0D6] bg-white px-6 py-10 text-center">
             <p
               class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C05A3C] mb-3"
               style="font-family: 'DM Sans', sans-serif"
             >Writing now</p>
             <p
+              id="status-msg"
               class="text-sm text-[#7A6D5E] mb-6"
               style="font-family: 'DM Sans', sans-serif"
             >Your narrative is being composed. This takes about a minute.</p>
-            <div class="h-px w-full bg-[#E8E0D6] overflow-hidden rounded">
+            <div class="h-px w-full bg-[#E8E0D6] overflow-hidden rounded-full">
               <div
                 id="progress-bar"
-                class="h-full bg-[#C05A3C] transition-all duration-700"
-                style="width: 5%"
+                class="h-full bg-[#C05A3C] rounded-full"
+                style="width: 4%; transition: width 3s linear"
               ></div>
             </div>
           </div>
-
-          <div id="narrative-stream" class="mt-10 hidden"></div>
-
-          <div id="pdf-btn-wrap" class="no-print mt-10 text-center hidden">
-            <button
-              onclick="window.print()"
-              class="text-[11px] font-medium tracking-[0.07em] uppercase px-7 py-3 rounded bg-[#C05A3C] text-white hover:bg-[#a84e33] transition"
-              style="font-family: 'DM Sans', sans-serif"
-            >Download PDF</button>
-          </div>
-
-          <script define:vars={{ token, sectionMetaJson: JSON.stringify(Object.fromEntries(Object.entries({
-            "THE ORDINARY WORLD":              { num: "I",    title: "The Ordinary World" },
-            "THE CALL":                        { num: "II",   title: "The Call" },
-            "THE THRESHOLD":                   { num: "III",  title: "Crossing Into the Unknown" },
-            "THE DESCENT":                     { num: "IV",   title: "Initiations and Early Trials" },
-            "THE ABYSS":                       { num: "V",    title: "The Central Ordeal" },
-            "THE HELPERS AND ALLIES":          { num: "VI",   title: "The Helpers and Allies" },
-            "THE ROAD OF TRIALS":              { num: "VII",  title: "The Recurring Tests" },
-            "THE SPIRITUAL PATH":              { num: "VIII", title: "The Invisible Current" },
-            "THE CORE WOUND AND THE VOCATION": { num: "IX",   title: "The Fight Worth Having" },
-            "THE ELIXIR":                      { num: "X",    title: "What I Carry Back" },
-            "THE VOICE":                       { num: "XI",   title: "How I Transmit" },
-            "THE RETURN":                      { num: "XII",  title: "Leaning Into the Fullness" },
-            "WHO I AM":                        { num: "XIII", title: "A Recap" },
-            "THE LARGER STORY":                { num: "XIV",  title: "The Larger Story" },
-          }))) }}>
+          <script define:vars={{ token }}>
             (function () {
-              const SECTION_META = JSON.parse(sectionMetaJson);
-              const HEADING_KEYS = Object.keys(SECTION_META);
+              const bar     = document.getElementById("progress-bar");
+              const msg     = document.getElementById("status-msg");
+              const box     = document.getElementById("generating-status");
+              let elapsed   = 0;
+              const TARGET  = 90; // seconds until bar reaches ~95%
 
-              function parseSections(text) {
-                const sections = [];
-                let current = null;
-                const blocks = text.split(/\n\n+/);
-                for (const block of blocks) {
-                  const trimmed = block.trim();
-                  if (!trimmed) continue;
-                  const firstLine = trimmed.split("\n")[0].trim()
-                    .replace(/^#+\s*/, "").replace(/\*\*/g, "");
-                  const matchKey = HEADING_KEYS.find(k =>
-                    firstLine === k || firstLine.startsWith(k + " ") ||
-                    firstLine.startsWith(k + "—") || firstLine.startsWith(k + " —")
-                  );
-                  if (matchKey) {
-                    if (current) sections.push(current);
-                    const meta = SECTION_META[matchKey];
-                    current = { num: meta.num, title: meta.title, paragraphs: [] };
-                    const rest = trimmed.slice(firstLine.length).trim();
-                    if (rest) current.paragraphs.push(rest.replace(/\n/g, " "));
-                  } else if (current) {
-                    current.paragraphs.push(trimmed.replace(/\n/g, " "));
-                  }
-                }
-                if (current) sections.push(current);
-                return sections;
+              // Kick off generation immediately
+              fetch(`/api/generate-narrative?token=${encodeURIComponent(token)}`).catch(() => {});
+
+              // Animate progress bar smoothly
+              function tick() {
+                elapsed += 3;
+                const pct = Math.min(95, Math.round((elapsed / TARGET) * 100));
+                bar.style.width = pct + "%";
               }
 
-              function sectionHTML(s, first) {
-                const paras = s.paragraphs.map(p =>
-                  `<p style="font-family:'DM Sans',sans-serif;font-size:17px;line-height:1.65;color:#1A1410;margin-bottom:1.25rem">${p}</p>`
-                ).join("");
-                return `<div class="narrative-section" style="${first ? "" : "margin-top:4rem"}">
-                  <p style="font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:#C05A3C;margin-bottom:0.5rem">${s.num}</p>
-                  <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:600;font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-0.02em;line-height:1.2;color:#1A1410;margin-bottom:1.25rem">${s.title}</h2>
-                  <div style="border-top:1px solid #E8E0D6;padding-top:1.5rem">${paras}</div>
-                </div>`;
-              }
-
-              const streamDiv = document.getElementById("narrative-stream");
-              const status   = document.getElementById("generating-status");
-              const bar      = document.getElementById("progress-bar");
-              const pdfWrap  = document.getElementById("pdf-btn-wrap");
-
-              let fullText = "";
-              let charCount = 0;
-              const estimated = 14000;
-
-              const es = new EventSource(`/api/generate-narrative?token=${encodeURIComponent(token)}`);
-
-              es.onmessage = (e) => {
-                if (e.data === "[DONE]") {
-                  es.close();
-                  status.classList.add("hidden");
-                  const sections = parseSections(fullText);
-                  if (sections.length > 0) {
-                    streamDiv.innerHTML = sections.map((s, i) => sectionHTML(s, i === 0)).join("");
-                  } else {
-                    streamDiv.innerHTML = fullText
-                      .split(/\n\n+/).filter(Boolean)
-                      .map(p => `<p style="font-family:'DM Sans',sans-serif;font-size:17px;line-height:1.65;margin-bottom:1.25rem">${p}</p>`)
-                      .join("");
-                  }
-                  streamDiv.classList.remove("hidden");
-                  pdfWrap?.classList.remove("hidden");
+              const poll = setInterval(async () => {
+                tick();
+                if (elapsed > 150) {
+                  clearInterval(poll);
+                  msg.textContent = "Still working — please refresh in a moment.";
                   return;
                 }
                 try {
-                  const payload = JSON.parse(e.data);
-                  if (payload.error) {
-                    es.close();
-                    status.innerHTML = `<p style="font-family:'DM Sans',sans-serif;font-size:14px;color:#C05A3C">Error: ${payload.error}. Please refresh to try again.</p>`;
-                    return;
-                  }
-                  if (payload.text) {
-                    fullText += payload.text;
-                    charCount += payload.text.length;
-                    bar.style.width = Math.min(95, Math.round((charCount / estimated) * 100)) + "%";
-                    streamDiv.classList.remove("hidden");
-                    streamDiv.style.cssText = "font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.7;color:#7A6D5E;white-space:pre-wrap;padding:1rem 0";
-                    streamDiv.textContent = fullText;
+                  const res  = await fetch(`/api/narrative-ready?token=${encodeURIComponent(token)}`);
+                  const data = await res.json();
+                  if (data.ready) {
+                    clearInterval(poll);
+                    bar.style.width = "100%";
+                    msg.textContent = "Your narrative is ready. Loading…";
+                    setTimeout(() => window.location.reload(), 600);
                   }
                 } catch {}
-              };
-
-              es.onerror = () => {
-                es.close();
-                if (!fullText) {
-                  status.innerHTML = `<p style="font-family:'DM Sans',sans-serif;font-size:14px;color:#C05A3C">Connection lost. Please refresh to try again.</p>`;
-                }
-              };
+              }, 3000);
             })();
           </script>
         </section>
@@ -371,10 +283,7 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
                   class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C05A3C] mb-2"
                   style="font-family: 'DM Sans', sans-serif"
                 >{section.num}</p>
-                <h2
-                  class="text-[#1A1410] mb-5"
-                  style="font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -0.02em; line-height: 1.2"
-                >{section.title}</h2>
+                <h2 class="mb-5">{section.title}</h2>
                 <div class="border-t border-[#E8E0D6] pt-6">
                   {section.paragraphs.map(p => (
                     <p

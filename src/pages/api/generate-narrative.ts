@@ -3,50 +3,39 @@ import { getPurchase, updatePurchase } from "../../lib/purchases.js";
 import { generateChart } from "../../lib/chart-engine/index.js";
 import { streamNarrative } from "../../lib/narrative.js";
 
-export const GET: APIRoute = async ({ url }) => {
+export const GET: APIRoute = async ({ url, locals }) => {
   const token = url.searchParams.get("token");
 
   if (!token) {
-    return new Response("Missing token", { status: 400 });
+    return new Response(JSON.stringify({ error: "Missing token" }), { status: 400 });
   }
 
   const purchase = await getPurchase(token);
   if (!purchase) {
-    return new Response("Invalid token", { status: 404 });
+    return new Response(JSON.stringify({ error: "Invalid token" }), { status: 404 });
   }
   if (!purchase.birthData) {
-    return new Response("No birth data on file", { status: 400 });
+    return new Response(JSON.stringify({ error: "No birth data" }), { status: 400 });
   }
-
-  // If narrative already exists, return it immediately as a single SSE event
   if (purchase.narrative) {
-    const body = `data: ${JSON.stringify({ text: purchase.narrative })}\n\ndata: [DONE]\n\n`;
-    return new Response(body, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-      },
+    return new Response(JSON.stringify({ status: "ready" }), {
+      headers: { "Content-Type": "application/json" },
     });
   }
 
-  const chart = await generateChart(purchase.birthData);
-  const name = purchase.name;
-
-  let accumulated = "";
-
-  const readable = new ReadableStream({
-    async start(controller) {
-      const encoder = new TextEncoder();
+  // Start generation in background — returns immediately so the function
+  // doesn't time out. waitUntil() keeps the Lambda alive after the response.
+  const { context } = (locals as any).netlify;
+  context.waitUntil(
+    (async () => {
       try {
-        for await (const chunk of streamNarrative(chart, name)) {
+        const chart = await generateChart(purchase.birthData!);
+        let accumulated = "";
+        for await (const chunk of streamNarrative(chart, purchase.name)) {
           accumulated += chunk;
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
         }
-        // Save the complete narrative to Netlify Blobs
         await updatePurchase(token, { narrative: accumulated });
 
-        // Fire-and-forget: send to Make.com for email delivery
         const makeUrl = import.meta.env.MAKE_NARRATIVE_WEBHOOK_URL;
         if (makeUrl && accumulated) {
           fetch(makeUrl, {
@@ -55,22 +44,13 @@ export const GET: APIRoute = async ({ url }) => {
             body: JSON.stringify({ email: purchase.email, name: purchase.name, narrative: accumulated }),
           }).catch(() => {});
         }
-
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Generation failed";
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
-      } finally {
-        controller.close();
+      } catch {
+        // Generation failed — client will show timeout message after ~120s
       }
-    },
-  });
+    })()
+  );
 
-  return new Response(readable, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
-    },
+  return new Response(JSON.stringify({ status: "generating" }), {
+    headers: { "Content-Type": "application/json" },
   });
 };
