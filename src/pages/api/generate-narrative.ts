@@ -21,15 +21,14 @@ export const GET: APIRoute = async ({ url }) => {
     });
   }
 
-  // Use Netlify's injected URL env var (canonical site URL) as the base;
-  // url.origin can resolve to an internal address inside a Lambda.
   const siteUrl = process.env.URL ?? url.origin;
   const bgUrl = `${siteUrl}/.netlify/functions/generate-bg-background`;
   try {
+    // Pass full purchase data so the bg function doesn't need to read from Blobs
     await fetch(bgUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ purchase }),
     });
   } catch (err) {
     console.error("generate-narrative: failed to trigger bg function", err);
