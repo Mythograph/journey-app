@@ -56,6 +56,7 @@ export interface HumanDesignProfile {
   typePurpose: string;
   strategy?: string;
   authority?: Authority;
+  incarnationCross?: string;
   centers?: CenterState[];
   profileConscious: number | null;
   profileUnconscious: number | null;
@@ -133,8 +134,11 @@ const PLANET_DISPLAY: Record<string, string> = {
 // THE SHAPE OF MY ENERGY — defined vs open centers, and the motif of a
 // prominent conscious light sitting in open ground.
 export function buildEnergyAnatomy(profile: HumanDesignProfile): string {
-  const cs = profile.centers;
-  if (!cs || cs.length === 0) return "";
+  const cs = profile.centers ?? [];
+  const pc = profile.profileConscious;
+  const pu = profile.profileUnconscious;
+  const hasProfile = !!(pc && pu && PROFILE_LINES[pc] && PROFILE_LINES[pu]);
+  if (!hasProfile && cs.length === 0) return "";
 
   const definedList = cs.filter(c => c.status === "defined");
   const openList = cs.filter(c => c.status !== "defined");
@@ -144,8 +148,16 @@ export function buildEnergyAnatomy(profile: HumanDesignProfile): string {
 
   const paras: string[] = ["THE SHAPE OF MY ENERGY"];
 
+  if (hasProfile) {
+    paras.push(
+      `I move through life as a ${pc}/${pu} profile, the ${PROFILE_LINES[pc!].name} and the ${PROFILE_LINES[pu!].name}. My profile is the costume I wear and the role others cast me in. My conscious line, the ${pc} (${PROFILE_LINES[pc!].name}), is how I see myself and engage the world: ${profileLineDescription(pc)}. My unconscious line, the ${pu} (${PROFILE_LINES[pu!].name}), is how others tend to experience me, often before I notice it in myself: ${profileLineDescription(pu)}. Together they shape how I meet the world and how the world meets me.`
+    );
+  }
+
+  if (cs.length === 0) return paras.length > 1 ? paras.join("\n\n") : "";
+
   paras.push(
-    "My design is a body of nine energy centers. Some are defined: colored in and consistent, the parts of me that work the same way every day and that other people feel coming from me. Some are open, the places where I take the world in, amplify it, and slowly learn to read it. My open centers are where I am most easily conditioned, because what moves through them is often not mine, and they are also where I grow wisest over a lifetime. Knowing which is which is the difference between living my own life and living a borrowed one."
+    `My design is ${hasProfile ? "also " : ""}a body of nine energy centers. Some are defined: colored in and consistent, the parts of me that work the same way every day and that other people feel coming from me. Some are open, the places where I take the world in, amplify it, and slowly learn to read it. My open centers are where I am most easily conditioned, because what moves through them is often not mine, and they are also where I grow wisest over a lifetime. Knowing which is which is the difference between living my own life and living a borrowed one.`
   );
 
   if (definedList.length) {
@@ -169,7 +181,7 @@ export function buildEnergyAnatomy(profile: HumanDesignProfile): string {
 }
 
 // THE GAUNTLET — type/strategy/authority as the training that turns raw
-// energy into sovereignty, plus how the profile lines are built to experiment.
+// energy into sovereignty, plus how the profile lines shape how I learn.
 export function buildGauntlet(profile: HumanDesignProfile): string {
   if (!profile.type) return "";
   const typeEntry = TYPE_PROFILES[profile.type];
@@ -185,10 +197,14 @@ export function buildGauntlet(profile: HumanDesignProfile): string {
   if (strat) paras.push(`How I am built to engage. ${strat}`);
   if (auth) paras.push(`How I am built to decide. ${auth}`);
   if (exp) {
-    let e = `How I am built to experiment. ${exp}`;
+    const pc = profile.profileConscious;
+    const cname = pc && PROFILE_LINES[pc] ? PROFILE_LINES[pc].name : "";
+    let e = pc
+      ? `How I learn. My conscious line is the ${pc}, the ${cname}, and it sets the way I am built to learn and grow. ${exp}`
+      : `How I learn. ${exp}`;
     const u = profile.profileUnconscious;
     if (u && PROFILE_LINES[u]) {
-      e += ` Underneath this runs my unconscious ${PROFILE_LINES[u].name} line, ${profileLineDescription(u)}.`;
+      e += ` Underneath this runs my unconscious ${u} line, the ${PROFILE_LINES[u].name}, ${profileLineDescription(u)}.`;
     }
     paras.push(e);
   }
@@ -204,6 +220,8 @@ export function buildLifePurposeNarrative(profile: HumanDesignProfile, _name: st
   const hi  = (n: number | null) => gateExpr(n, "high", "short");
   const lo  = (n: number | null) => gateExpr(n, "low",  "short");
   const arc = (n: number | null) => gateExpr(n, "arc",  "short");
+  const vb  = (n: number | null) => gateExpr(n, "high", "verb");
+  const gn  = (n: number | null) => (n && GATES[n] ? `Gate ${n} (${GATES[n].quantumName})` : "");
   const pd  = (n: number | null) => profileLineDescription(n);
 
   // Signature grounding: names the actual chart mechanic behind a passage,
@@ -271,13 +289,17 @@ The world I grew up in had its own story about who I was and what was possible. 
 
   const theCall = `THE CALL
 
-There is a thread that runs through my life, through every version of myself, every detour, every beginning. My deepest work in this world is to ${renderPair(profile.sunConscious, profile.sunUnconscious, "high", "verb", "and to")}. This is the call, and I can trace it to my ${sigPair("Sun", profile.sunConscious, profile.sunUnconscious)}. It doesn't always arrive as a clear voice or a dramatic summons. More often it shows up as a persistent pull, a recurring sense that this is what I'm for, even when life has taken me elsewhere.
+There is a thread that runs through my life, through every version of myself, every detour, every beginning: a persistent pull, a recurring sense of what I am for, even when life has taken me elsewhere. This is the call. It rarely arrives as a clear voice or a dramatic summons. It arrives as a direction I keep bending back toward, no matter how far I wander from it.
 
-I am here to serve the world by ${typePurpose}. This isn't a role I'm auditioning for or a standard I'm trying to meet. It's structural: the shape my energy is designed to take when I'm living in alignment with what I actually am.`;
+The deepest answer to why I am here is my incarnation cross${profile.incarnationCross ? `, the ${profile.incarnationCross}` : ""}. It is the largest pattern in my whole design, and it is built from four gates: the two lights of my personality, my conscious Sun and Earth, the purpose I am aware of carrying; and the two lights of my design, my unconscious Sun and Earth, the purpose others feel me living before I can name it. Where the Sun is the gift I am here to give, the Earth beneath it is the ground I have to stand on to give it.
+
+Consciously, I am here to ${vb(profile.sunConscious)}, grounded in ${hi(profile.earthConscious)}. This is the role I know I am playing: my Sun in ${gn(profile.sunConscious)} and my Earth in ${gn(profile.earthConscious)}. Beneath that, in my design, I am built to ${vb(profile.sunUnconscious)}, grounded in ${hi(profile.earthUnconscious)}, the role others recognize in me before I do: my Sun in ${gn(profile.sunUnconscious)} and my Earth in ${gn(profile.earthUnconscious)}. Together these four trace the theme my life keeps returning to, and most people do not fully recognize their cross until they are decades into living it.
+
+I am here to serve the world by ${typePurpose}. This is not a role I'm auditioning for or a standard I'm trying to meet. It is structural: the shape my energy is designed to take when I am living in alignment with what I actually am.`;
 
   const threshold = `THE THRESHOLD — CROSSING INTO THE UNKNOWN
 
-Every journey has a threshold: the moment I step out of what's familiar and into the territory that actually matters. I cross it the way the Fool steps off the edge in the old tarot, not because the path is certain but because something in me is ready to begin. The way I learn, grow, and offer myself to the world is by ${pd(profile.profileConscious)}, the gift of my conscious profile line. It isn't always the path of least resistance, but it is my path, and a particular intelligence becomes available to me when I trust it.
+Every journey has a threshold: the moment I step out of what's familiar and into the territory that actually matters. I cross it the way the Fool steps off the edge in the old tarot, not because the path is certain but because something in me is ready to begin. The way I make that crossing, the mode I engage life through, is ${pd(profile.profileConscious)}, the gift of my conscious profile line. It isn't always the path of least resistance, but it is my path, and a particular intelligence becomes available to me when I trust it.
 
 To actually move rather than hover at the edge, what I most need to cultivate and receive is ${pd(profile.profileUnconscious)}, what my unconscious line is quietly asking for. It often comes through others, through circumstances, through what I don't yet see in myself. Without it, the threshold stays theoretical. With it, the search becomes real.`;
 

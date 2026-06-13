@@ -304,6 +304,8 @@ export const GK_SEQUENCES: SequenceSpec[] = [
 // ─── Sequence narrative builder ───────────────────────────────────────────────
 // One flowing sentence per sequence, chaining the Gift of each populated sphere.
 
+const capitalize = (s: string): string => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
 export function buildSequenceNarrative(
   sequenceKey: "activation" | "venus" | "pearl",
   geneKeys: GeneKeysProfile
@@ -327,11 +329,11 @@ export function buildSequenceNarrative(
     const ra = sphere("Radiance");
     const pu = sphere("Purpose");
     const parts: string[] = [];
-    if (lw) parts.push(`The gift you carry into the world as your Life's Work is ${lw.freq.gift} (GK ${lw.num})`);
-    if (ev) parts.push(`your inner Evolution deepens through ${ev.freq.gift} (GK ${ev.num})`);
-    if (ra) parts.push(`you naturally emanate ${ra.freq.gift} (GK ${ra.num}) to those around you`);
-    if (pu) parts.push(`and at the deepest level, your Purpose is rooted in ${pu.freq.gift} (GK ${pu.num})`);
-    return parts.length > 0 ? parts.join(", ") + "." : "";
+    if (lw) parts.push(`the gift I carry into the world as my Life's Work is ${lw.freq.gift} (GK ${lw.num})`);
+    if (ev) parts.push(`my inner Evolution deepens through ${ev.freq.gift} (GK ${ev.num})`);
+    if (ra) parts.push(`I naturally emanate ${ra.freq.gift} (GK ${ra.num}) to those around me`);
+    if (pu) parts.push(`and at the deepest level, my Purpose is rooted in ${pu.freq.gift} (GK ${pu.num})`);
+    return parts.length > 0 ? capitalize(parts.join(", ")) + "." : "";
   }
 
   if (sequenceKey === "venus") {
@@ -342,13 +344,13 @@ export function buildSequenceNarrative(
     const pu = sphere("Purpose");
     const co = sphere("Core");
     const parts: string[] = [];
-    if (at) parts.push(`You draw others through ${at.freq.gift} (GK ${at.num})`);
-    if (iq) parts.push(`your mind works through ${iq.freq.gift} (GK ${iq.num})`);
-    if (eq) parts.push(`emotionally you move through ${eq.freq.gift} (GK ${eq.num})`);
-    if (sq) parts.push(`with ${sq.freq.gift} (GK ${sq.num}) as your spiritual current`);
-    if (pu) parts.push(`your purpose at the heart of relationship moves through ${pu.freq.gift} (GK ${pu.num})`);
-    if (co) parts.push(`and at your core, ${co.freq.gift} (GK ${co.num}) is the wound of ${co.freq.shadow} becoming gift`);
-    return parts.length > 0 ? parts.join(", ") + "." : "";
+    if (at) parts.push(`I draw others through ${at.freq.gift} (GK ${at.num})`);
+    if (iq) parts.push(`my mind works through ${iq.freq.gift} (GK ${iq.num})`);
+    if (eq) parts.push(`emotionally I move through ${eq.freq.gift} (GK ${eq.num})`);
+    if (sq) parts.push(`with ${sq.freq.gift} (GK ${sq.num}) as my spiritual current`);
+    if (pu) parts.push(`my purpose at the heart of relationship moves through ${pu.freq.gift} (GK ${pu.num})`);
+    if (co) parts.push(`and at my core, ${co.freq.gift} (GK ${co.num}) is the wound of ${co.freq.shadow} becoming gift`);
+    return parts.length > 0 ? capitalize(parts.join(", ")) + "." : "";
   }
 
   if (sequenceKey === "pearl") {
@@ -357,11 +359,11 @@ export function buildSequenceNarrative(
     const cu = sphere("Culture");
     const pe = sphere("Pearl");
     const parts: string[] = [];
-    if (vo) parts.push(`Your true vocation expresses as ${vo.freq.gift} (GK ${vo.num})`);
-    if (br) parts.push(`what makes you unmistakably you in the world is ${br.freq.gift} (GK ${br.num})`);
-    if (cu) parts.push(`you naturally cultivate ${cu.freq.gift} (GK ${cu.num}) in the environments you create`);
+    if (vo) parts.push(`my true vocation expresses as ${vo.freq.gift} (GK ${vo.num})`);
+    if (br) parts.push(`what makes me unmistakably myself in the world is ${br.freq.gift} (GK ${br.num})`);
+    if (cu) parts.push(`I naturally cultivate ${cu.freq.gift} (GK ${cu.num}) in the environments I create`);
     if (pe) parts.push(`and ${pe.freq.gift} (GK ${pe.num}) is what emerges through a life in full service`);
-    return parts.length > 0 ? parts.join(", ") + "." : "";
+    return parts.length > 0 ? capitalize(parts.join(", ")) + "." : "";
   }
 
   return "";

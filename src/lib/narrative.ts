@@ -69,6 +69,7 @@ export function humanDesignProfileFromChart(chart: Chart): HumanDesignProfile {
     typePurpose: "", // resolved from TYPE_PROFILES inside the builder
     strategy: chart.strategy,
     authority: chart.authority as Authority,
+    incarnationCross: chart.incarnationCross,
     centers: computeCenters(chart),
     profileConscious: Number.isFinite(consciousLine) ? consciousLine : null,
     profileUnconscious: Number.isFinite(unconsciousLine) ? unconsciousLine : null,
