@@ -88,6 +88,23 @@ const SECTION_PLANETS: Record<string, { planet: string; pos: "conscious" | "unco
   "THE LARGER STORY":                [{ planet: "uranus",     pos: "conscious" }, { planet: "pluto",      pos: "conscious"   }],
 };
 
+// One templated image per section (mythic-peak sections only). Keyed by the
+// section heading; sections absent from this map render text-only.
+const SECTION_IMAGES: Record<string, string> = {
+  "THE ORDINARY WORLD":              "/images/sections/01-ordinary-world.png",
+  "THE CALL":                        "/images/sections/02-call.png",
+  "THE THRESHOLD":                   "/images/sections/03-threshold.png",
+  "THE DESCENT":                     "/images/sections/04-descent.jpg",
+  "THE ABYSS":                       "/images/sections/05-abyss.png",
+  "THE HELPERS AND ALLIES":          "/images/sections/06-helpers.png",
+  "THE SPIRITUAL PATH":              "/images/sections/08-spiritual-path.png",
+  "THE CORE WOUND AND THE VOCATION": "/images/sections/09-core-wound.png",
+  "THE ELIXIR":                      "/images/sections/10-elixir.png",
+  "THE VOICE":                       "/images/sections/11-voice.png",
+  "THE RETURN":                      "/images/sections/12-return.png",
+  "THE LARGER STORY":                "/images/sections/14-larger-story.png",
+};
+
 interface GateTag { planet: string; gate: number; pos: "conscious" | "unconscious" }
 
 function getGateTags(chart: Chart, sectionKey: string): GateTag[] {
@@ -160,6 +177,8 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
         body { background: white !important; }
         .narrative-section { page-break-inside: avoid; }
         @page { margin: 2.5cm 3cm; }
+        /* Keep a section opener image with the heading that follows it. */
+        .journey-image { break-inside: avoid; page-break-after: avoid; max-width: 100%; }
       }
     </style>
   </head>
@@ -197,6 +216,15 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
         >
           {purchase.name ? `The Journey of ${purchase.name}` : "Your Journey Narrative"}
         </h1>
+
+        {hasNarrative && (
+          <img
+            src="/images/sections/cover.png"
+            alt=""
+            class="journey-image w-full mt-10 rounded-sm"
+            style="display: block; object-fit: cover;"
+          />
+        )}
 
         {!hasNarrative && (
           <p
@@ -351,8 +379,17 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
           {narrativeSections.length > 0 ? (
             narrativeSections.map((section, i) => {
               const tags = chart ? getGateTags(chart, section.key) : [];
+              const sectionImage = SECTION_IMAGES[section.key];
               return (
                 <div class={`narrative-section${i > 0 ? " mt-16" : ""}`}>
+                  {sectionImage && (
+                    <img
+                      src={sectionImage}
+                      alt=""
+                      class="journey-image w-full mb-8 rounded-sm"
+                      style="display: block; object-fit: cover;"
+                    />
+                  )}
                   <p
                     class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C05A3C] mb-2"
                     style="font-family: 'DM Sans', sans-serif"
