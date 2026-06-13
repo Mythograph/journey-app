@@ -222,6 +222,18 @@ export function buildLifePurposeNarrative(profile: HumanDesignProfile, _name: st
   const arc = (n: number | null) => gateExpr(n, "arc",  "short");
   const vb  = (n: number | null) => gateExpr(n, "high", "verb");
   const gn  = (n: number | null) => (n && GATES[n] ? `Gate ${n} (${GATES[n].traditionalName})` : "");
+  const q   = (n: number | null) => (n && GATES[n] ? GATES[n].quantumName : "");
+  // High-expression grounding: quantum gift-name in the prose, traditional
+  // name in the parenthetical reference.
+  const giftSig = (label: string, c: number | null, u: number | null): string => {
+    const t = (n: number | null) => (n && GATES[n] ? GATES[n].traditionalName : "");
+    const qc = q(c), qu = q(u);
+    const gifts = qc && qu && c !== u ? `${qc} and ${qu}` : (qc || qu);
+    const refs = c && u && c !== u
+      ? `conscious Gate ${c}, ${t(c)}; unconscious Gate ${u}, ${t(u)}`
+      : `Gate ${c || u}, ${t(c || u)}`;
+    return gifts ? `${label}, my gift of ${gifts} (${refs})` : label;
+  };
   const pd  = (n: number | null) => profileLineDescription(n);
 
   // Signature grounding: names the actual chart mechanic behind a passage,
@@ -283,7 +295,7 @@ I am meant to be a ${typeLabel}${typeQuantum ? `: a kind of ${typeQuantum.toLowe
 
 ${typeDescription}
 
-Before I understood any of this, I lived inside a particular kind of ordinary, shaped by the world I was born into, the family I came through, and the early lessons life handed me without explanation. Even then, something was already moving in me that I couldn't quite name. My generation arrived with a collective inheritance: to open others to ${renderPair(profile.uranusConscious, profile.uranusUnconscious, "high", "short")}. This is the work of my ${sigPair("Uranus", profile.uranusConscious, profile.uranusUnconscious)}, a current woven into me at birth, running beneath everything I experienced long before I had language for it.
+Before I understood any of this, I lived inside a particular kind of ordinary, shaped by the world I was born into, the family I came through, and the early lessons life handed me without explanation. Even then, something was already moving in me that I couldn't quite name. My generation arrived with a collective inheritance: to open others to ${renderPair(profile.uranusConscious, profile.uranusUnconscious, "high", "short")}. This is the work of my ${giftSig("Uranus", profile.uranusConscious, profile.uranusUnconscious)}, a current woven into me at birth, running beneath everything I experienced long before I had language for it.
 
 The world I grew up in had its own story about who I was and what was possible. Some of that story served me. Some of it didn't. What follows is not a conquest and it is not a performance. It is a search for what is true underneath the inherited story, and for the meaning that is mine to make.`;
 
@@ -293,7 +305,7 @@ There is a thread that runs through my life, through every version of myself, ev
 
 The deepest answer to why I am here is my incarnation cross${profile.incarnationCross ? `, the ${profile.incarnationCross}` : ""}. It is the largest pattern in my whole design, and it is built from four gates: the two lights of my personality, my conscious Sun and Earth, the purpose I am aware of carrying; and the two lights of my design, my unconscious Sun and Earth, the purpose others feel me living before I can name it. Where the Sun is the gift I am here to give, the Earth beneath it is the ground I have to stand on to give it.
 
-Consciously, I am here to ${vb(profile.sunConscious)}, grounded in ${hi(profile.earthConscious)}. This is the role I know I am playing: my Sun in ${gn(profile.sunConscious)} and my Earth in ${gn(profile.earthConscious)}. Beneath that, in my design, I am built to ${vb(profile.sunUnconscious)}, grounded in ${hi(profile.earthUnconscious)}, the role others recognize in me before I do: my Sun in ${gn(profile.sunUnconscious)} and my Earth in ${gn(profile.earthUnconscious)}. Together these four trace the theme my life keeps returning to, and most people do not fully recognize their cross until they are decades into living it.
+Consciously, I am here to ${vb(profile.sunConscious)}, my gift of ${q(profile.sunConscious)}, grounded in my gift of ${q(profile.earthConscious)}. This is the role I know I am playing: my Sun in ${gn(profile.sunConscious)} and my Earth in ${gn(profile.earthConscious)}. Beneath that, in my design, I am built to ${vb(profile.sunUnconscious)}, my gift of ${q(profile.sunUnconscious)}, grounded in my gift of ${q(profile.earthUnconscious)}, the role others recognize in me before I do: my Sun in ${gn(profile.sunUnconscious)} and my Earth in ${gn(profile.earthUnconscious)}. Together these four trace the theme my life keeps returning to, and most people do not fully recognize their cross until they are decades into living it.
 
 I am here to serve the world by ${typePurpose}. This is not a role I'm auditioning for or a standard I'm trying to meet. It is structural: the shape my energy is designed to take when I am living in alignment with what I actually am.`;
 
@@ -323,7 +335,7 @@ The abyss does not ask me to win. It asks whether I can let myself be remade, wh
 
 No one makes this journey alone. A search for meaning is never a solitary quest; it is relational, reciprocal, woven through with helpers, guides, and the people who make the return possible.
 
-What moves me at the core, the inner allies that keep me on the path when everything else is uncertain, are ${renderPair(profile.moonConscious, profile.moonUnconscious, "high", "short")}. This is the pull of my ${sigPair("Moon", profile.moonConscious, profile.moonUnconscious)}. These are the deep motivations beneath the surface ambitions. They are emotional, instinctual, often non-rational. They are what I return to when I've lost the thread, the pulse beneath the pulse. When I tend to them, I have the energy and the heart to keep going. When I neglect them, something essential goes quiet.
+What moves me at the core, the inner allies that keep me on the path when everything else is uncertain, are ${renderPair(profile.moonConscious, profile.moonUnconscious, "high", "short")}. This is the pull of my ${giftSig("Moon", profile.moonConscious, profile.moonUnconscious)}. These are the deep motivations beneath the surface ambitions. They are emotional, instinctual, often non-rational. They are what I return to when I've lost the thread, the pulse beneath the pulse. When I tend to them, I have the energy and the heart to keep going. When I neglect them, something essential goes quiet.
 
 Inner conflict is not a sign that I've gone wrong. It is the signal that expansion is happening, that I am being stretched into territory my current self hasn't mapped yet. I'm always becoming. I'm always doing this right.`;
 
@@ -333,11 +345,11 @@ The road of this journey is lined with recurring tests, the same lessons in new 
 
 Saturn's lessons are not punitive; they are structural. They show up wherever I need to develop mastery, take responsibility, or stop outsourcing my authority to someone else. They are among the most transformative energies in the chart precisely because they demand something real.
 
-When I meet those lessons honestly, when I don't bypass them or collapse under them, I discover the gifts that wait on the other side: ${renderPair(profile.jupiterConscious, profile.jupiterUnconscious, "high", "short")}. This is the grace of my ${sigPair("Jupiter", profile.jupiterConscious, profile.jupiterUnconscious)}. These are not rewards for good behavior. They are the natural expansion that comes from having done the actual work. They arrive as grace.`;
+When I meet those lessons honestly, when I don't bypass them or collapse under them, I discover the gifts that wait on the other side: ${renderPair(profile.jupiterConscious, profile.jupiterUnconscious, "high", "short")}. This is the grace of my ${giftSig("Jupiter", profile.jupiterConscious, profile.jupiterUnconscious)}. These are not rewards for good behavior. They are the natural expansion that comes from having done the actual work. They arrive as grace.`;
 
   const spiritual = `THE SPIRITUAL PATH — THE INVISIBLE CURRENT
 
-Running beneath all of this is a spiritual current I can't force or manufacture, only attune to. My deepest spiritual path moves through ${renderPair(profile.neptuneConscious, profile.neptuneUnconscious, "high", "short")}, the quiet undertow of my ${sigPair("Neptune", profile.neptuneConscious, profile.neptuneUnconscious)}. Neptune governs the realm of the numinous: the dreams, the dissolving of ego-edges, the places where the personal story opens into something larger than itself.
+Running beneath all of this is a spiritual current I can't force or manufacture, only attune to. My deepest spiritual path moves through ${renderPair(profile.neptuneConscious, profile.neptuneUnconscious, "high", "short")}, the quiet undertow of my ${giftSig("Neptune", profile.neptuneConscious, profile.neptuneUnconscious)}. Neptune governs the realm of the numinous: the dreams, the dissolving of ego-edges, the places where the personal story opens into something larger than itself.
 
 When I need to re-anchor, when I've drifted from the thread, this is where I come back. Not to a doctrine or a method, but to the signature of these energies as I have come to know them in my own experience. Alignment with something larger, for me, is not abstract. It is particular. It lives here.`;
 
@@ -357,19 +369,19 @@ The old stories end with a hero returning in triumph, holding up a prize. This i
 
 What I am here to bring back is the capacity to ${renderPair(profile.sunConscious, profile.sunUnconscious, "high", "verb", "and to")}, not as aspiration now but as lived offering. This is the same call I heard at the beginning. It hasn't changed. But I have. I bring it back now with the depth of everything the search has taught me.
 
-The foundation that holds this offering, the ground I stand on to give it, is ${renderPair(profile.earthConscious, profile.earthUnconscious, "high", "short")}. This is the ballast of my ${sigPair("Earth", profile.earthConscious, profile.earthUnconscious)}. The Earth gate stabilizes the Sun's purpose. It is the body to the soul's vision. I allow it, build it, and receive it as the foundation of everything I create.`;
+The foundation that holds this offering, the ground I stand on to give it, is ${renderPair(profile.earthConscious, profile.earthUnconscious, "high", "short")}. This is the ballast of my ${giftSig("Earth", profile.earthConscious, profile.earthUnconscious)}. The Earth gate stabilizes the Sun's purpose. It is the body to the soul's vision. I allow it, build it, and receive it as the foundation of everything I create.`;
 
   const voice = `THE VOICE — HOW I TRANSMIT
 
-A returned traveler doesn't just carry the medicine; they know how to offer it. My transmission moves through ${renderPair(profile.mercuryConscious, profile.mercuryUnconscious, "high", "short")}, the voice of my ${sigPair("Mercury", profile.mercuryConscious, profile.mercuryUnconscious)}. This is how meaning moves from me into the world, through my particular way of speaking, writing, articulating, and making ideas land. Not just what I say, but the quality of presence through which I say it.
+A returned traveler doesn't just carry the medicine; they know how to offer it. My transmission moves through ${renderPair(profile.mercuryConscious, profile.mercuryUnconscious, "high", "short")}, the voice of my ${giftSig("Mercury", profile.mercuryConscious, profile.mercuryUnconscious)}. This is how meaning moves from me into the world, through my particular way of speaking, writing, articulating, and making ideas land. Not just what I say, but the quality of presence through which I say it.
 
-What shapes everything I build, the value system that runs beneath my choices, my relationships, and my creative work, is ${renderPair(profile.venusConscious, profile.venusUnconscious, "high", "short")}, the values of my ${sigPair("Venus", profile.venusConscious, profile.venusUnconscious)}. These are the things I find beautiful, the principles I organize my life around, the non-negotiables that show up in how I love, what I protect, and what I choose to make.`;
+What shapes everything I build, the value system that runs beneath my choices, my relationships, and my creative work, is ${renderPair(profile.venusConscious, profile.venusUnconscious, "high", "short")}, the values of my ${giftSig("Venus", profile.venusConscious, profile.venusUnconscious)}. These are the things I find beautiful, the principles I organize my life around, the non-negotiables that show up in how I love, what I protect, and what I choose to make.`;
 
   const theReturn = `THE RETURN — LEANING INTO THE FULLNESS
 
 Around age 44, the journey shifts register. The initiations of the South Node have done their foundational work. The core wound has been, or is being, turned toward vocation. The question shifts from who am I becoming to who have I always been.
 
-This is the period of growing more fully into ${renderPair(profile.northNodeConscious, profile.northNodeUnconscious, "high", "short")}, the direction my ${sigPair("North Node", profile.northNodeConscious, profile.northNodeUnconscious)} has been bending toward all along. The North Node is not a foreign destination; it is the deepest expression of the trajectory the whole journey has been building toward. It asks me to lean forward, into unfamiliar territory that nonetheless feels, when I arrive, like coming home.
+This is the period of growing more fully into ${renderPair(profile.northNodeConscious, profile.northNodeUnconscious, "high", "short")}, the direction my ${giftSig("North Node", profile.northNodeConscious, profile.northNodeUnconscious)} has been bending toward all along. The North Node is not a foreign destination; it is the deepest expression of the trajectory the whole journey has been building toward. It asks me to lean forward, into unfamiliar territory that nonetheless feels, when I arrive, like coming home.
 
 This is the return that matters. Not a finish line, but a full inhabiting: showing up as the complete version of who I've been moving toward all along, and offering that to the world without apology.`;
 
@@ -450,7 +462,10 @@ export function buildVillageJourney(geneKeys: GeneKeysProfile): string {
 
   const paras: string[] = ["THE VILLAGE JOURNEY"];
   paras.push(
-    "No one changes the world alone, and no one is meant to. When enough people who have done their own inner work find each other, a village forms: a circle of unique medicine gathered around a shared vision none of them could have reached by themselves. My Gene Keys describe how I am built to find that village and what I am here to contribute to it. Where Human Design maps my individual design, the Gene Keys map my co-individuation, the way I become more myself by becoming part of something larger."
+    "The Gene Keys are a contemplative companion to my Human Design chart. Every gate in my design is also a Gene Key, and each one names a spectrum I move along over a lifetime. At the low end is the Shadow, the way the energy contracts under fear. In the middle is the Gift, what that same energy becomes when I meet it with awareness. At the highest end is the Siddhi, its fullest flowering. The work is never to be rid of the Shadow but to recognize it, so the Gift can come through."
+  );
+  paras.push(
+    "My Gene Keys are arranged into three sequences. I am choosing to read these sequences as the path by which I become more fully myself and serve my purpose within the movement of the collective. No one changes the world alone. When enough people who have done their own inner work find each other, a village forms: a circle of unique medicine gathered around a shared vision none of them could have reached by themselves. These sequences map how I am built to find my village and what I am here to contribute to it."
   );
 
   const activation = buildSequenceNarrative("activation", geneKeys);
