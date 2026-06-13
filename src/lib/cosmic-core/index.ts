@@ -8,5 +8,6 @@ export * from "./gates.js";
 export * from "./gene-keys.js";
 export * from "./types.js";
 export * from "./profiles.js";
+export * from "./centers.js";
 export * from "./narrative.js";
 export * from "./normalize.js";

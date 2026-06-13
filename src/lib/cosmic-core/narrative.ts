@@ -20,9 +20,10 @@
 // - buildJourneyNarrative() appends THE GOLDEN PATH (Gene Keys) before the
 //   recap sections.
 
-import { GATES, getGateExpression, type GateBand, type GateField } from "./gates.js";
+import { GATES, type GateBand, type GateField } from "./gates.js";
 import { TYPE_PROFILES, type HdTypeName } from "./types.js";
 import { profileLineDescription } from "./profiles.js";
+import { CENTERS, type CenterName, type CenterStatus } from "./centers.js";
 import {
   GK_SEQUENCES,
   GENE_KEY_FREQUENCIES,
@@ -33,9 +34,19 @@ import {
 
 // ─── Profile shape consumed by the builder ────────────────────────────────────
 
+// A center's defined/open state plus any prominent conscious lights (Sun,
+// Earth) that fall in it when it is not defined — the chart signature behind
+// the "a defining gift in open ground" motif.
+export interface CenterState {
+  name: CenterName;
+  status: CenterStatus;
+  prominent: { planet: string; gate: number }[];
+}
+
 export interface HumanDesignProfile {
   type: HdTypeName | "";
   typePurpose: string;
+  centers?: CenterState[];
   profileConscious: number | null;
   profileUnconscious: number | null;
   sunConscious: number | null;
@@ -93,6 +104,59 @@ function stringSimilarity(a: string, b: string): number {
 }
 
 // ─── The Soul Map (the individual journey — a search for meaning) ──────────────
+
+// Inline list joiner: clauses contain commas, so separate with semicolons.
+function joinClauses(items: string[]): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]}, and ${items[1]}`;
+  return `${items.slice(0, -1).join("; ")}; and ${items[items.length - 1]}`;
+}
+
+const PLANET_DISPLAY: Record<string, string> = {
+  Sun: "Sun", Earth: "Earth", Moon: "Moon", Mercury: "Mercury", Venus: "Venus",
+  Mars: "Mars", Jupiter: "Jupiter", Saturn: "Saturn", Uranus: "Uranus",
+  Neptune: "Neptune", Pluto: "Pluto", NorthNode: "North Node", SouthNode: "South Node",
+  Chiron: "Chiron",
+};
+
+// THE SHAPE OF MY ENERGY — defined vs open centers, and the motif of a
+// prominent conscious light sitting in open ground.
+export function buildEnergyAnatomy(profile: HumanDesignProfile): string {
+  const cs = profile.centers;
+  if (!cs || cs.length === 0) return "";
+
+  const definedList = cs.filter(c => c.status === "defined");
+  const openList = cs.filter(c => c.status !== "defined");
+
+  const clause = (c: CenterState) =>
+    `my ${CENTERS[c.name].displayName}, where ${c.status === "defined" ? CENTERS[c.name].defined : CENTERS[c.name].open}`;
+
+  const paras: string[] = ["THE SHAPE OF MY ENERGY"];
+
+  paras.push(
+    "My design is a body of nine energy centers. Some are defined: colored in and consistent, the parts of me that work the same way every day and that other people feel coming from me. Some are open, the places where I take the world in, amplify it, and slowly learn to read it. My open centers are where I am most easily conditioned, because what moves through them is often not mine, and they are also where I grow wisest over a lifetime. Knowing which is which is the difference between living my own life and living a borrowed one."
+  );
+
+  if (definedList.length) {
+    paras.push(`What is consistent in me: ${joinClauses(definedList.map(clause))}. This is the ground I move from.`);
+  }
+  if (openList.length) {
+    paras.push(`Where I take the world in: ${joinClauses(openList.map(clause))}. Here the work is discernment, noticing when I am amplifying something that belongs to someone else and mistaking it for my own. In time, these become the places I understand other people most deeply, because I have felt the full range of what moves through them.`);
+  }
+
+  const prom = openList.flatMap(c => c.prominent.map(p => ({ center: c, p })));
+  if (prom.length) {
+    const { center, p } = prom[0];
+    const name = GATES[p.gate]?.quantumName;
+    const sig = `${PLANET_DISPLAY[p.planet] ?? p.planet} in Gate ${p.gate}${name ? `, ${name},` : ""}`;
+    paras.push(
+      `One of my defining gifts sits in open ground. My ${sig} lives in my open ${CENTERS[center.name].displayName}. The very thing I am here to express runs through the part of me most shaped by others. I am here to master from the inside what the world will keep trying to teach me from the outside. It can take years to trust this gift as mine, and claiming it is some of the most important work I will do.`
+    );
+  }
+
+  return paras.join("\n\n");
+}
 
 export function buildLifePurposeNarrative(profile: HumanDesignProfile, _name: string): string {
   if (!profile.type && !profile.sunConscious && !profile.sunUnconscious) return "";
@@ -271,7 +335,11 @@ I carry my particular wounds, my particular gifts, my particular way of seeing, 
 
 This is the story I write as I live.`;
 
-  return [ordinaryWorld, theCall, threshold, descent, abyss, helpers, trials, spiritual, coreWound, elixir, voice, theReturn, recap, largerStory].join("\n\n");
+  const energyAnatomy = buildEnergyAnatomy(profile);
+
+  return [ordinaryWorld, energyAnatomy, theCall, threshold, descent, abyss, helpers, trials, spiritual, coreWound, elixir, voice, theReturn, recap, largerStory]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 // ─── The Golden Path (Gene Keys) section ──────────────────────────────────────

@@ -9,14 +9,17 @@
 // stored text instantly.
 
 import Anthropic from "@anthropic-ai/sdk";
-import type { Chart } from "./chart-engine/types.js";
+import type { Chart, CenterName } from "./chart-engine/types.js";
+import { CENTER_GATES, GATE_CENTER } from "./chart-engine/data.js";
 import {
   buildJourneyNarrative,
   normalizeGrammar,
   EMPTY_GENE_KEYS,
+  CENTER_ORDER,
   type HumanDesignProfile,
   type GeneKeysProfile,
   type HdTypeName,
+  type CenterState,
 } from "./cosmic-core/index.js";
 
 // ─── Chart → profile adapters ─────────────────────────────────────────────────
@@ -24,6 +27,30 @@ import {
 function activation(chart: Chart, planet: string, position: "conscious" | "unconscious") {
   const list = position === "conscious" ? chart.personalityActivations : chart.designActivations;
   return list.find(a => a.planet === planet) ?? null;
+}
+
+// Defined (in a channel), undefined (open but carrying an activated gate),
+// or open (no activated gates). Prominent conscious lights (Sun, Earth) that
+// land in a non-defined center drive the "defining gift in open ground" motif.
+function computeCenters(chart: Chart): CenterState[] {
+  const lights = ["Sun", "Earth"] as const;
+  const lightGate: Record<string, number | null> = {};
+  for (const l of lights) lightGate[l] = gateOf(chart, l, "conscious");
+
+  return CENTER_ORDER.map((name) => {
+    const center = name as unknown as CenterName;
+    const isDefined = chart.definedCenters.has(center);
+    const hasGate = CENTER_GATES[center].some((g) => chart.definedGates.has(g));
+    const status = isDefined ? "defined" : hasGate ? "undefined" : "open";
+    const prominent: { planet: string; gate: number }[] = [];
+    if (status !== "defined") {
+      for (const l of lights) {
+        const g = lightGate[l];
+        if (g != null && GATE_CENTER[g] === center) prominent.push({ planet: l, gate: g });
+      }
+    }
+    return { name, status, prominent };
+  });
 }
 
 function gateOf(chart: Chart, planet: string, position: "conscious" | "unconscious"): number | null {
@@ -39,6 +66,7 @@ export function humanDesignProfileFromChart(chart: Chart): HumanDesignProfile {
   return {
     type: chart.type as HdTypeName,
     typePurpose: "", // resolved from TYPE_PROFILES inside the builder
+    centers: computeCenters(chart),
     profileConscious: Number.isFinite(consciousLine) ? consciousLine : null,
     profileUnconscious: Number.isFinite(unconsciousLine) ? unconsciousLine : null,
     sunConscious: gateOf(chart, "Sun", "conscious"),
