@@ -27,6 +27,7 @@ import { PROFILE_LINES, profileLineDescription } from "./profiles.js";
 import { CENTERS, type CenterName, type CenterStatus } from "./centers.js";
 import { CROSS_VARIATIONS, crossVariation } from "./crosses.js";
 import { crossDescription } from "./cross-descriptions.js";
+import { injectReflectionPrompts } from "./reflections.js";
 import {
   STRATEGY_TRAINING,
   AUTHORITY_TRAINING,
@@ -533,17 +534,20 @@ export function buildJourneyNarrative(
   if (!soulMap) return "";
 
   const village = buildVillageJourney(geneKeys);
-  if (!village) return soulMap;
-  const actTwo = `${buildHinge()}\n\n${village}`;
 
-  // Insert Act II before the recap ("WHO I AM") so the reading still closes
-  // on the recap and The Larger Story.
-  const recapIndex = soulMap.indexOf("WHO I AM — A RECAP");
-  if (recapIndex === -1) return `${soulMap}\n\n${actTwo}`;
+  let assembled: string;
+  if (!village) {
+    assembled = soulMap;
+  } else {
+    const actTwo = `${buildHinge()}\n\n${village}`;
+    // Insert Act II before the recap ("WHO I AM") so the reading still closes
+    // on the recap and The Larger Story.
+    const recapIndex = soulMap.indexOf("WHO I AM — A RECAP");
+    assembled = recapIndex === -1
+      ? `${soulMap}\n\n${actTwo}`
+      : soulMap.slice(0, recapIndex).trimEnd() + "\n\n" + actTwo + "\n\n" + soulMap.slice(recapIndex);
+  }
 
-  return (
-    soulMap.slice(0, recapIndex).trimEnd() +
-    "\n\n" + actTwo + "\n\n" +
-    soulMap.slice(recapIndex)
-  );
+  // Attach a first-person writing prompt to the end of each stage.
+  return injectReflectionPrompts(assembled, profile);
 }

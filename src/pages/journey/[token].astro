@@ -2,6 +2,7 @@
 import "~/styles/global.css";
 import { getPurchase, updatePurchase } from "~/lib/purchases.js";
 import { generateChart } from "~/lib/chart-engine/index.js";
+import { REFLECTION_MARKER } from "~/lib/cosmic-core/index.js";
 import type { BirthData, Chart } from "~/lib/chart-engine/types.js";
 
 const { token } = Astro.params;
@@ -379,10 +380,20 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
 
                   <div class="border-t border-[#E8E0D6] pt-6">
                     {section.paragraphs.map(p => (
-                      <p
-                        class="text-[17px] leading-[1.65] text-[#1A1410] mb-5"
-                        style="font-family: 'DM Sans', sans-serif"
-                      >{p}</p>
+                      p.startsWith(REFLECTION_MARKER) ? (
+                        <aside
+                          class="my-7 border-l-2 border-[#C8A24A] bg-[#F5F0E6] px-5 py-4"
+                          style="font-family: 'DM Sans', sans-serif"
+                        >
+                          <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C8A24A] mb-2">To write with</p>
+                          <p class="text-[16px] leading-[1.6] italic text-[#3A332B] m-0">{p.slice(REFLECTION_MARKER.length)}</p>
+                        </aside>
+                      ) : (
+                        <p
+                          class="text-[17px] leading-[1.65] text-[#1A1410] mb-5"
+                          style="font-family: 'DM Sans', sans-serif"
+                        >{p}</p>
+                      )
                     ))}
                   </div>
                 </div>
