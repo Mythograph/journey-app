@@ -170,7 +170,7 @@ export function buildEnergyAnatomy(profile: HumanDesignProfile): string {
   const prom = openList.flatMap(c => c.prominent.map(p => ({ center: c, p })));
   if (prom.length) {
     const { center, p } = prom[0];
-    const name = GATES[p.gate]?.quantumName;
+    const name = GATES[p.gate]?.traditionalName;
     const sig = `${PLANET_DISPLAY[p.planet] ?? p.planet} in Gate ${p.gate}${name ? `, ${name},` : ""}`;
     paras.push(
       `One of my defining gifts sits in open ground. My ${sig} lives in my open ${CENTERS[center.name].displayName}. The very thing I am here to express runs through the part of me most shaped by others. I am here to master from the inside what the world will keep trying to teach me from the outside. It can take years to trust this gift as mine, and claiming it is some of the most important work I will do.`
@@ -221,13 +221,13 @@ export function buildLifePurposeNarrative(profile: HumanDesignProfile, _name: st
   const lo  = (n: number | null) => gateExpr(n, "low",  "short");
   const arc = (n: number | null) => gateExpr(n, "arc",  "short");
   const vb  = (n: number | null) => gateExpr(n, "high", "verb");
-  const gn  = (n: number | null) => (n && GATES[n] ? `Gate ${n} (${GATES[n].quantumName})` : "");
+  const gn  = (n: number | null) => (n && GATES[n] ? `Gate ${n} (${GATES[n].traditionalName})` : "");
   const pd  = (n: number | null) => profileLineDescription(n);
 
   // Signature grounding: names the actual chart mechanic behind a passage,
   // as a skimmable parenthetical so it never bloats the prose.
   const sigPair = (label: string, c: number | null, u: number | null): string => {
-    const nm = (n: number | null) => (n && GATES[n] ? GATES[n].quantumName : "");
+    const nm = (n: number | null) => (n && GATES[n] ? GATES[n].traditionalName : "");
     if (c && u && c !== u) return `${label} (conscious Gate ${c}, ${nm(c)}; unconscious Gate ${u}, ${nm(u)})`;
     if (c && u) return `${label} (Gate ${c}, ${nm(c)}, in both layers)`;
     const g = c || u;
@@ -419,7 +419,7 @@ function renderSphere(sphere: SphereSpec, geneKeys: GeneKeysProfile): string | n
   const lineExpr = getSphereLineExpression(sphere.lineKey, line);
 
   let p = `${sphere.label}: Gene Key ${num}`;
-  if (gate) p += `, ${gate.quantumName}`;
+  if (gate) p += `, ${gate.traditionalName}`;
   if (line && lineExpr) p += `, Line ${line} (${lineExpr.name})`;
   p += `. ${sphere.note}. The Shadow of ${freq.shadow} ripens into the Gift of ${freq.gift} and flowers as the Siddhi of ${freq.siddhi}.`;
   if (lineExpr) p += ` ${lineExpr.description}`;
