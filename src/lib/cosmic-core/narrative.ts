@@ -22,8 +22,14 @@
 
 import { GATES, type GateBand, type GateField } from "./gates.js";
 import { TYPE_PROFILES, type HdTypeName } from "./types.js";
-import { profileLineDescription } from "./profiles.js";
+import { PROFILE_LINES, profileLineDescription } from "./profiles.js";
 import { CENTERS, type CenterName, type CenterStatus } from "./centers.js";
+import {
+  STRATEGY_TRAINING,
+  AUTHORITY_TRAINING,
+  PROFILE_EXPERIMENTS,
+  type Authority,
+} from "./navigation.js";
 import {
   GK_SEQUENCES,
   GENE_KEY_FREQUENCIES,
@@ -46,6 +52,8 @@ export interface CenterState {
 export interface HumanDesignProfile {
   type: HdTypeName | "";
   typePurpose: string;
+  strategy?: string;
+  authority?: Authority;
   centers?: CenterState[];
   profileConscious: number | null;
   profileUnconscious: number | null;
@@ -155,6 +163,36 @@ export function buildEnergyAnatomy(profile: HumanDesignProfile): string {
     );
   }
 
+  return paras.join("\n\n");
+}
+
+// THE GAUNTLET — type/strategy/authority as the training that turns raw
+// energy into sovereignty, plus how the profile lines are built to experiment.
+export function buildGauntlet(profile: HumanDesignProfile): string {
+  if (!profile.type) return "";
+  const typeEntry = TYPE_PROFILES[profile.type];
+  const strat = STRATEGY_TRAINING[profile.type];
+  const auth = profile.authority ? AUTHORITY_TRAINING[profile.authority] : "";
+  const exp = profile.profileConscious ? PROFILE_EXPERIMENTS[profile.profileConscious] : "";
+  if (!strat && !auth && !exp) return "";
+
+  const paras: string[] = ["THE GAUNTLET — TRAINING WITH MY DESIGN"];
+  paras.push(
+    `The trials of a life are not only tests. They are training. My raw energy as a ${typeEntry?.name ?? profile.type} is power, but power on its own burns out or misfires. What turns it into fortitude, resilience, and a sovereignty no one can talk me out of is learning to move the way my design is built to move. This is the discipline beneath the whole journey, and the most practical thing I will ever learn about myself.`
+  );
+  if (strat) paras.push(`How I am built to engage. ${strat}`);
+  if (auth) paras.push(`How I am built to decide. ${auth}`);
+  if (exp) {
+    let e = `How I am built to experiment. ${exp}`;
+    const u = profile.profileUnconscious;
+    if (u && PROFILE_LINES[u]) {
+      e += ` Underneath this runs my unconscious ${PROFILE_LINES[u].name} line, ${profileLineDescription(u)}.`;
+    }
+    paras.push(e);
+  }
+  paras.push(
+    "Every obstacle I meet is a chance to practice this. Each time I work with my strategy and my authority instead of against them, I am not only solving the problem in front of me. I am building the inner ground the rest of my life will stand on."
+  );
   return paras.join("\n\n");
 }
 
@@ -336,8 +374,9 @@ I carry my particular wounds, my particular gifts, my particular way of seeing, 
 This is the story I write as I live.`;
 
   const energyAnatomy = buildEnergyAnatomy(profile);
+  const gauntlet = buildGauntlet(profile);
 
-  return [ordinaryWorld, energyAnatomy, theCall, threshold, descent, abyss, helpers, trials, spiritual, coreWound, elixir, voice, theReturn, recap, largerStory]
+  return [ordinaryWorld, energyAnatomy, theCall, threshold, descent, abyss, helpers, trials, gauntlet, spiritual, coreWound, elixir, voice, theReturn, recap, largerStory]
     .filter(Boolean)
     .join("\n\n");
 }

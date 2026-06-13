@@ -20,6 +20,7 @@ import {
   type GeneKeysProfile,
   type HdTypeName,
   type CenterState,
+  type Authority,
 } from "./cosmic-core/index.js";
 
 // ─── Chart → profile adapters ─────────────────────────────────────────────────
@@ -66,6 +67,8 @@ export function humanDesignProfileFromChart(chart: Chart): HumanDesignProfile {
   return {
     type: chart.type as HdTypeName,
     typePurpose: "", // resolved from TYPE_PROFILES inside the builder
+    strategy: chart.strategy,
+    authority: chart.authority as Authority,
     centers: computeCenters(chart),
     profileConscious: Number.isFinite(consciousLine) ? consciousLine : null,
     profileUnconscious: Number.isFinite(unconsciousLine) ? unconsciousLine : null,
