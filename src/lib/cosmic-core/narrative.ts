@@ -17,8 +17,9 @@
 //   as metadata in types.ts).
 // - Sections are joined with blank lines (no "---" dividers) so the
 //   journey-app reading page parses them cleanly.
-// - buildJourneyNarrative() appends THE GOLDEN PATH (Gene Keys) before the
-//   recap sections.
+// - buildJourneyNarrative() runs Act I (the individual search for meaning),
+//   then the "Am I made for this moment?" hinge, then Act II (the Village
+//   Journey, personalized through the Gene Keys sequences), then the recap.
 
 import { GATES, type GateBand, type GateField } from "./gates.js";
 import { TYPE_PROFILES, type HdTypeName } from "./types.js";
@@ -36,6 +37,7 @@ import {
   getSphereLineExpression,
   buildSequenceNarrative,
   type GeneKeysProfile,
+  type SphereSpec,
 } from "./gene-keys.js";
 
 // ─── Profile shape consumed by the builder ────────────────────────────────────
@@ -381,48 +383,88 @@ This is the story I write as I live.`;
     .join("\n\n");
 }
 
-// ─── The Golden Path (Gene Keys) section ──────────────────────────────────────
+// ─── Act II: the hinge and the Village Journey (Gene Keys) ────────────────────
 
-export function buildGoldenPathSection(geneKeys: GeneKeysProfile): string {
-  const hasAny = GK_SEQUENCES.some(seq =>
-    seq.spheres.some(s => geneKeys[s.gateField] !== null)
-  );
+// One sphere rendered as a detail paragraph (Gene Key, name, line, the
+// Shadow -> Gift -> Siddhi spectrum, and the line meaning).
+function renderSphere(sphere: SphereSpec, geneKeys: GeneKeysProfile): string | null {
+  const num = geneKeys[sphere.gateField];
+  const line = geneKeys[sphere.lineField];
+  if (num === null) return null;
+  const freq = GENE_KEY_FREQUENCIES[num];
+  if (!freq) return null;
+  const gate = GATES[num];
+  const lineExpr = getSphereLineExpression(sphere.lineKey, line);
+
+  let p = `${sphere.label}: Gene Key ${num}`;
+  if (gate) p += `, ${gate.quantumName}`;
+  if (line && lineExpr) p += `, Line ${line} (${lineExpr.name})`;
+  p += `. ${sphere.note}. The Shadow of ${freq.shadow} ripens into the Gift of ${freq.gift} and flowers as the Siddhi of ${freq.siddhi}.`;
+  if (lineExpr) p += ` ${lineExpr.description}`;
+  return p;
+}
+
+function spheresFor(key: "activation" | "venus" | "pearl", geneKeys: GeneKeysProfile): string[] {
+  const seq = GK_SEQUENCES.find(s => s.key === key);
+  if (!seq) return [];
+  return seq.spheres.map(s => renderSphere(s, geneKeys)).filter((p): p is string => Boolean(p));
+}
+
+// The bridge from the individual journey to the collective one.
+export function buildHinge(): string {
+  return `AM I MADE FOR THIS MOMENT?
+
+The first journey was a search for who I am. I walked into the underworld and came back with something I can finally inhabit, and I learned how to move, decide, and create as the design I actually am. And then, sooner or later, a different question arrives. Not who am I, but: am I made for this moment? Is what I have found in myself meant for something happening now, something larger than me?
+
+This is where the journey turns outward. Having found my purpose, I begin to look for where it belongs, among other people, inside the larger story unfolding in my lifetime. The search for my own meaning becomes a search for my place in the meaning we are making together. A second journey begins, and this one I do not take alone.`;
+}
+
+// THE VILLAGE JOURNEY — the collective arc, personalized through the three
+// Gene Keys sequences (Activation = the genius I bring, Venus = how I gather
+// and bond, Pearl = what emerges through service).
+export function buildVillageJourney(geneKeys: GeneKeysProfile): string {
+  const hasAny = GK_SEQUENCES.some(seq => seq.spheres.some(s => geneKeys[s.gateField] !== null));
   if (!hasAny) return "";
 
-  const paragraphs: string[] = [];
-  paragraphs.push("THE GOLDEN PATH — THE GENE KEYS");
-  paragraphs.push(
-    "The journey above reads my chart through Human Design. The Golden Path reads the same chart through the Gene Keys: three sequences of contemplation, where each gate is a spectrum running from a Shadow, through a Gift, toward a Siddhi. The Shadow is where the energy contracts under fear. The Gift is what it becomes when it is met. The Siddhi is its fullest flowering."
+  const paras: string[] = ["THE VILLAGE JOURNEY"];
+  paras.push(
+    "No one changes the world alone, and no one is meant to. When enough people who have done their own inner work find each other, a village forms: a circle of unique medicine gathered around a shared vision none of them could have reached by themselves. My Gene Keys describe how I am built to find that village and what I am here to contribute to it. Where Human Design maps my individual design, the Gene Keys map my co-individuation, the way I become more myself by becoming part of something larger."
   );
 
-  for (const seq of GK_SEQUENCES) {
-    const sentence = buildSequenceNarrative(seq.key, geneKeys);
-    if (!sentence) continue;
-    paragraphs.push(`${seq.title}. ${seq.tagline} ${sentence}`);
-
-    for (const sphere of seq.spheres) {
-      const num = geneKeys[sphere.gateField];
-      const line = geneKeys[sphere.lineField];
-      if (num === null) continue;
-      const freq = GENE_KEY_FREQUENCIES[num];
-      if (!freq) continue;
-      const gate = GATES[num];
-      const lineExpr = getSphereLineExpression(sphere.lineKey, line);
-
-      let p = `${sphere.label}: Gene Key ${num}`;
-      if (gate) p += `, ${gate.quantumName}`;
-      if (line && lineExpr) p += `, Line ${line} (${lineExpr.name})`;
-      p += `. ${sphere.note}. The Shadow of ${freq.shadow} ripens into the Gift of ${freq.gift} and flowers as the Siddhi of ${freq.siddhi}.`;
-      if (lineExpr) p += ` ${lineExpr.description}`;
-      paragraphs.push(p);
-    }
+  const activation = buildSequenceNarrative("activation", geneKeys);
+  if (activation) {
+    paras.push(`The Calling and the Gathering. A village begins when several people receive the same call and are drawn together by something they cannot quite name. The core genius I bring to that circle, the gift the village needs from me, lives in my Activation Sequence. ${activation}`);
+    paras.push(...spheresFor("activation", geneKeys));
   }
 
-  return paragraphs.join("\n\n");
+  const venus = buildSequenceNarrative("venus", geneKeys);
+  if (venus) {
+    paras.push(`Gathering the Circle. A village is held together by the quality of its relationships. The way I attract the people I am meant to do this with, and the way I love them through the work, is my Venus Sequence. ${venus}`);
+    paras.push(...spheresFor("venus", geneKeys));
+  }
+
+  const coreNum = geneKeys.core;
+  const coreFreq = coreNum ? GENE_KEY_FREQUENCIES[coreNum] : null;
+  if (coreFreq) {
+    paras.push(`The Trials and the Shared Abyss. Every village meets resistance from the world and friction from within, and the hardest test is always relational. The place my own conditioning shows up inside the group is my Core, the Gift of ${coreFreq.gift} emerging from the Shadow of ${coreFreq.shadow}. When I meet it consciously, it stops running the village from underneath and becomes the source of my deepest contribution.`);
+  }
+
+  const pearl = buildSequenceNarrative("pearl", geneKeys);
+  if (pearl) {
+    paras.push(`The Disruptive Solution and the New Paradigm. What emerges when I stop striving and start serving, when I live my gifts in genuine contribution, is my Pearl Sequence: a prosperity that arrives as a consequence of alignment rather than force. ${pearl}`);
+    paras.push(...spheresFor("pearl", geneKeys));
+  }
+
+  paras.push(
+    "This is the heart of the village journey: not losing myself in the collective, and not standing apart from it, but becoming most fully myself in service of something that needs exactly what I carry. My purpose finds its moment among others. That is the answer to the question. I am made for this moment, and so are the people I am here to find."
+  );
+
+  return paras.join("\n\n");
 }
 
 // ─── The full Journey Narrative ───────────────────────────────────────────────
-// Soul Map sections I–XII, then the Golden Path, then the recap and closing.
+// Act I (the individual search for meaning, I-XIV) -> the hinge -> Act II (the
+// Village Journey / Gene Keys) -> recap -> larger story.
 
 export function buildJourneyNarrative(
   profile: HumanDesignProfile,
@@ -432,17 +474,18 @@ export function buildJourneyNarrative(
   const soulMap = buildLifePurposeNarrative(profile, name);
   if (!soulMap) return "";
 
-  const goldenPath = buildGoldenPathSection(geneKeys);
-  if (!goldenPath) return soulMap;
+  const village = buildVillageJourney(geneKeys);
+  if (!village) return soulMap;
+  const actTwo = `${buildHinge()}\n\n${village}`;
 
-  // Insert the Golden Path before the recap ("WHO I AM") so the reading
-  // still closes on the recap and The Larger Story.
+  // Insert Act II before the recap ("WHO I AM") so the reading still closes
+  // on the recap and The Larger Story.
   const recapIndex = soulMap.indexOf("WHO I AM — A RECAP");
-  if (recapIndex === -1) return `${soulMap}\n\n${goldenPath}`;
+  if (recapIndex === -1) return `${soulMap}\n\n${actTwo}`;
 
   return (
     soulMap.slice(0, recapIndex).trimEnd() +
-    "\n\n" + goldenPath + "\n\n" +
+    "\n\n" + actTwo + "\n\n" +
     soulMap.slice(recapIndex)
   );
 }
