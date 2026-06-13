@@ -130,8 +130,8 @@ Strict, and baked into the cosmic-core copy:
 - First person ("I", "my") throughout.
 - Direct, embodied, specific. No vague spirituality, no new-age filler.
 - **No em dashes in generated prose; no "not X, but Y" constructions.**
-- Banned words: vibration, manifestation (as mystical concept), universe (as
-  agent), resonance, authentic self, awakening, frequency.
+- Banned words: vibration, manifestation (as mystical concept), resonance,
+  authentic self, awakening, frequency. ("Universe" as agent is allowed.)
 - Plain text only — no markdown symbols. Section headings are ALL CAPS on their
   own line; the reading page maps them to numbered titles.
 

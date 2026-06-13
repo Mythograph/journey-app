@@ -506,7 +506,7 @@ export const GATES: Record<number, Gate> = {
     },
     high: {
       short: "the grace to pursue my passion and contribution knowing I am fully supported in doing so",
-      expanded: "A deep trust in the larger flow of support, the willingness to follow passion and purpose without waiting for proof that the resources will arrive. Surrender here is not defeat; it is the act of trusting the flow.",
+      expanded: "A deep trust in the universal flow of support, the willingness to follow passion and purpose without waiting for proof that the resources will arrive. Surrender here is not defeat; it is the act of trusting the flow.",
       verb: "pursue my passion and contribution with grace, knowing I am fully supported in doing so",
       gerund: "pursuing my passion and contribution with grace, knowing I am fully supported in doing so",
     },
@@ -578,7 +578,7 @@ export const GATES: Record<number, Gate> = {
     },
     arc: {
       short: "moving from relying on willpower alone to trusting something larger as the ground I stand on",
-      expanded: "This gate begins in the isolation of feeling unsupported by anything larger than the self, and opens into the sustained practice of alignment that makes everything else possible.",
+      expanded: "This gate begins in the isolation of feeling unsupported by the universe, and opens into the sustained practice of alignment that makes everything else possible.",
       verb: "move from relying on willpower alone to trusting something larger as the ground I stand on",
       gerund: "moving from relying on willpower alone to trusting something larger as the ground I stand on",
     },
@@ -1138,7 +1138,7 @@ export const GATES: Record<number, Gate> = {
     number: 51, traditionalName: "Shock", quantumName: "Initiation",
     low: {
       short: "losing connection to purpose when life disrupts, becoming bitter or grasping for control",
-      expanded: "A tendency to be destabilized by the unexpected, letting the shock of disruption generate bitterness, anger at life, or a frantic attempt to regain control that depletes the energy needed to actually navigate change.",
+      expanded: "A tendency to be destabilized by the unexpected, letting the shock of disruption generate bitterness, anger at the universe, or a frantic attempt to regain control that depletes the energy needed to actually navigate change.",
       verb: "lose connection to purpose when life disrupts, becoming bitter or grasping for control",
       gerund: "losing connection to purpose when life disrupts, becoming bitter or grasping for control",
     },
