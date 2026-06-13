@@ -18,8 +18,8 @@ const CONSONANT_SOUND = new Set([
 // Words whose spelling starts with a consonant but are pronounced with a
 // vowel sound ("an hour", "an honest answer").
 const VOWEL_SOUND = new Set([
-  "hour", "hourly", "honest", "honestly", "honor", "honour", "honored",
-  "honoured", "heir", "heirloom",
+  "hour", "hourly", "honest", "honestly", "honor", "honor", "honored",
+  "honored", "heir", "heirloom",
 ]);
 
 function wantsAn(word: string): boolean {

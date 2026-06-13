@@ -9,7 +9,7 @@
 //   3. Sheet must have tabs named exactly: Channels, Types, Authorities,
 //      Profiles, Strategies, Intros (matching the seed-csv/ files).
 //
-// Behaviour:
+// Behavior:
 //   - If JOURNEY_COPY_SHEET_ID is set, fetch + regenerate copy.ts. Build
 //     fails loudly on any missing/invalid data.
 //   - If JOURNEY_COPY_SHEET_ID is unset, skip silently. Local dev works

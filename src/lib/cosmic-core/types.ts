@@ -34,7 +34,7 @@ export const TYPE_PROFILES: Record<HdTypeName, TypeProfile> = {
     quantumName: "Builder",
     purpose: "To respond to life with your powerful sacral energy and build things that bring you joy and deep satisfaction. Your work is to find what truly lights you up and commit fully to it.",
     purposeGerund: "responding to life and generating sustained momentum for what is ready to move",
-    typeDescription: "I am here to respond, to find the work that genuinely lights me up and give it everything I have. My energy is sustainable and generative when I wait for things to respond to, rather than initiating from strategy or obligation. Not knowing this early in life, I often felt frustrated, spinning my wheels on things that weren't quite right for me, saying yes out of obligation rather than genuine resonance. I may have learned to push and initiate like the people around me, and wondered why it never felt as natural or as satisfying, or why my energy would surge and then suddenly crash.",
+    typeDescription: "I am here to respond, to find the work that genuinely lights me up and give it everything I have. My energy is sustainable and generative when I wait for things to respond to, rather than initiating from strategy or obligation. Not knowing this early in life, I often felt frustrated, spinning my wheels on things that weren't quite right for me, saying yes out of obligation rather than genuine alignment. I may have learned to push and initiate like the people around me, and wondered why it never felt as natural or as satisfying, or why my energy would surge and then suddenly crash.",
   },
   "Manifesting Generator": {
     name: "Manifesting Generator",

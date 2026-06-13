@@ -51,7 +51,7 @@ export const POST: APIRoute = async ({ request }) => {
       paidAt: new Date().toISOString(),
     });
 
-    // Forward to Make.com for order fulfilment (email delivery, CRM, etc.)
+    // Forward to Make.com for order fulfillment (email delivery, CRM, etc.)
     if (makeWebhookUrl) {
       try {
         await fetch(makeWebhookUrl, {
