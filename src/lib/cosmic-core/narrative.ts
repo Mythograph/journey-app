@@ -473,6 +473,11 @@ export function buildVillageJourney(geneKeys: GeneKeysProfile): string {
     pearl: "The Disruptive Solution and the New Paradigm. What a village offers the world is not effort but emergence, the new thing that becomes possible when gifts are lived in service. What emerges through me is my Pearl Sequence, and it grows out of the essence I touched at the bottom of the Venus Sequence.",
   };
 
+  // Walk every sequence: sphere, then the pathway that opens into the next.
+  // A sphere reused verbatim (same gate + same line set, like Venus Purpose
+  // carried from Activation) renders as a brief bridge, not a full repeat.
+  const seen = new Set<string>();
+
   for (const seq of GK_SEQUENCES) {
     const summary = buildSequenceNarrative(seq.key, geneKeys);
     if (!summary) continue;
@@ -480,9 +485,18 @@ export function buildVillageJourney(geneKeys: GeneKeysProfile): string {
     paras.push(`${seq.title}: ${seq.subtitle}. ${stage[seq.key]}`);
     paras.push(summary);
 
-    // Walk the sequence: sphere, then the pathway that opens into the next.
     seq.spheres.forEach((sphere, i) => {
-      const block = renderSphere(sphere, geneKeys);
+      const num = geneKeys[sphere.gateField];
+      if (num === null) return;
+      const key = `${sphere.gateField}:${sphere.lineKey}`;
+      let block: string | null;
+      if (seen.has(key)) {
+        const gate = GATES[num];
+        block = `${sphere.label}: Gene Key ${num}${gate ? ` (${gate.traditionalName})` : ""}. ${sphere.note}.`;
+      } else {
+        block = renderSphere(sphere, geneKeys);
+        seen.add(key);
+      }
       if (!block) return;
       paras.push(block);
       const pw = seq.pathways[i];

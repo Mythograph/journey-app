@@ -148,7 +148,7 @@ export const SPHERE_LINE_EXPRESSIONS: Record<string, Record<number, SphereLineEx
     3: { name: "Interaction", description: "I also need biofeedback but in a variety of ways. I will be always on the move. I come to radiance when I interact diversely with others. I will feel called to help less fortunate people from what I see in diverse travels." },
     4: { name: "Outreach", description: "My radiance is rooted in aloneness but is directed at helping others. I draw people in naturally, my shadow draws in toxic people. My body thrives in the company of trusted people. I reach out and open the hearts of others." },
     5: { name: "Leadership", description: "Leading and helping others makes me radiant and impactful. I sense my specialness and want to help others by leading in my own style. I want to help people in my own unique way." },
-    6: { name: "Dream", description: "My inner dream will grow and shift. I need to experience the magnetism of life to bring this dream to fruition. Every element will change, people, places, things, but being in nature is the constant that will bring me back to health." },
+    6: { name: "Dream", description: "My inner dream will grow and shift. I need to experience the magnetism of life to bring this dream to fruition. Everything around me will change, the people and places and things, but being in nature is the constant that will bring me back to health." },
   },
   purpose: {
     1: { name: "Bones", description: "My body is a physical template and needs to be anchored deeply. My bones keep records of the past. The future requires a solid foundation from my bone structure. When I am out of alignment, I will feel bone or joint pain." },
