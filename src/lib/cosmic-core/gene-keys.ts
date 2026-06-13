@@ -267,7 +267,7 @@ export const GK_SEQUENCES: SequenceSpec[] = [
   {
     key: "activation",
     title: "Activation Sequence",
-    tagline: "Your core genius — the gifts that define the work you are here to do.",
+    tagline: "Your core genius, the gifts that define the work you are here to do.",
     spheres: [
       { label: "Life's Work", gateField: "lifesWork", lineField: "lifesWorkLine", lineKey: "lifesWork", note: "What you are here to do" },
       { label: "Evolution",   gateField: "evolution", lineField: "evolutionLine", lineKey: "evolution", note: "What you are here to become" },
@@ -278,7 +278,7 @@ export const GK_SEQUENCES: SequenceSpec[] = [
   {
     key: "venus",
     title: "Venus Sequence",
-    tagline: "How you attract and form relationships — the emotional intelligence at the heart of your brand.",
+    tagline: "How you attract and form relationships, the emotional intelligence at the heart of your brand.",
     spheres: [
       { label: "Attraction", gateField: "attraction", lineField: "attractionLine", lineKey: "attraction", note: "The quality that draws people to you" },
       { label: "IQ",         gateField: "iq",         lineField: "iqLine",         lineKey: "iq",         note: "Your intellectual gift" },
@@ -291,9 +291,9 @@ export const GK_SEQUENCES: SequenceSpec[] = [
   {
     key: "pearl",
     title: "Pearl Sequence",
-    tagline: "Your path of prosperity — what emerges when you live your gifts in service.",
+    tagline: "Your path of prosperity, what emerges when you live your gifts in service.",
     spheres: [
-      { label: "Vocation", gateField: "core",    lineField: "coreLine",    lineKey: "vocation", note: "Your true vocation — the Core wound lived as your calling" },
+      { label: "Vocation", gateField: "core",    lineField: "coreLine",    lineKey: "vocation", note: "Your true vocation, the Core wound lived as your calling" },
       { label: "Brand",    gateField: "brand",   lineField: "brandLine",   lineKey: "brand",    note: "What makes you unmistakably you" },
       { label: "Culture",  gateField: "culture", lineField: "cultureLine", lineKey: "culture",  note: "The environment you naturally create" },
       { label: "Pearl",    gateField: "pearl",   lineField: "pearlLine",   lineKey: "pearl",    note: "The ultimate gift through service" },
