@@ -438,12 +438,6 @@ function renderSphere(sphere: SphereSpec, geneKeys: GeneKeysProfile): string | n
   return p;
 }
 
-function spheresFor(key: "activation" | "venus" | "pearl", geneKeys: GeneKeysProfile): string[] {
-  const seq = GK_SEQUENCES.find(s => s.key === key);
-  if (!seq) return [];
-  return seq.spheres.map(s => renderSphere(s, geneKeys)).filter((p): p is string => Boolean(p));
-}
-
 // The bridge from the individual journey to the collective one.
 export function buildHinge(): string {
   return `AM I MADE FOR THIS MOMENT?
@@ -468,32 +462,39 @@ export function buildVillageJourney(geneKeys: GeneKeysProfile): string {
     "My Gene Keys are arranged into three sequences. I am choosing to read these sequences as the path by which I become more fully myself and serve my purpose within the movement of the collective. No one changes the world alone. When enough people who have done their own inner work find each other, a village forms: a circle of unique medicine gathered around a shared vision none of them could have reached by themselves. These sequences map how I am built to find my village and what I am here to contribute to it."
   );
 
-  const activation = buildSequenceNarrative("activation", geneKeys);
-  if (activation) {
-    paras.push(`The Calling and the Gathering. A village begins when several people receive the same call and are drawn together by something they cannot quite name. The core genius I bring to that circle, the gift the village needs from me, lives in my Activation Sequence. ${activation}`);
-    paras.push(...spheresFor("activation", geneKeys));
-  }
+  paras.push(
+    "The three sequences are not stages I finish but dimensions of one living system I inhabit at once. The Activation Sequence grounds me in my body and my individual genius. The Venus Sequence opens my heart and clears the field of my relationships. The Pearl Sequence releases my essence into the world as genuine contribution. This is contemplative work, not meant to be understood once and filed away but lived into slowly, over months and years, and I find myself cycling through all three at deepening levels across my life."
+  );
 
-  const venus = buildSequenceNarrative("venus", geneKeys);
-  if (venus) {
-    paras.push(`Gathering the Circle. A village is held together by the quality of its relationships. The way I attract the people I am meant to do this with, and the way I love them through the work, is my Venus Sequence. ${venus}`);
-    paras.push(...spheresFor("venus", geneKeys));
-  }
+  // Village-stage framing for each sequence (the Act II overlay).
+  const stage: Record<string, string> = {
+    activation: "The Calling and the Gathering. A village begins when several people receive the same call and are drawn together by something they cannot quite name. The genius I bring to that circle is my Activation Sequence, and it moves from my most visible expression down to my most hidden ground.",
+    venus: "Gathering the Circle, and meeting what surfaces between us. A village is held together by the quality of its relationships and by the willingness to face the wound that shows up in the group. How I attract my people, love them through the work, and meet that wound is my Venus Sequence, the heart of the whole path.",
+    pearl: "The Disruptive Solution and the New Paradigm. What a village offers the world is not effort but emergence, the new thing that becomes possible when gifts are lived in service. What emerges through me is my Pearl Sequence, and it grows out of the essence I touched at the bottom of the Venus Sequence.",
+  };
 
-  const coreNum = geneKeys.core;
-  const coreFreq = coreNum ? GENE_KEY_FREQUENCIES[coreNum] : null;
-  if (coreFreq) {
-    paras.push(`The Trials and the Shared Abyss. Every village meets resistance from the world and friction from within, and the hardest test is always relational. The place my own conditioning shows up inside the group is my Core, the Gift of ${coreFreq.gift} emerging from the Shadow of ${coreFreq.shadow}. When I meet it consciously, it stops running the village from underneath and becomes the source of my deepest contribution.`);
-  }
+  for (const seq of GK_SEQUENCES) {
+    const summary = buildSequenceNarrative(seq.key, geneKeys);
+    if (!summary) continue;
 
-  const pearl = buildSequenceNarrative("pearl", geneKeys);
-  if (pearl) {
-    paras.push(`The Disruptive Solution and the New Paradigm. What emerges when I stop striving and start serving, when I live my gifts in genuine contribution, is my Pearl Sequence: a prosperity that arrives as a consequence of alignment rather than force. ${pearl}`);
-    paras.push(...spheresFor("pearl", geneKeys));
+    paras.push(`${seq.title}: ${seq.subtitle}. ${stage[seq.key]}`);
+    paras.push(summary);
+
+    // Walk the sequence: sphere, then the pathway that opens into the next.
+    seq.spheres.forEach((sphere, i) => {
+      const block = renderSphere(sphere, geneKeys);
+      if (!block) return;
+      paras.push(block);
+      const pw = seq.pathways[i];
+      const next = seq.spheres[i + 1];
+      if (pw && next && geneKeys[next.gateField] !== null) {
+        paras.push(pw.description);
+      }
+    });
   }
 
   paras.push(
-    "This is the heart of the village journey: not losing myself in the collective, and not standing apart from it, but becoming most fully myself in service of something that needs exactly what I carry. My purpose finds its moment among others. That is the answer to the question. I am made for this moment, and so are the people I am here to find."
+    "This is the heart of the village journey: not losing myself in the collective, and not standing apart from it, but becoming most fully myself in service of something that needs exactly what I carry. The Pearl itself cannot be forced or achieved. It opens, in its own time, once the rest of the work has matured. My purpose finds its moment among others. That is the answer to the question. I am made for this moment, and so are the people I am here to find."
   );
 
   return paras.join("\n\n");

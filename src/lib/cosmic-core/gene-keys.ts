@@ -256,17 +256,27 @@ export interface SphereSpec {
   note: string;
 }
 
+// A pathway connects one sphere to the next within a sequence. pathways[i]
+// runs from spheres[i] to spheres[i+1], so pathways.length === spheres.length - 1.
+export interface Pathway {
+  name: string;
+  description: string;
+}
+
 export interface SequenceSpec {
   key: "activation" | "venus" | "pearl";
   title: string;
+  subtitle: string;
   tagline: string;
   spheres: SphereSpec[];
+  pathways: Pathway[];
 }
 
 export const GK_SEQUENCES: SequenceSpec[] = [
   {
     key: "activation",
     title: "Activation Sequence",
+    subtitle: "Discovering My Genius",
     tagline: "My core genius, the gifts that define the work I am here to do.",
     spheres: [
       { label: "Life's Work", gateField: "lifesWork", lineField: "lifesWorkLine", lineKey: "lifesWork", note: "What I am here to do" },
@@ -274,29 +284,48 @@ export const GK_SEQUENCES: SequenceSpec[] = [
       { label: "Radiance", gateField: "radiance", lineField: "radianceLine", lineKey: "radiance", note: "How my presence affects others" },
       { label: "Purpose", gateField: "purpose", lineField: "purposeLine", lineKey: "purpose", note: "The deepest calling of this lifetime" },
     ],
+    pathways: [
+      { name: "The Pathway of Challenge", description: "Between my Life's Work and my Evolution runs the Pathway of Challenge, the friction point where my outer purpose meets my greatest growing edge. These two energies sit in direct opposition in my design, and the tension between them is not a problem to solve but the engine of my becoming. Its shadow is avoidance, or a life lived from one crisis to the next. The work is to stay with the friction rather than flee it." },
+      { name: "The Pathway of Breakthrough", description: "Between my Evolution and my Radiance runs the Pathway of Breakthrough. Once I genuinely engage my challenge instead of avoiding it, something shifts, not through effort but through a kind of inner surrender. The breakthrough is quiet, more a change of state than a triumph, and my vitality begins to come online. Its shadow is collapse, stalling out just before the shift." },
+      { name: "The Pathway of Core Stability", description: "Between my Radiance and my Purpose runs the Pathway of Core Stability. As my radiance opens, I begin to ground into something steady underneath everything: my actual purpose, not as a destination I chase but as a floor I stand on. Core Stability is the felt sense of knowing who I am beneath my roles, my wounds, and my performances. Its shadow is rigidity, mistaking a fixed identity for stable ground." },
+    ],
   },
   {
     key: "venus",
     title: "Venus Sequence",
+    subtitle: "Opening the Heart",
     tagline: "How I attract and form relationships, the emotional intelligence at the heart of my brand.",
     spheres: [
+      { label: "Purpose", gateField: "purpose", lineField: "purposeLine", lineKey: "purpose", note: "The same core ground I reached at the close of the Activation Sequence, here as the ground of relationship" },
       { label: "Attraction", gateField: "attraction", lineField: "attractionLine", lineKey: "attraction", note: "The quality that draws people to me" },
       { label: "IQ", gateField: "iq", lineField: "iqLine", lineKey: "iq", note: "My intellectual gift" },
       { label: "EQ", gateField: "eq", lineField: "eqLine", lineKey: "eq", note: "My emotional gift" },
       { label: "SQ", gateField: "sq", lineField: "sqLine", lineKey: "sq", note: "My spiritual gift" },
-      { label: "Core", gateField: "core", lineField: "coreLine", lineKey: "core", note: "The wound that carries the deepest gift" },
-      { label: "Purpose", gateField: "purpose", lineField: "purposeLine", lineKey: "purpose", note: "My purpose at the heart of relationship" },
+      { label: "Core", gateField: "core", lineField: "coreLine", lineKey: "core", note: "The Sacred Wound, and through it my Core Essence" },
+    ],
+    pathways: [
+      { name: "The Pathway of Dharma", description: "Between my Purpose and my Attraction runs the Pathway of Dharma. What I magnetically draw toward me is never random; it mirrors the state I am living from. Before I can work with what I attract, I have to be grounded in my actual purpose rather than in my wound. Dharma here means aligning what I am calling in with who I truly am at my core." },
+      { name: "The Pathway of Karma", description: "Between my Attraction and my IQ runs the Pathway of Karma, the recognition of pattern. The people and things I have been drawn to follow an emotional logic, a groove laid down by my conditioning and my ancestry. My IQ reveals how my mind has learned to manage, explain, or defend against the patterns that keep repeating. To move through this pathway is to see the pattern clearly without being run by it." },
+      { name: "The Pathway of Intelligence", description: "Between my IQ and my EQ runs the Pathway of Intelligence, where mind and emotional body meet. Most of us use our intelligence to stay one step ahead of our feelings, to explain away what we are actually experiencing. This pathway asks me to bring mental clarity into the emotional body rather than using it to escape. When my mind stops defending and starts witnessing, my emotional body can begin to open." },
+      { name: "The Pathway of Love", description: "Between my EQ and my SQ runs the Pathway of Love, the passage from emotional wounding into the larger dimension of relationship. It asks that I have genuinely felt my emotional material, not resolved it but felt it fully enough that it stops being a closed fist. When the emotional body softens, something larger comes through, a love that is no longer personal but pervasive. Here the journey becomes devotional rather than psychological." },
+      { name: "The Pathway of Realization", description: "Between my SQ and my Core runs the Pathway of Realization, the final and most delicate passage. My Core holds both the Sacred Wound, the deepest pain of separation and often ancestral in origin, and the Core Essence that wound has been protecting all along. Realization is not an intellectual insight but a lived recognition that the wound is the doorway, that the wound and the gift are not separate. When I stop running from the primal pain at my Core, I discover what has been waiting there: my essential nature, set free." },
     ],
   },
   {
     key: "pearl",
     title: "Pearl Sequence",
+    subtitle: "Embodying My Contribution",
     tagline: "My path of prosperity, what emerges when I live my gifts in service.",
     spheres: [
-      { label: "Vocation", gateField: "core", lineField: "coreLine", lineKey: "vocation", note: "My true vocation, the Core wound lived as my calling" },
-      { label: "Brand", gateField: "brand", lineField: "brandLine", lineKey: "brand", note: "What makes me unmistakably myself" },
+      { label: "Vocation", gateField: "core", lineField: "coreLine", lineKey: "vocation", note: "My true vocation, the Core Essence from the Venus Sequence now lived as my calling" },
+      { label: "Brand", gateField: "brand", lineField: "brandLine", lineKey: "brand", note: "My Life's Work reseen as how my essence expresses in the world" },
       { label: "Culture", gateField: "culture", lineField: "cultureLine", lineKey: "culture", note: "The environment I naturally create" },
       { label: "Pearl", gateField: "pearl", lineField: "pearlLine", lineKey: "pearl", note: "The ultimate gift through service" },
+    ],
+    pathways: [
+      { name: "The Pathway of Initiative", description: "Between my Vocation and my Brand runs the Pathway of Initiative, the first movement outward. Initiative here is not hustle; it is the natural impulse of an unlocked essence to move into form, taking what I found in the interior work and beginning to express it. Its shadow is the hesitation born of old worthiness wounds, or the opposite, leaping before my inner vocation is actually clear." },
+      { name: "The Pathway of Growth", description: "Between my Brand and my Culture runs the Pathway of Growth, the search for the environment that amplifies my gift. Growth happens in the right ecology. This pathway asks where my essence actually flourishes and who my gift is for. Its shadow is bringing my gift to places it does not belong, or staying in familiar communities that no longer fit." },
+      { name: "The Pathway of Service", description: "Between my Culture and my Pearl runs the Pathway of Service, the passage from individual expression into genuine offering. Service at this level is not self-sacrifice; it is the natural orientation of someone who has found their gift and their people and now moves within a field larger than themselves. The Pearl does not emerge because I am trying to give. It emerges because I have stopped trying to keep. Its shadow is performing service for identity or approval rather than contributing from essence." },
     ],
   },
 ];
