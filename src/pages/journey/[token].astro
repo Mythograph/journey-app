@@ -2,6 +2,7 @@
 import "~/styles/global.css";
 import { getPurchase, updatePurchase } from "~/lib/purchases.js";
 import { generateChart } from "~/lib/chart-engine/index.js";
+import { REFLECTION_MARKER } from "~/lib/cosmic-core/index.js";
 import type { BirthData, Chart } from "~/lib/chart-engine/types.js";
 
 const { token } = Astro.params;
@@ -28,20 +29,24 @@ const hasBirthData = Boolean(purchase.birthData);
 const hasNarrative = Boolean(purchase.narrative);
 
 const SECTION_META: Record<string, { num: string; title: string }> = {
-  "THE ORDINARY WORLD":                  { num: "I",    title: "The Ordinary World" },
-  "THE CALL":                            { num: "II",   title: "The Call" },
-  "THE THRESHOLD":                       { num: "III",  title: "Crossing Into the Unknown" },
-  "THE DESCENT":                         { num: "IV",   title: "Initiations and Early Trials" },
-  "THE ABYSS":                           { num: "V",    title: "The Central Ordeal" },
-  "THE HELPERS AND ALLIES":              { num: "VI",   title: "The Helpers and Allies" },
-  "THE ROAD OF TRIALS":                  { num: "VII",  title: "The Recurring Tests" },
-  "THE SPIRITUAL PATH":                  { num: "VIII", title: "The Invisible Current" },
-  "THE CORE WOUND AND THE VOCATION":     { num: "IX",   title: "The Fight Worth Having" },
-  "THE ELIXIR":                          { num: "X",    title: "What I Carry Back" },
-  "THE VOICE":                           { num: "XI",   title: "How I Transmit" },
-  "THE RETURN":                          { num: "XII",  title: "Leaning Into the Fullness" },
-  "WHO I AM":                            { num: "XIII", title: "A Recap" },
-  "THE LARGER STORY":                    { num: "XIV",  title: "The Larger Story" },
+  "THE ORDINARY WORLD":                  { num: "I",     title: "The Ordinary World" },
+  "THE SHAPE OF MY ENERGY":              { num: "II",    title: "The Shape of My Energy" },
+  "THE CALL":                            { num: "III",   title: "The Call" },
+  "THE THRESHOLD":                       { num: "IV",    title: "Crossing Into the Unknown" },
+  "THE DESCENT":                         { num: "V",     title: "Initiations and Early Trials" },
+  "THE ABYSS":                           { num: "VI",    title: "The Central Ordeal" },
+  "THE HELPERS AND ALLIES":              { num: "VII",   title: "The Helpers and Allies" },
+  "THE ROAD OF TRIALS":                  { num: "VIII",  title: "The Recurring Tests" },
+  "THE GAUNTLET":                        { num: "IX",    title: "Training With My Design" },
+  "THE SPIRITUAL PATH":                  { num: "X",     title: "The Invisible Current" },
+  "THE CORE WOUND AND THE VOCATION":     { num: "XI",    title: "The Fight Worth Having" },
+  "THE ELIXIR":                          { num: "XII",   title: "What I Carry Back" },
+  "THE VOICE":                           { num: "XIII",  title: "How I Transmit" },
+  "THE RETURN":                          { num: "XIV",   title: "Leaning Into the Fullness" },
+  "AM I MADE FOR THIS MOMENT?":          { num: "XV",    title: "Am I Made for This Moment?" },
+  "THE VILLAGE JOURNEY":                 { num: "XVI",   title: "The Village Journey" },
+  "WHO I AM":                            { num: "XVII",  title: "A Recap" },
+  "THE LARGER STORY":                    { num: "XVIII", title: "The Larger Story" },
 };
 
 const HEADING_KEYS = Object.keys(SECTION_META);
@@ -81,6 +86,23 @@ const SECTION_PLANETS: Record<string, { planet: string; pos: "conscious" | "unco
   "THE RETURN":                      [{ planet: "north_node", pos: "conscious" }, { planet: "north_node", pos: "unconscious" }],
   "WHO I AM":                        [],
   "THE LARGER STORY":                [{ planet: "uranus",     pos: "conscious" }, { planet: "pluto",      pos: "conscious"   }],
+};
+
+// One templated image per section (mythic-peak sections only). Keyed by the
+// section heading; sections absent from this map render text-only.
+const SECTION_IMAGES: Record<string, string> = {
+  "THE ORDINARY WORLD":              "/images/sections/01-ordinary-world.png",
+  "THE CALL":                        "/images/sections/02-call.png",
+  "THE THRESHOLD":                   "/images/sections/03-threshold.png",
+  "THE DESCENT":                     "/images/sections/04-descent.jpg",
+  "THE ABYSS":                       "/images/sections/05-abyss.png",
+  "THE HELPERS AND ALLIES":          "/images/sections/06-helpers.png",
+  "THE SPIRITUAL PATH":              "/images/sections/08-spiritual-path.png",
+  "THE CORE WOUND AND THE VOCATION": "/images/sections/09-core-wound.png",
+  "THE ELIXIR":                      "/images/sections/10-elixir.png",
+  "THE VOICE":                       "/images/sections/11-voice.png",
+  "THE RETURN":                      "/images/sections/12-return.png",
+  "THE LARGER STORY":                "/images/sections/14-larger-story.png",
 };
 
 interface GateTag { planet: string; gate: number; pos: "conscious" | "unconscious" }
@@ -155,6 +177,8 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
         body { background: white !important; }
         .narrative-section { page-break-inside: avoid; }
         @page { margin: 2.5cm 3cm; }
+        /* Keep a section opener image with the heading that follows it. */
+        .journey-image { break-inside: avoid; page-break-after: avoid; max-width: 100%; }
       }
     </style>
   </head>
@@ -192,6 +216,15 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
         >
           {purchase.name ? `The Journey of ${purchase.name}` : "Your Journey Narrative"}
         </h1>
+
+        {hasNarrative && (
+          <img
+            src="/images/sections/cover.png"
+            alt=""
+            class="journey-image w-full mt-10 rounded-sm"
+            style="display: block; object-fit: cover;"
+          />
+        )}
 
         {!hasNarrative && (
           <p
@@ -346,8 +379,17 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
           {narrativeSections.length > 0 ? (
             narrativeSections.map((section, i) => {
               const tags = chart ? getGateTags(chart, section.key) : [];
+              const sectionImage = SECTION_IMAGES[section.key];
               return (
                 <div class={`narrative-section${i > 0 ? " mt-16" : ""}`}>
+                  {sectionImage && (
+                    <img
+                      src={sectionImage}
+                      alt=""
+                      class="journey-image w-full mb-8 rounded-sm"
+                      style="display: block; object-fit: cover;"
+                    />
+                  )}
                   <p
                     class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C05A3C] mb-2"
                     style="font-family: 'DM Sans', sans-serif"
@@ -375,10 +417,20 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
 
                   <div class="border-t border-[#E8E0D6] pt-6">
                     {section.paragraphs.map(p => (
-                      <p
-                        class="text-[17px] leading-[1.65] text-[#1A1410] mb-5"
-                        style="font-family: 'DM Sans', sans-serif"
-                      >{p}</p>
+                      p.startsWith(REFLECTION_MARKER) ? (
+                        <aside
+                          class="my-7 border-l-2 border-[#C8A24A] bg-[#F5F0E6] px-5 py-4"
+                          style="font-family: 'DM Sans', sans-serif"
+                        >
+                          <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C8A24A] mb-2">To write with</p>
+                          <p class="text-[16px] leading-[1.6] italic text-[#3A332B] m-0">{p.slice(REFLECTION_MARKER.length)}</p>
+                        </aside>
+                      ) : (
+                        <p
+                          class="text-[17px] leading-[1.65] text-[#1A1410] mb-5"
+                          style="font-family: 'DM Sans', sans-serif"
+                        >{p}</p>
+                      )
                     ))}
                   </div>
                 </div>
