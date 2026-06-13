@@ -2,7 +2,8 @@
 import "~/styles/global.css";
 import { getPurchase, updatePurchase } from "~/lib/purchases.js";
 import { generateChart } from "~/lib/chart-engine/index.js";
-import { REFLECTION_MARKER } from "~/lib/cosmic-core/index.js";
+import { geneKeysProfileFromChart } from "~/lib/narrative.js";
+import { REFLECTION_MARKER, buildSequenceDiagrams } from "~/lib/cosmic-core/index.js";
 import type { BirthData, Chart } from "~/lib/chart-engine/types.js";
 
 const { token } = Astro.params;
@@ -121,6 +122,19 @@ function getGateTags(chart: Chart, sectionKey: string): GateTag[] {
 // Generate chart for gate annotations (fast: pure calculation, no API call)
 const chart: Chart | null = purchase.birthData ? await generateChart(purchase.birthData) : null;
 
+// Gene Keys sequence diagrams, keyed by the sequence-intro paragraph they
+// precede in The Village Journey (e.g. "Activation Sequence: ...").
+const sequenceDiagrams = chart ? buildSequenceDiagrams(geneKeysProfileFromChart(chart)) : [];
+const diagramByTitle: Record<string, string> = Object.fromEntries(
+  sequenceDiagrams.map(d => [d.title, d.svg])
+);
+function diagramForParagraph(p: string): string | null {
+  for (const [title, svg] of Object.entries(diagramByTitle)) {
+    if (p.startsWith(title + ":")) return svg;
+  }
+  return null;
+}
+
 // ── Section parsing ───────────────────────────────────────────────────────────
 
 function parseSections(text: string) {
@@ -179,6 +193,7 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
         @page { margin: 2.5cm 3cm; }
         /* Keep a section opener image with the heading that follows it. */
         .journey-image { break-inside: avoid; page-break-after: avoid; max-width: 100%; }
+        .sequence-diagram { break-inside: avoid; }
       }
     </style>
   </head>
@@ -416,22 +431,31 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
                   )}
 
                   <div class="border-t border-[#E8E0D6] pt-6">
-                    {section.paragraphs.map(p => (
-                      p.startsWith(REFLECTION_MARKER) ? (
-                        <aside
-                          class="my-7 border-l-2 border-[#C8A24A] bg-[#F5F0E6] px-5 py-4"
-                          style="font-family: 'DM Sans', sans-serif"
-                        >
-                          <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C8A24A] mb-2">To write with</p>
-                          <p class="text-[16px] leading-[1.6] italic text-[#3A332B] m-0">{p.slice(REFLECTION_MARKER.length)}</p>
-                        </aside>
-                      ) : (
-                        <p
-                          class="text-[17px] leading-[1.65] text-[#1A1410] mb-5"
-                          style="font-family: 'DM Sans', sans-serif"
-                        >{p}</p>
-                      )
-                    ))}
+                    {section.paragraphs.map(p => {
+                      const diagram = section.key === "THE VILLAGE JOURNEY" ? diagramForParagraph(p) : null;
+                      if (p.startsWith(REFLECTION_MARKER)) {
+                        return (
+                          <aside
+                            class="my-7 border-l-2 border-[#C8A24A] bg-[#F5F0E6] px-5 py-4"
+                            style="font-family: 'DM Sans', sans-serif"
+                          >
+                            <p class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C8A24A] mb-2">To write with</p>
+                            <p class="text-[16px] leading-[1.6] italic text-[#3A332B] m-0">{p.slice(REFLECTION_MARKER.length)}</p>
+                          </aside>
+                        );
+                      }
+                      return (
+                        <>
+                          {diagram && (
+                            <figure class="sequence-diagram my-8 border border-[#E8E0D6] rounded-sm bg-[#FAF7F0] px-5 py-6" set:html={diagram} />
+                          )}
+                          <p
+                            class="text-[17px] leading-[1.65] text-[#1A1410] mb-5"
+                            style="font-family: 'DM Sans', sans-serif"
+                          >{p}</p>
+                        </>
+                      );
+                    })}
                   </div>
                 </div>
               );
