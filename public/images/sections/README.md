@@ -30,6 +30,13 @@ Expected files (drop them here, exact names):
 The filename → section mapping lives in `SECTION_IMAGES` in
 `src/pages/journey/[token].astro`. If you change a filename, change it there too.
 
+## Pending
+
+- `09-core-wound.png` is **not yet here**. Its intended source is
+  `dactylic_es_paradis_terrenal_posters_from_ibiza_70s_and_80s.__fcf5e387-7a65-4714-b225-2cbed7322f93_0.png`.
+  Until it is added, The Core Wound and the Vocation will show a broken image
+  on the page. Drop the file in as `09-core-wound.png`.
+
 ## Source swaps
 
 - **The Descent** now uses
