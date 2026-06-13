@@ -26,6 +26,7 @@ import { TYPE_PROFILES, type HdTypeName } from "./types.js";
 import { PROFILE_LINES, profileLineDescription } from "./profiles.js";
 import { CENTERS, type CenterName, type CenterStatus } from "./centers.js";
 import { CROSS_VARIATIONS, crossVariation } from "./crosses.js";
+import { crossDescription } from "./cross-descriptions.js";
 import {
   STRATEGY_TRAINING,
   AUTHORITY_TRAINING,
@@ -291,6 +292,8 @@ export function buildLifePurposeNarrative(profile: HumanDesignProfile, _name: st
   const typeDescription = typeEntry?.typeDescription ?? "";
   const crossVar        = crossVariation(profile.incarnationCross);
   const crossVarText    = crossVar ? `\n\n${CROSS_VARIATIONS[crossVar].description}` : "";
+  const crossDesc       = crossDescription(profile.sunConscious, crossVar);
+  const crossDescText   = crossDesc ? `\n\n${crossDesc}` : "";
 
   const ordinaryWorld = `THE ORDINARY WORLD
 
@@ -308,7 +311,7 @@ There is a thread that runs through my life, through every version of myself, ev
 
 The deepest answer to why I am here is my incarnation cross${profile.incarnationCross ? `, the ${profile.incarnationCross}` : ""}. It is the largest pattern in my whole design, and it is built from four gates: the two lights of my personality, my conscious Sun and Earth, the purpose I am aware of carrying; and the two lights of my design, my unconscious Sun and Earth, the purpose others feel me living before I can name it. Where the Sun is the gift I am here to give, the Earth beneath it is the ground I have to stand on to give it.${crossVarText}
 
-Consciously, I am here to ${vb(profile.sunConscious)}, my gift of ${q(profile.sunConscious)}, grounded in my gift of ${q(profile.earthConscious)}. This is the role I know I am playing: my Sun in ${gn(profile.sunConscious)} and my Earth in ${gn(profile.earthConscious)}. Beneath that, in my design, I am built to ${vb(profile.sunUnconscious)}, my gift of ${q(profile.sunUnconscious)}, grounded in my gift of ${q(profile.earthUnconscious)}, the role others recognize in me before I do: my Sun in ${gn(profile.sunUnconscious)} and my Earth in ${gn(profile.earthUnconscious)}. Together these four trace the theme my life keeps returning to, and most people do not fully recognize their cross until they are decades into living it.
+Consciously, I am here to ${vb(profile.sunConscious)}, my gift of ${q(profile.sunConscious)}, grounded in my gift of ${q(profile.earthConscious)}. This is the role I know I am playing: my Sun in ${gn(profile.sunConscious)} and my Earth in ${gn(profile.earthConscious)}. Beneath that, in my design, I am built to ${vb(profile.sunUnconscious)}, my gift of ${q(profile.sunUnconscious)}, grounded in my gift of ${q(profile.earthUnconscious)}, the role others recognize in me before I do: my Sun in ${gn(profile.sunUnconscious)} and my Earth in ${gn(profile.earthUnconscious)}. Together these four trace the theme my life keeps returning to, and most people do not fully recognize their cross until they are decades into living it.${crossDescText}
 
 I am here to serve the world by ${typePurpose}. This is not a role I'm auditioning for or a standard I'm trying to meet. It is structural: the shape my energy is designed to take when I am living in alignment with what I actually am.`;
 
