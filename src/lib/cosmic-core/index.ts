@@ -14,5 +14,6 @@ export * from "./crosses.js";
 export * from "./cross-descriptions.js";
 export * from "./reflections.js";
 export * from "./sequence-diagram.js";
+export * from "./centers-diagram.js";
 export * from "./narrative.js";
 export * from "./normalize.js";

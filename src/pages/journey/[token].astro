@@ -2,8 +2,8 @@
 import "~/styles/global.css";
 import { getPurchase, updatePurchase } from "~/lib/purchases.js";
 import { generateChart } from "~/lib/chart-engine/index.js";
-import { geneKeysProfileFromChart } from "~/lib/narrative.js";
-import { REFLECTION_MARKER, buildSequenceDiagrams } from "~/lib/cosmic-core/index.js";
+import { geneKeysProfileFromChart, humanDesignProfileFromChart } from "~/lib/narrative.js";
+import { REFLECTION_MARKER, buildSequenceDiagrams, buildCentersDiagram } from "~/lib/cosmic-core/index.js";
 import type { BirthData, Chart } from "~/lib/chart-engine/types.js";
 
 const { token } = Astro.params;
@@ -95,7 +95,7 @@ const SECTION_IMAGES: Record<string, string> = {
   "THE ORDINARY WORLD":              "/images/sections/01-ordinary-world.png",
   "THE CALL":                        "/images/sections/02-call.png",
   "THE THRESHOLD":                   "/images/sections/03-threshold.png",
-  "THE DESCENT":                     "/images/sections/04-descent.jpg",
+  "THE DESCENT":                     "/images/sections/04-descent.png",
   "THE ABYSS":                       "/images/sections/05-abyss.png",
   "THE HELPERS AND ALLIES":          "/images/sections/06-helpers.png",
   "THE SPIRITUAL PATH":              "/images/sections/08-spiritual-path.png",
@@ -134,6 +134,9 @@ function diagramForParagraph(p: string): string | null {
   }
   return null;
 }
+
+// Centers diagram for "The Shape of My Energy".
+const centersDiagram = chart ? buildCentersDiagram(humanDesignProfileFromChart(chart).centers ?? []) : null;
 
 // ── Section parsing ───────────────────────────────────────────────────────────
 
@@ -431,6 +434,9 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
                   )}
 
                   <div class="border-t border-[#E8E0D6] pt-6">
+                    {section.key === "THE SHAPE OF MY ENERGY" && centersDiagram && (
+                      <figure class="sequence-diagram mx-auto mb-8 max-w-[300px]" set:html={centersDiagram} />
+                    )}
                     {section.paragraphs.map(p => {
                       const diagram = section.key === "THE VILLAGE JOURNEY" ? diagramForParagraph(p) : null;
                       if (p.startsWith(REFLECTION_MARKER)) {
