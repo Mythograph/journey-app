@@ -72,6 +72,23 @@ section headings on their own line.
 - PDF preview was made in-container with WeasyPrint + Pillow (not the real page).
   The production PDF is the browser "Save as PDF" on the actual reading page.
 
+## Running a real chart in-container (the tsx interop workaround)
+
+`astronomy.ts` does `import * as Astronomy from "astronomy-engine"`, which tsx
+mishandles (`Astronomy.Body` is undefined). Two ways to run a real chart here:
+
+- Load astronomy-engine with `createRequire(import.meta.url)` from a script
+  **inside the repo dir** (so resolution works), reimplement the longitude
+  helpers from `astronomy.ts` (they only need time, not lat/lng), then reuse the
+  pure `derivation.ts` + `cosmic-core` builders. Geocoding is only used for the
+  TIMEZONE, so pass the IANA zone directly and skip Nominatim (which is
+  403-blocked here). luxon applies historical DST correctly (e.g. 1979-03-16 was
+  EST, pre-DST). This is how Cléa's sample was generated.
+- Or just run the real app (`npm run dev`) where Vite handles the interop.
+
+Cléa's chart (self-hosted engine, for reference): Manifestor, To Inform,
+Emotional, Profile 4/6, Right Angle Cross of Eden. She is sanity-checking it.
+
 ## Image workflow (avoid the mistake we hit)
 
 Drop image files **straight into `public/images/sections/` with the semantic
