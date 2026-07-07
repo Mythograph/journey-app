@@ -12,6 +12,9 @@ if (!purchase) {
   return Astro.redirect("/?error=invalid-token", 302);
 }
 
+let formError: string | null = null;
+let prefill: Partial<BirthData> = {};
+
 if (Astro.request.method === "POST") {
   const body = await Astro.request.formData();
   const birthData: BirthData = {
@@ -19,10 +22,22 @@ if (Astro.request.method === "POST") {
     time: String(body.get("time") ?? ""),
     city: String(body.get("city") ?? ""),
   };
+  prefill = birthData;
+
   if (birthData.date && birthData.time && birthData.city) {
-    await updatePurchase(purchase.token, { birthData });
+    try {
+      // Validate the city geocodes before committing — an unrecognized
+      // location must never leave the reading stuck on the "generating"
+      // screen forever.
+      await generateChart(birthData);
+      await updatePurchase(purchase.token, { birthData });
+      return Astro.redirect(`/journey/${token}`, 303);
+    } catch {
+      formError = `We couldn't find "${birthData.city}". Try a fuller name, like "Montreal, Canada" instead of "Montreal, QC".`;
+    }
+  } else {
+    formError = "Please fill in all three fields.";
   }
-  return Astro.redirect(`/journey/${token}`, 303);
 }
 
 const hasBirthData = Boolean(purchase.birthData);
@@ -118,8 +133,16 @@ function getGateTags(chart: Chart, sectionKey: string): GateTag[] {
   });
 }
 
-// Generate chart for gate annotations (fast: pure calculation, no API call)
-const chart: Chart | null = purchase.birthData ? await generateChart(purchase.birthData) : null;
+// Generate chart for gate annotations. Never let this crash the page —
+// annotations are optional decoration, not required for the reading itself.
+let chart: Chart | null = null;
+if (purchase.birthData) {
+  try {
+    chart = await generateChart(purchase.birthData);
+  } catch {
+    chart = null;
+  }
+}
 
 // ── Section parsing ───────────────────────────────────────────────────────────
 
@@ -250,6 +273,12 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
             Your narrative is generated from your exact birth data. This page is your permanent
             reading link — you only need to enter this once.
           </p>
+          {formError && (
+            <p
+              class="mb-6 rounded border border-[#C05A3C] bg-[#FBEFEA] px-4 py-3 text-sm text-[#8A3A25]"
+              style="font-family: 'DM Sans', sans-serif"
+            >{formError}</p>
+          )}
           <form method="POST" class="grid gap-6">
             <div class="grid gap-2">
               <label
@@ -258,7 +287,7 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
                 style="font-family: 'DM Sans', sans-serif"
               >Birth date</label>
               <input
-                id="date" name="date" type="date" required
+                id="date" name="date" type="date" required value={prefill.date ?? ""}
                 class="rounded border border-[#D4C9BB] bg-white px-4 py-3 text-sm text-[#1A1410] focus:outline-none focus:ring-2 focus:ring-[#3A4F99] focus:border-transparent transition"
                 style="font-family: 'DM Sans', sans-serif"
               />
@@ -270,7 +299,7 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
                 style="font-family: 'DM Sans', sans-serif"
               >Birth time (local)</label>
               <input
-                id="time" name="time" type="time" required
+                id="time" name="time" type="time" required value={prefill.time ?? ""}
                 class="rounded border border-[#D4C9BB] bg-white px-4 py-3 text-sm text-[#1A1410] focus:outline-none focus:ring-2 focus:ring-[#3A4F99] focus:border-transparent transition"
                 style="font-family: 'DM Sans', sans-serif"
               />
@@ -282,7 +311,7 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
                 style="font-family: 'DM Sans', sans-serif"
               >Birth city</label>
               <input
-                id="city" name="city" type="text" required placeholder="e.g. London, UK"
+                id="city" name="city" type="text" required placeholder="e.g. London, UK" value={prefill.city ?? ""}
                 class="rounded border border-[#D4C9BB] bg-white px-4 py-3 text-sm text-[#1A1410] placeholder:text-[#B0A499] focus:outline-none focus:ring-2 focus:ring-[#3A4F99] focus:border-transparent transition"
                 style="font-family: 'DM Sans', sans-serif"
               />
