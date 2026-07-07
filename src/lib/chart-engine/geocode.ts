@@ -7,9 +7,16 @@ export interface GeoResult {
   displayName: string;
 }
 
+// Nominatim (OpenStreetMap's free geocoder) blocks/rejects requests from
+// cloud hosting IP ranges (Netlify Functions run on shared AWS IPs), so
+// production uses LocationIQ — a paid-tier-friendly, Nominatim-compatible
+// service — when LOCATIONIQ_API_KEY is set. Falls back to Nominatim for
+// local dev off a residential IP, where it works fine.
 export async function geocodeCity(city: string): Promise<GeoResult> {
-  const url =
-    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`;
+  const apiKey = process.env.LOCATIONIQ_API_KEY;
+  const url = apiKey
+    ? `https://us1.locationiq.com/v1/search?key=${apiKey}&q=${encodeURIComponent(city)}&format=json&limit=1`
+    : `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`;
 
   const res = await fetch(url, {
     headers: { "User-Agent": "mythograph-journey-app/1.0" },
