@@ -197,6 +197,7 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Journey Narrative · Mythograph</title>
     <style>
+      .print-logo { display: none; }
       @media print {
         .no-print { display: none !important; }
         nav, footer { display: none !important; }
@@ -205,6 +206,7 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
         @page { margin: 2.5cm 3cm; }
         /* Keep a section opener image with the heading that follows it. */
         .journey-image { break-inside: avoid; page-break-after: avoid; max-width: 100%; }
+        .print-logo { display: flex !important; }
       }
     </style>
   </head>
@@ -227,6 +229,14 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
         </button>
       )}
     </nav>
+
+    <!-- Print-only brand lockup: shown in the printed/PDF header, hidden on screen -->
+    <div class="print-logo items-center justify-center gap-2 pt-4 pb-2">
+      <svg viewBox="0 0 137.77 110.27" style="width:28px;height:22px;flex-shrink:0;" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#C05A3C" d="M123.75,49.49l-.06-.57A54.07,54.07,0,0,0,112,20.76a54.34,54.34,0,0,0-4.12-4.63A56.24,56.24,0,0,0,103.26,12,54.73,54.73,0,0,0,75.1.33a58.69,58.69,0,0,0-12.43,0A54.5,54.5,0,0,0,34.57,12a56.24,56.24,0,0,0-4.63,4.13A55.81,55.81,0,0,0,14.08,49l-.06.51H0V60.78H14l.06.57A54.73,54.73,0,0,0,25.75,89.51c1.27,1.59,2.67,3.11,4.12,4.63a46.15,46.15,0,0,0,4.64,4.13,54.69,54.69,0,0,0,28.16,11.67,58.69,58.69,0,0,0,12.43,0,54.73,54.73,0,0,0,28.16-11.67,56.24,56.24,0,0,0,4.63-4.13A53.21,53.21,0,0,0,112,89.51a54.82,54.82,0,0,0,11.68-28.16l.06-.57h14V49.49ZM89.12,55.14A20.22,20.22,0,0,1,88,61.6a19.82,19.82,0,0,1-4.89,7.81,20.13,20.13,0,0,1-27.08,1.27H41.55a30.52,30.52,0,0,0,5.13,6.66A31.51,31.51,0,0,0,99.84,61.22l.12-.5h12.56l-.25.82A43.86,43.86,0,0,1,85.69,95.73,43.84,43.84,0,0,1,25.5,61.54l-.13-.76h24.1a21.53,21.53,0,0,1-.76-5.64,20.28,20.28,0,0,1,1.08-6.47,20.64,20.64,0,0,1,4.89-7.81A20.11,20.11,0,0,1,81.76,39.6H96.28a31.5,31.5,0,0,0-5.13-6.66A31.51,31.51,0,0,0,38,49.05l-.06.44H25.37l.13-.7A43.14,43.14,0,0,1,37.87,24.18a43.85,43.85,0,0,1,74.4,24.61l.12.7H88.29A21.21,21.21,0,0,1,89.12,55.14Z"/>
+      </svg>
+      <span style="font-family: 'Fraunces', Georgia, serif; font-weight: 900; font-size: 20px; letter-spacing: -0.01em; color: #C05A3C;">Mythograph</span>
+    </div>
 
     <div class="max-w-2xl mx-auto px-6">
 
