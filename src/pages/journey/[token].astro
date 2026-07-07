@@ -206,15 +206,11 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
 
       <!-- Hero -->
       <header class="pt-16 pb-14 border-b border-[#E8E0D6] text-center">
-        <p
-          class="text-[10px] font-medium tracking-[0.2em] uppercase text-[#C05A3C] mb-6"
-          style="font-family: 'DM Sans', sans-serif"
-        >Your Journey Narrative</p>
         <h1
           class="text-[#1A1410]"
           style="font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: clamp(2.25rem, 6vw, 3.75rem); letter-spacing: -0.03em; line-height: 1.05"
         >
-          {purchase.name ? `The Journey of ${purchase.name}` : "Your Journey Narrative"}
+          Your Journey Narrative
         </h1>
 
         {hasNarrative && (
