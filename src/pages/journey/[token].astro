@@ -14,15 +14,18 @@ if (!purchase) {
 
 let formError: string | null = null;
 let prefill: Partial<BirthData> = {};
+let namePrefill = purchase.name ?? "";
 
 if (Astro.request.method === "POST") {
   const body = await Astro.request.formData();
+  const name = String(body.get("name") ?? "").trim();
   const birthData: BirthData = {
     date: String(body.get("date") ?? ""),
     time: String(body.get("time") ?? ""),
     city: String(body.get("city") ?? ""),
   };
   prefill = birthData;
+  namePrefill = name;
 
   if (birthData.date && birthData.time && birthData.city) {
     try {
@@ -30,7 +33,7 @@ if (Astro.request.method === "POST") {
       // location must never leave the reading stuck on the "generating"
       // screen forever.
       await generateChart(birthData);
-      await updatePurchase(purchase.token, { birthData });
+      await updatePurchase(purchase.token, { birthData, ...(name ? { name } : {}) });
       return Astro.redirect(`/journey/${token}`, 303);
     } catch {
       formError = `We couldn't find "${birthData.city}". Try a fuller name, like "Montreal, Canada" instead of "Montreal, QC".`;
@@ -236,6 +239,13 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
           My Journey Narrative
         </h1>
 
+        {purchase.name && (
+          <p
+            class="mt-3 text-sm tracking-[0.03em] text-[#7A6D5E]"
+            style="font-family: 'DM Sans', sans-serif"
+          >{purchase.name}</p>
+        )}
+
         {hasNarrative && (
           <img
             src="/images/sections/cover.png"
@@ -280,6 +290,18 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
             >{formError}</p>
           )}
           <form method="POST" class="grid gap-6">
+            <div class="grid gap-2">
+              <label
+                for="name"
+                class="text-[10px] font-medium tracking-[0.1em] uppercase text-[#7A6D5E]"
+                style="font-family: 'DM Sans', sans-serif"
+              >Your name</label>
+              <input
+                id="name" name="name" type="text" placeholder="e.g. Ellie" value={namePrefill}
+                class="rounded border border-[#D4C9BB] bg-white px-4 py-3 text-sm text-[#1A1410] placeholder:text-[#B0A499] focus:outline-none focus:ring-2 focus:ring-[#3A4F99] focus:border-transparent transition"
+                style="font-family: 'DM Sans', sans-serif"
+              />
+            </div>
             <div class="grid gap-2">
               <label
                 for="date"
