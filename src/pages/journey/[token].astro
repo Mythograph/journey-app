@@ -192,7 +192,7 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{purchase.name ? `${purchase.name} — Journey Narrative` : "Your Journey Narrative"} · Mythograph</title>
+    <title>My Journey Narrative · Mythograph</title>
     <style>
       @media print {
         .no-print { display: none !important; }
@@ -233,7 +233,7 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
           class="text-[#1A1410]"
           style="font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: clamp(2.25rem, 6vw, 3.75rem); letter-spacing: -0.03em; line-height: 1.05"
         >
-          Your Journey Narrative
+          My Journey Narrative
         </h1>
 
         {hasNarrative && (
@@ -392,13 +392,21 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
         <article class="py-14 pb-20" id="narrative-content">
           {/* Gate legend — shown once, before the first section */}
           {chart && (
-            <p
-              class="text-[10px] text-[#B0A499] mb-10 text-center"
+            <div
+              class="mb-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-lg border border-[#E8E0D6] bg-white px-6 py-4 text-sm"
               style="font-family: 'DM Sans', sans-serif"
             >
-              Gate annotations: <span class="text-[#1A1410]">Personality</span> (what you know and identify with)
-              · <span class="text-[#7A6D5E]">Design</span> (what others sense in you)
-            </p>
+              <span class="flex items-center gap-2">
+                <span class="inline-block h-3 w-3 rounded-full" style="background:#3A4F99"></span>
+                <span class="font-semibold" style="color:#3A4F99">Personality</span>
+                <span class="text-[#7A6D5E]">— what you know and identify with</span>
+              </span>
+              <span class="flex items-center gap-2">
+                <span class="inline-block h-3 w-3 rounded-full" style="background:#C8A24A"></span>
+                <span class="font-semibold" style="color:#C8A24A">Design</span>
+                <span class="text-[#7A6D5E]">— what others sense in you</span>
+              </span>
+            </div>
           )}
 
           {narrativeSections.length > 0 ? (
@@ -432,7 +440,7 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
                           {ti > 0 && <span class="text-[#D4C9BB] mr-4">·</span>}
                           <span
                             class="font-medium"
-                            style={`color: ${tag.pos === "conscious" ? "#1A1410" : "#7A6D5E"}`}
+                            style={`color: ${tag.pos === "conscious" ? "#3A4F99" : "#C8A24A"}`}
                           >Gate {tag.gate}</span>
                           <span class="text-[#B0A499] ml-1">{PLANET_LABEL[tag.planet]}</span>
                         </span>
