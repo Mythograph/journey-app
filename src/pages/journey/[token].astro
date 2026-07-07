@@ -393,19 +393,23 @@ const orderedDate = new Date(purchase.paidAt).toLocaleDateString("en-GB", {
           {/* Gate legend — shown once, before the first section */}
           {chart && (
             <div
-              class="mb-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-lg border border-[#E8E0D6] bg-white px-6 py-4 text-sm"
+              class="mb-10 grid gap-4 rounded-lg border border-[#E8E0D6] bg-white px-6 py-5 text-sm sm:grid-cols-2"
               style="font-family: 'DM Sans', sans-serif"
             >
-              <span class="flex items-center gap-2">
-                <span class="inline-block h-3 w-3 rounded-full" style="background:#3A4F99"></span>
-                <span class="font-semibold" style="color:#3A4F99">Personality</span>
-                <span class="text-[#7A6D5E]">— conscious: calculated from my exact birth moment</span>
-              </span>
-              <span class="flex items-center gap-2">
-                <span class="inline-block h-3 w-3 rounded-full" style="background:#C8A24A"></span>
-                <span class="font-semibold" style="color:#C8A24A">Design</span>
-                <span class="text-[#7A6D5E]">— unconscious: how I operate instinctively, which I may recognize in myself too</span>
-              </span>
+              <p class="flex items-start gap-2 m-0">
+                <span class="mt-1.5 inline-block h-3 w-3 shrink-0 rounded-full" style="background:#3A4F99"></span>
+                <span>
+                  <span class="font-semibold" style="color:#3A4F99">Personality</span>
+                  <span class="text-[#7A6D5E]"> · Conscious Energy, the Mind — activated at the exact moment of your birth. These are the traits you identify with, easily talk about, and are fully aware of.</span>
+                </span>
+              </p>
+              <p class="flex items-start gap-2 m-0">
+                <span class="mt-1.5 inline-block h-3 w-3 shrink-0 rounded-full" style="background:#C8A24A"></span>
+                <span>
+                  <span class="font-semibold" style="color:#C8A24A">Design</span>
+                  <span class="text-[#7A6D5E]"> · Unconscious Energy, the Body — activated about 88 days before your birth, when your soul entered the physical form. These are automatic traits that operate without conscious effort. You may be unaware of these gifts, but others observe them in you clearly.</span>
+                </span>
+              </p>
             </div>
           )}
 
