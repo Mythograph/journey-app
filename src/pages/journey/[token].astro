@@ -68,7 +68,12 @@ const SECTION_META: Record<string, { num: string; title: string }> = {
   "AM I MADE FOR THIS MOMENT?":          { num: "XV",    title: "Am I Made for This Moment?" },
   "THE VILLAGE JOURNEY":                 { num: "XVI",   title: "The Village Journey" },
   "WHO I AM":                            { num: "XVII",  title: "A Recap" },
-  "THE LARGER STORY":                    { num: "XVIII", title: "The Larger Story" },
+  "THE PEN":                             { num: "XVIII", title: "The Pen" },
+  "THE EDGE":                            { num: "XIX",   title: "The Edge" },
+  "THE RANGE":                           { num: "XX",    title: "The Range" },
+  "THE TURN":                            { num: "XXI",   title: "The Turn" },
+  "THE SCENE":                           { num: "XXII",  title: "The Scene" },
+  "THE LINE":                            { num: "XXIII", title: "The Line" },
 };
 
 const HEADING_KEYS = Object.keys(SECTION_META);
@@ -107,7 +112,6 @@ const SECTION_PLANETS: Record<string, { planet: string; pos: "conscious" | "unco
                                       { planet: "venus",      pos: "conscious" }, { planet: "venus",      pos: "unconscious" }],
   "THE RETURN":                      [{ planet: "north_node", pos: "conscious" }, { planet: "north_node", pos: "unconscious" }],
   "WHO I AM":                        [],
-  "THE LARGER STORY":                [{ planet: "uranus",     pos: "conscious" }, { planet: "pluto",      pos: "conscious"   }],
 };
 
 // One templated image per section (mythic-peak sections only). Keyed by the
@@ -124,7 +128,6 @@ const SECTION_IMAGES: Record<string, string> = {
   "THE ELIXIR":                      "/images/sections/10-elixir.png",
   "THE VOICE":                       "/images/sections/11-voice.png",
   "THE RETURN":                      "/images/sections/12-return.png",
-  "THE LARGER STORY":                "/images/sections/14-larger-story.png",
 };
 
 interface GateTag { planet: string; gate: number; pos: "conscious" | "unconscious" }

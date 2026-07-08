@@ -93,6 +93,142 @@ export interface HumanDesignProfile {
   chironUnconscious: number | null;
 }
 
+// ─── The Closing Module (the recode close — THE PEN through THE LINE) ─────────
+// Per-type / per-authority phrasing used only by buildClosingModule below.
+
+// A short "I move by ___" motion per type. Kept separate from STRATEGY_TRAINING,
+// which is a full teaching paragraph and too long for these lines.
+const TYPE_MOTION: Record<string, string> = {
+  "Manifestor": "initiating, starting what wants to begin and informing the people it will touch before I move",
+  "Generator": "responding to what genuinely lights me up, letting my energy answer before my mind argues",
+  "Manifesting Generator": "responding first, then moving fast once the yes is real, informing the people around me as I go",
+  "Projector": "waiting for the invitation that truly sees me, and offering what I know where it is actually wanted",
+  "Reflector": "letting a full lunar cycle pass before the big turns, sampling how a choice feels over time",
+};
+
+// Per-authority phrasing: how I name it, the felt "clear yes", and the timing it
+// sets. Covers every value of the Authority union in chart-engine/types.ts.
+const AUTHORITY_VOICE: Record<string, { label: string; tell: string; timing: string }> = {
+  "Emotional":       { label: "emotional authority",        tell: "the wave settles and it still feels true a day later, not in the first rush", timing: "emotional wave" },
+  "Sacral":          { label: "sacral authority",           tell: "my body answers with a yes I feel before I can explain it",                   timing: "gut response" },
+  "Splenic":         { label: "splenic authority",          tell: "the quiet in-the-moment knowing speaks once, and I move with it",             timing: "spleen's single quiet signal" },
+  "Ego Manifested":  { label: "a manifested ego authority", tell: "my will is genuinely behind it and I have said so out loud",                  timing: "will" },
+  "Ego Projected":   { label: "a projected ego authority",  tell: "I hear my own want surface when the right person asks",                       timing: "heart" },
+  "Self-Projected":  { label: "self-projected authority",   tell: "I talk it through and hear what is true in the sound of my own voice",        timing: "own voice" },
+  "Mental Projected":{ label: "mental projected authority", tell: "I have talked it out in the right places and the field around me feels clear",timing: "trusted sounding board" },
+  "Lunar":           { label: "lunar authority",            tell: "a full cycle has passed and the knowing has held the whole way through",      timing: "lunar cycle" },
+  "None":            { label: "no single fixed authority",  tell: "I have given it time and let the sampled feeling settle",                     timing: "own unhurried process" },
+};
+
+export function buildClosingModule(
+  profile: HumanDesignProfile,
+  geneKeys: GeneKeysProfile
+): string {
+  const typeLabel = profile.type ? (TYPE_PROFILES[profile.type]?.name ?? profile.type) : "the design I am";
+  const motion = TYPE_MOTION[profile.type] ?? profile.strategy ?? "the way my design is built to move";
+  const av = AUTHORITY_VOICE[profile.authority ?? "None"] ?? AUTHORITY_VOICE["None"];
+
+  // Core wound: the unconscious Mars gate, "arc" band — the exact source THE
+  // CORE WOUND AND THE VOCATION already reads.
+  const marsGate = profile.marsUnconscious;
+  const coreWound = marsGate && GATES[marsGate] ? GATES[marsGate].arc.short : null;
+
+  // Life's Work Gene Key: gate, traditional name, and Shadow -> Gift spectrum.
+  const lwGate = geneKeys.lifesWork;
+  const lwName = lwGate && GATES[lwGate] ? GATES[lwGate].traditionalName : null;
+  const lwFreq = lwGate ? GENE_KEY_FREQUENCIES[lwGate] : null;
+  const lwRef = lwGate ? `Gate ${lwGate}${lwName ? `, ${lwName}` : ""}` : "my Life's Work";
+
+  // The segue opens THE PEN, because the render layer only sets apart recognised
+  // section headings. If you want it more separated, give it its own SECTION_META
+  // entry instead.
+  const thePen = `THE PEN
+
+I have read to the end of what my design can tell me.
+
+This is the story I write as I live it.
+
+Everything before this line is true, and none of it is mine yet. It's the story my design tells on its own, the shape I arrived in. I inherited this story and work with it as I mature and evolve.
+
+Here the reading runs out of what it can know. What comes next isn't in the chart, but in what I haven't done yet.
+
+The agency is all mine now. As ${typeLabel}, I move by ${motion}. With ${av.label}, I know a thing is right when ${av.tell}. Every line I add from here gets written in my own timing and my own motion, or it won't hold when I try to live it.
+
+The chapter that hasn't happened is the one I'm about to start.`;
+
+  // NOTE: original said "It named it in the descent" — the core wound is actually
+  // named in THE CORE WOUND AND THE VOCATION (XI), so this reads "earlier".
+  const coreWoundLine = coreWound
+    ? `For me it lives in the territory of ${coreWound}.`
+    : `I have felt it as the oldest ache in how I see myself.`;
+  const edgeShadowLine = lwFreq
+    ? ` The shadow of my ${lwRef} speaks in the same register: the pull toward ${lwFreq.shadow}.`
+    : ``;
+
+  const theEdge = `THE EDGE
+
+This reading already found my core wound. It named it earlier, and I knew it, because I have felt it run under most of my choices.
+
+${coreWoundLine}
+
+That wound has a voice. In archetypal language it's the Threshold Guardian; I recognize it as the voice of my inner critic. And it doesn't want me hurt. It wants me safe, so it says the same line every time I get near an edge that matters.${edgeShadowLine}
+
+I'm not writing to silence it. A guardian I silence just waits at the next threshold. Instead, I notice what it's saying to me.`;
+
+  // THE RANGE's two poles are the Life's Work Shadow and Gift, written as motion
+  // (the reconciliation: dropped the invented per-type blocks for real GK data).
+  const shadowMotion = lwFreq
+    ? `my gift of ${lwFreq.gift} contracts into its shadow, ${lwFreq.shadow.toLowerCase()}, and I pull back from the very thing I am here to do.`
+    : `the way I am built narrows, and I pull back from the very thing I am here to do.`;
+  const maturedMotion = lwFreq
+    ? `my gift of ${lwFreq.gift} runs clean, and I meet the same moment with room to spare.`
+    : `the same energy runs clean, and I meet the same moment with room to spare.`;
+
+  // NOTE: original said "what my type does"; changed to "my design" since THE
+  // RANGE now reads from the Life's Work Gene Key rather than the HD type.
+  const theRange = `THE RANGE
+
+There are two ways I experience the same aspects of how I'm designed.
+
+In the shadow, ${shadowMotion} I have lived long stretches there. It isn't a flaw in me; it's just what my design does when it's tired, unclear, or bracing against the Guardian.
+
+When I'm in alignment with the way I'm designed, the same energy moves differently. ${maturedMotion} I have felt this too, in my best hours, when the timing was my own.
+
+I don't graduate from one to the other, but rather, I move back and forth along this range. Knowing both ends is what lets me tell, in the moment, how to adjust.`;
+
+  const turnGift = lwFreq
+    ? `the shadow of my ${lwRef} matured into its gift, ${lwFreq.gift}, running where the old pattern used to sit`
+    : `my gift grown into the place the old pattern used to sit`;
+
+  const theTurn = `THE TURN
+
+For a long time I have told myself mostly through the hardest chapter. The wound this reading named became a kind of home, and I built an identity inside it, the one who was overlooked, or whatever shape my particular ache took. That identity kept me safe once, and I can honor it without living there for good.
+
+The old question was where all of this came from, and the reading has answered it. The question now is who I am becoming, now that I can see clearly where I started.
+
+That second question tends to slow me down, and the slowing is the Guardian again, standing at the threshold of a self it doesn't recognize yet. I know its fear by now, and I can let it walk beside me anyway.
+
+So I let myself imagine further out than a single week. A few years on, into a version of me grown from the same design I already carry, ${turnGift}. I am the same person with my design grown all the way in. The Guardian is still here in that further life, quieter, consulted and thanked, its grip loosened. I am not finished there, because being alive means I keep going, and that is the whole point of picking up the pen.`;
+
+  const theScene = `THE SCENE
+
+I have the far shape of it now, so this is where I bring it close.
+
+I don't need the whole evolved life in one move, because being alive means I keep exploring myself and the world for as long as I am here. I need one scene, near enough that I could live it this week, that belongs to the story I just wrote forward.
+
+In it, I do one thing the Guardian guards me from. I move the way my design moves, by ${motion}, in the timing my ${av.timing} sets. The Guardian is there, reciting its line, and even though I hear it, I act anyway, because this is how the further self gets built, one lived scene at a time.`;
+
+  const theLine = `THE LINE
+
+A story I can live needs a line I can carry.
+
+One sentence, in my own voice, that I can say on an ordinary morning and steer by. Something that holds my design, my edge, and the direction I just wrote toward, in words plain enough to actually use.
+
+This is the seed. One true sentence is the start of a whole way of speaking about myself that stays steady whether I'm writing my bio, meeting a stranger, or deciding what to say yes to.`;
+
+  return [thePen, theEdge, theRange, theTurn, theScene, theLine].join("\n\n");
+}
+
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
 function gateExpr(num: number | null, mode: GateBand, field: GateField = "short"): string {
@@ -408,18 +544,10 @@ What I'm here to do: I communicate through ${renderPair(profile.mercuryConscious
 
 The larger context: I was born into a generation opening others to ${renderPair(profile.uranusConscious, profile.uranusUnconscious, "high", "short", "and", true)}, learning through collective cycles of ${renderPair(profile.plutoConscious, profile.plutoUnconscious, "arc", "short", "and", true)}. My personal story is part of something larger than itself.`;
 
-  const largerStory = `THE LARGER STORY
-
-I have a real and irreplaceable role in what's happening here, in this era, in this lineage, in the evolution of what human beings are capable of becoming. My story is not a detour from the larger story. It is part of it.
-
-I carry my particular wounds, my particular gifts, my particular way of seeing, and I bring them to a world that needs exactly this: the thing only I can offer, in the way only I can offer it, because of everything the journey has made of me.
-
-This is the story I write as I live.`;
-
   const energyAnatomy = buildEnergyAnatomy(profile);
   const gauntlet = buildGauntlet(profile);
 
-  return [ordinaryWorld, energyAnatomy, theCall, threshold, descent, abyss, helpers, trials, gauntlet, spiritual, coreWound, elixir, voice, theReturn, recap, largerStory]
+  return [ordinaryWorld, energyAnatomy, theCall, threshold, descent, abyss, helpers, trials, gauntlet, spiritual, coreWound, elixir, voice, theReturn, recap]
     .filter(Boolean)
     .join("\n\n");
 }
@@ -523,7 +651,8 @@ export function buildVillageJourney(geneKeys: GeneKeysProfile): string {
 
 // ─── The full Journey Narrative ───────────────────────────────────────────────
 // Act I (the individual search for meaning, I-XIV) -> the hinge -> Act II (the
-// Village Journey / Gene Keys) -> recap -> larger story.
+// Village Journey / Gene Keys) -> recap -> the closing module (the recode
+// close, THE PEN through THE LINE).
 
 export function buildJourneyNarrative(
   profile: HumanDesignProfile,
@@ -547,6 +676,9 @@ export function buildJourneyNarrative(
       ? `${soulMap}\n\n${actTwo}`
       : soulMap.slice(0, recapIndex).trimEnd() + "\n\n" + actTwo + "\n\n" + soulMap.slice(recapIndex);
   }
+
+  const closing = buildClosingModule(profile, geneKeys);
+  assembled = closing ? `${assembled}\n\n${closing}` : assembled;
 
   // Attach a first-person writing prompt to the end of each stage.
   return injectReflectionPrompts(assembled, profile);

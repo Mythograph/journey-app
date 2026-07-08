@@ -34,7 +34,12 @@ const ALL_HEADINGS = [
   "AM I MADE FOR THIS MOMENT?",
   "THE VILLAGE JOURNEY",
   "WHO I AM",
-  "THE LARGER STORY",
+  "THE PEN",
+  "THE EDGE",
+  "THE RANGE",
+  "THE TURN",
+  "THE SCENE",
+  "THE LINE",
 ];
 
 // Build the per-stage prompts. Keyed by heading; a heading absent from the map
@@ -78,8 +83,18 @@ function buildPrompts(profile: HumanDesignProfile): Record<string, string> {
       "What is happening in my time that seems to need something I carry? Where do I feel called beyond my own becoming?",
     "THE VILLAGE JOURNEY":
       "Who is already in my village, and who am I still looking for? What medicine do I bring to a circle that none of us could reach alone?",
-    "THE LARGER STORY":
-      "Knowing all of this, what is the next true chapter I want to live, and the first line of it I could write this week?",
+    "THE PEN":
+      "Where am I in my story today? Not where I wish I was. My real edge, based on the lessons and gifts I've recognized in myself and my journey so far. Write the first sentence of the chapter that hasn't happened yet, and begin it where I'm standing right now.",
+    "THE EDGE":
+      "What is the Guardian's line? What does it say to me when I venture into unknown territory to stop me at the gate? The sentence it repeats to protect me from the unknown when I'm about to do something that matters. Write it in quotes, in the voice it actually uses. Then write the edge it's guarding right now: the specific thing in my life it keeps me from starting.",
+    "THE RANGE":
+      "Name the last time I felt myself in the shadow, plainly, without scolding myself for it. Then name the last time I felt completely in alignment and flow. What was different about the second one?",
+    "THE TURN":
+      "Write a day in the life of that further self, a few years on, in as much plain detail as I can gather. What I do in the morning, what I say yes to and what I turn down, how I move through one hard conversation, what my work feels like from the inside. Keep the Guardian somewhere in the day, quieter now. Let it be me, recognizably, with the gift running where the wound used to.",
+    "THE SCENE":
+      "Write the scene in present tense, first person, from inside it. Start the moment just before I act. Keep the Guardian's line audible, and let my Self move through it in my own timing. End on the first real action, and leave how it turns out unwritten.",
+    "THE LINE":
+      "Write one sentence I can carry. Draft it rough, then cut it until every word earns its place. Say it out loud. If it sounds like me and I could steer by it on a hard day, it's the line.",
   };
 }
 
