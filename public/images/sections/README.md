@@ -4,7 +4,8 @@ Templated images for the reading page (`src/pages/journey/[token].astro`) and
 the print/PDF output. The same set is used for every reading; each file maps to
 one section by its semantic name. Sections not listed render text-only
 (The Shape of My Energy, The Road of Trials, The Gauntlet, Am I Made for This
-Moment?, The Village Journey, Who I Am).
+Moment?, The Village Journey, Who I Am, and the six closing-module movements:
+The Pen, The Edge, The Range, The Turn, The Scene, The Line).
 
 Expected files (drop them here, exact names):
 
@@ -22,7 +23,6 @@ Expected files (drop them here, exact names):
 | `10-elixir.png`           | The Elixir                       |
 | `11-voice.png`            | The Voice                        |
 | `12-return.png`           | The Return                       |
-| `14-larger-story.png`     | The Larger Story                 |
 
 The filename → section mapping lives in `SECTION_IMAGES` in
 `src/pages/journey/[token].astro`. If you change a filename, change it there too.
