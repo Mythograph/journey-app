@@ -39,7 +39,7 @@ src/
     index.astro                 Landing page — two cards: free chart + $37 Stripe link
     chart.astro                 Free bodygraph tool (form + server-rendered chart + copy)
     journey/[token].astro       Token-gated paid reading page (3 states: ready / generating / no-data)
-    dev/test-journey.ts         DEV ONLY — creates a fake purchase + redirects to a reading. Delete before prod.
+    dev/test-journey.ts         Fakes a purchase + redirects to a reading. Gated by DEV_TEST_SECRET; kept for testing.
     api/
       stripe-webhook.ts         POST — verifies Stripe sig, creates token+purchase, forwards to Make.com
       generate-narrative.ts     GET ?token — triggers the background narrative function if not yet generated
@@ -162,7 +162,10 @@ Edit the narrative by changing the **template strings in
 - `/journey/[token]` — paid reading. Verifies the purchase by token; three UI
   states: narrative ready (renders sections), generating (polls), or awaiting
   birth data.
-- `/dev/test-journey` — dev shortcut that fakes a purchase. **Remove before prod.**
+- `/dev/test-journey?key=<DEV_TEST_SECRET>` — dev shortcut that fakes a
+  purchase (bypasses Stripe) and drops you into the reading flow. Kept
+  around intentionally for ongoing manual testing; gated behind
+  `DEV_TEST_SECRET` (404s without a matching `?key=`) rather than deleted.
 
 ## Purchase / fulfilment flow
 
@@ -180,6 +183,7 @@ page later triggers narrative generation on first visit.
 - `MAKE_WEBHOOK_URL` (Stripe→token email), `MAKE_NARRATIVE_WEBHOOK_URL` (narrative→email)
 - `INTERNAL_CALLBACK_SECRET` — guards `/api/save-narrative`
 - `TOKEN_SECRET` — HMAC salt for purchase tokens
+- `DEV_TEST_SECRET` — guards `/dev/test-journey`; unset means the route 404s
 - `SITE_URL` = https://journey.mythograph.co
 - `JOURNEY_COPY_SHEET_ID` — Google Sheet ID for chart copy sync (prebuild)
 - Netlify Blobs credentials are auto-injected in deployed environments.
