@@ -21,29 +21,41 @@ let prefill: Partial<BirthData> = {};
 let namePrefill = "";
 
 if (Astro.request.method === "POST") {
-  const body = await Astro.request.formData();
-  const name = String(body.get("name") ?? "").trim();
-  const birthData: BirthData = {
-    date: String(body.get("date") ?? ""),
-    time: String(body.get("time") ?? ""),
-    city: String(body.get("city") ?? ""),
-  };
-  prefill = birthData;
-  namePrefill = name;
+  // Wrapped end to end: any failure here (bad form data, geocoding, chart
+  // math, or the Blobs write) must still re-render this page with a real,
+  // diagnosable message and the entered values intact — never an unhandled
+  // 500 that looks like the form silently wiped itself.
+  try {
+    const body = await Astro.request.formData();
+    const name = String(body.get("name") ?? "").trim();
+    const birthData: BirthData = {
+      date: String(body.get("date") ?? ""),
+      time: String(body.get("time") ?? ""),
+      city: String(body.get("city") ?? ""),
+    };
+    prefill = birthData;
+    namePrefill = name;
 
-  if (name && birthData.date && birthData.time && birthData.city) {
-    try {
+    if (name && birthData.date && birthData.time && birthData.city) {
       // Validate the city geocodes before committing — an unrecognized
       // location must never leave the reading stuck on the "generating"
       // screen forever.
       await generateChart(birthData);
       await updatePurchase(purchase.token, { birthData, name });
       return Astro.redirect(`/journey/${token}`, 303);
-    } catch {
-      formError = `We couldn't find "${birthData.city}". Try a fuller name, like "Montreal, Canada" instead of "Montreal, QC".`;
+    } else {
+      formError = "Please fill in all fields, including your name.";
     }
-  } else {
-    formError = "Please fill in all fields, including your name.";
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`journey/${token}: birth-data submission failed:`, message);
+    // Only a genuine "no such place" result from the geocoder gets the
+    // city-naming hint. Everything else (API/network failures, invalid
+    // date/time, a Blobs write failure) shows the real cause instead of
+    // being misdiagnosed as a bad city name.
+    formError = message.startsWith("City not found:")
+      ? `We couldn't find "${prefill.city}" as a real place. Try a fuller name, like "Montreal, Canada" instead of "Montreal, QC".`
+      : `Something went wrong generating this chart: ${message}. This isn't a city-name problem — if it keeps happening, that detail should help track down the real cause.`;
   }
 }
 
