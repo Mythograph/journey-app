@@ -63,17 +63,25 @@ function chironLongitude(date: Date): number {
   const yH = r * (Math.sin(W) * Math.cos(nu + w) + Math.cos(W) * Math.sin(nu + w) * Math.cos(i));
   const zH = r * (Math.sin(nu + w) * Math.sin(i));
 
-  // Earth's heliocentric position via negating the Sun's geocentric vector
-  const sunVec = Astronomy.HelioVector(Astronomy.Body.Earth, date);
-  const xE = sunVec.x;
-  const yE = sunVec.y;
-  const zE = sunVec.z;
+  // Earth's heliocentric position. HelioVector returns EQJ (equatorial J2000)
+  // while xH/yH/zH above are ecliptic, so the two must be brought into the same
+  // frame before differencing — subtracting an equatorial vector from an
+  // ecliptic one tilts the baseline by the obliquity and drags the result off
+  // by roughly a sixth of a degree at Chiron's distance.
+  const earthEqj = Astronomy.HelioVector(Astronomy.Body.Earth, date);
+  const earthEcl = Astronomy.Ecliptic(earthEqj);
+  const rE = Math.sqrt(earthEqj.x ** 2 + earthEqj.y ** 2 + earthEqj.z ** 2);
+  const elat = toRad(earthEcl.elat);
+  const elon = toRad(earthEcl.elon);
+  const xE = rE * Math.cos(elat) * Math.cos(elon);
+  const yE = rE * Math.cos(elat) * Math.sin(elon);
+  const zE = rE * Math.sin(elat);
 
-  // Geocentric vector of Chiron
+  // Geocentric vector of Chiron, then its ecliptic longitude.
   const dx = xH - xE;
   const dy = yH - yE;
-  // zG unused — we only need the ecliptic plane projection for longitude
-  void zH; void zE;
+  const dz = zH - zE;
+  void dz; // longitude is the ecliptic-plane projection; latitude is unused
 
   return normLon(toDeg(Math.atan2(dy, dx)));
 }

@@ -3,6 +3,7 @@ import { geocodeCity } from "./geocode.js";
 import { getPlanetaryLongitudes, findSunLongitude } from "./astronomy.js";
 import {
   toActivations,
+  mechanicalGates,
   deriveDefinedChannels,
   deriveDefinedCenters,
   deriveType,
@@ -41,9 +42,11 @@ export async function generateChart(birth: BirthData): Promise<Chart> {
   const designLons = getPlanetaryLongitudes(designDate);
   const designActivations = toActivations(designLons);
 
-  // 5. Collect all activated gates
-  const personalityGates = new Set(personalityActivations.map((a) => a.gate));
-  const designGates = new Set(designActivations.map((a) => a.gate));
+  // 5. Collect all activated gates. Chiron is deliberately excluded: it rides
+  // along on the activation lists for the narrative, but it is not an HD body
+  // and must not define anything.
+  const personalityGates = mechanicalGates(personalityActivations);
+  const designGates = mechanicalGates(designActivations);
   const allGates = new Set([...personalityGates, ...designGates]);
 
   // 6. Channels → Centers → Type / Strategy / Authority

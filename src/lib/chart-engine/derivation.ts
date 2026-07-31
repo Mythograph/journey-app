@@ -31,17 +31,40 @@ export function longitudeToGateLine(lon: number): { gate: number; line: number }
 
 // ── Planetary activations ─────────────────────────────────────────────────────
 
-const PLANET_ORDER = [
+// The 13 bodies Human Design derives its mechanics from. Personality + Design
+// gives the 26 activations the bodygraph is built out of.
+export const HD_BODIES = [
   "Sun", "Earth", "Moon", "Mercury", "Venus", "Mars",
   "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto",
-  "NorthNode", "SouthNode", "Chiron",
+  "NorthNode", "SouthNode",
 ] as const;
+
+// Chiron is calculated and carried on the chart because the narrative's Abyss
+// section is written on it, but it is not part of Human Design. It must never
+// reach the derivation chain: a 14th body activates two extra gates, which
+// invents channels, which defines centres, which silently changes type and
+// authority. Read gates through mechanicalGates(), never off the raw list.
+const PLANET_ORDER = [...HD_BODIES, "Chiron"] as const;
+
+const HD_BODY_SET: ReadonlySet<string> = new Set(HD_BODIES);
 
 export function toActivations(lons: PlanetaryLongitudes): PlanetActivation[] {
   return PLANET_ORDER.map((planet) => {
     const { gate, line } = longitudeToGateLine(lons[planet as keyof PlanetaryLongitudes]);
     return { planet, gate, line };
   });
+}
+
+/** The gates that count toward channels, centres, type and authority. */
+export function mechanicalGates(activations: PlanetActivation[]): Set<number> {
+  return new Set(
+    activations.filter((a) => HD_BODY_SET.has(a.planet)).map((a) => a.gate),
+  );
+}
+
+/** The 26 HD activations, with any non-HD body (Chiron) filtered out. */
+export function hdActivations(activations: PlanetActivation[]): PlanetActivation[] {
+  return activations.filter((a) => HD_BODY_SET.has(a.planet));
 }
 
 // ── Channels & centers ────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import Base from "~/layouts/Base.astro";
 import { generateChart } from "~/lib/chart-engine/index.js";
 import type { Chart } from "~/lib/chart-engine/index.js";
 import { CHANNELS } from "~/lib/chart-engine/data.js";
+import { hdActivations } from "~/lib/chart-engine/derivation.js";
 import {
   CHANNEL_DESCRIPTIONS,
   TYPE_DESCRIPTIONS,
@@ -280,7 +281,7 @@ const profileName = chart ? (PROFILE_NAMES[chart.profile] ?? chart.profile) : ""
               <p class="text-[11px] font-bold uppercase tracking-widest text-[#c0392b] mb-3">
                 Unconscious (Design)
               </p>
-              {chart.designActivations.map((a) => (
+              {hdActivations(chart.designActivations).map((a) => (
                 <div class="flex items-baseline justify-between gap-3 py-1 border-b border-[#c0392b]/10 last:border-0">
                   <span class="text-[#c0392b]/85">{PLANET_LABELS[a.planet] ?? a.planet}</span>
                   <span class="font-mono font-semibold text-[#c0392b] tabular-nums">{a.gate}.{a.line}</span>
@@ -291,7 +292,7 @@ const profileName = chart ? (PROFILE_NAMES[chart.profile] ?? chart.profile) : ""
               <p class="text-[11px] font-bold uppercase tracking-widest text-[#111111]/65 mb-3">
                 Conscious (Personality)
               </p>
-              {chart.personalityActivations.map((a) => (
+              {hdActivations(chart.personalityActivations).map((a) => (
                 <div class="flex items-baseline justify-between gap-3 py-1 border-b border-black/10 last:border-0">
                   <span class="text-[#111111]/65">{PLANET_LABELS[a.planet] ?? a.planet}</span>
                   <span class="font-mono font-semibold text-[#111111] tabular-nums">{a.gate}.{a.line}</span>
