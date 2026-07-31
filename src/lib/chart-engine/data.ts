@@ -14,8 +14,11 @@ export const GATE_SIZE = 360 / 64; // 5.625°
 export const LINE_SIZE = GATE_SIZE / 6; // 0.9375°
 
 // ── Channel table ─────────────────────────────────────────────────────────────
-// 34 unique channels; each entry is [gateA, gateB, centerA, centerB, name].
-// The Integration channels (10-20, 20-34, 34-57, 10-57) are included.
+// All 36 unique channels; each entry is [gateA, gateB, centerA, centerB, name].
+// The Integration group is all six of 10-20, 10-34, 10-57, 20-34, 20-57, 34-57.
+// Keep this list complete: a channel missing here is invisible to the whole
+// derivation chain, so its centers read as undefined and type/authority come
+// out wrong.
 export const CHANNELS: readonly [number, number, CenterName, CenterName, string][] = [
   // Head ↔ Ajna
   [63,  4, "Head", "Ajna",        "Logic"],
@@ -32,6 +35,8 @@ export const CHANNELS: readonly [number, number, CenterName, CenterName, string]
   [20, 10, "Throat", "G",         "Awakening"],        // Integration
   // Throat ↔ Sacral
   [20, 34, "Throat", "Sacral",    "Charisma"],          // Integration
+  // Throat ↔ Spleen (Integration)
+  [20, 57, "Throat", "Spleen",    "Brainwave"],         // Integration
   // Throat ↔ Ego
   [45, 21, "Throat", "Ego",       "Money Line"],
   // Throat ↔ Solar Plexus
@@ -45,6 +50,8 @@ export const CHANNELS: readonly [number, number, CenterName, CenterName, string]
   [46, 29, "G", "Sacral",         "Discovery"],
   // G ↔ Ego
   [25, 51, "G", "Ego",            "Initiation"],
+  // G ↔ Sacral (Integration)
+  [10, 34, "G", "Sacral",         "Exploration"],      // Integration
   // G ↔ Spleen (Integration)
   [57, 10, "Spleen", "G",         "Perfected Form"],   // Integration
   // Sacral ↔ Root

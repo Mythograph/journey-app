@@ -41,6 +41,8 @@ export const CHANNEL_DESCRIPTIONS: Record<string, string> = {
   "35-36": "The jack-of-all-trades channel between Throat and Solar Plexus. You go through experiences quickly, learn what you came for, and move on. The gift is range, depth across surprising domains. The shadow is restlessness that never lets a thing finish, leaving a trail of half-built lives.",
 
   // Throat ↔ Spleen
+  "20-57": "An integration channel between Throat and Spleen. The knowing arrives in your body and comes out of your mouth in the same moment, before you have built a case for it. The gift is instinct that speaks in real time, often about something nobody else has clocked yet. The shadow is talking past the moment the knowing landed, or swallowing it because you can't explain how you know.",
+
   "16-48": "The talent-rehearsal channel between Throat and Spleen. You repeat your craft until depth arrives, audible to others. The gift is mastery through enthusiasm; people can hear how many hours you've put in. The shadow is performing before the depth has arrived, then losing the enthusiasm that was carrying you through the practice.",
 
   // G ↔ Sacral
@@ -54,6 +56,8 @@ export const CHANNEL_DESCRIPTIONS: Record<string, string> = {
   "25-51": "The shock channel between G and Ego. You wake people up, sometimes by accident, sometimes on purpose. The gift is courage that catalyses others; you walk through what they were avoiding. The shadow is provocation for its own sake, shock without follow-through.",
 
   // G ↔ Spleen (integration)
+  "10-34": "An integration channel between G and Sacral. Your energy shows up for what is actually yours and goes quiet for everything else, which is why being yourself is the whole job here. The gift is conviction with fuel behind it; you can sustain the thing you were built for long after other people have run out. The shadow is busyness that looks like purpose, all that power spent on work nobody asked you for and you never wanted.",
+
   "10-57": "An integration channel between G and Spleen. Survival lives in the body, faster than thought. The gift is instinct so reliable you stop questioning it, an embodied knowing that beats deliberation. The shadow is mistaking nervous-system signals for spiritual ones; the body protects, but it doesn't always know what's actually best for you long-term.",
 
   // Sacral ↔ Root

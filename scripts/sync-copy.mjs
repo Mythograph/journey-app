@@ -89,7 +89,14 @@ function rowsToObjects(rows) {
 
 // ── Validation + extraction ──────────────────────────────────────────────────
 
-function buildRecord(rows, keyCol, valueCol, expectedKeys, label) {
+// `optionalKeys: true` downgrades a missing key from a build failure to a
+// warning. Used for channel copy only: the channel list lives in data.ts and
+// drives chart derivation, so adding one there must never be able to fail a
+// deploy just because the sheet hasn't caught up. A channel with no copy
+// renders as "No preview copy yet." on /chart. Every other tab still fails
+// loudly, because a missing type/authority/profile string would render blank
+// in a place the reader always sees.
+function buildRecord(rows, keyCol, valueCol, expectedKeys, label, { optionalKeys = false } = {}) {
   const objs = rowsToObjects(rows);
   const out = {};
   for (const o of objs) {
@@ -102,10 +109,15 @@ function buildRecord(rows, keyCol, valueCol, expectedKeys, label) {
     }
     out[o[keyCol]] = o[valueCol];
   }
-  for (const k of expectedKeys) {
-    if (!(k in out)) {
-      throw new Error(`[sync-copy] ${label}: missing key "${k}"`);
+  const missing = expectedKeys.filter((k) => !(k in out));
+  if (missing.length) {
+    if (!optionalKeys) {
+      throw new Error(`[sync-copy] ${label}: missing key "${missing[0]}"`);
     }
+    console.warn(
+      `[sync-copy] ${label}: no copy in the sheet for ${missing.join(", ")}; ` +
+      `these will render as "No preview copy yet." Add a row per key to fix.`,
+    );
   }
   const extras = Object.keys(out).filter((k) => !expectedKeys.includes(k));
   if (extras.length) {
@@ -256,7 +268,7 @@ async function main() {
   ]);
 
   const data = {
-    channels: buildRecord(chRows, "key", "description", expectedChannels, "Channels"),
+    channels: buildRecord(chRows, "key", "description", expectedChannels, "Channels", { optionalKeys: true }),
     types: buildRecord(tyRows, "key", "description", TYPES, "Types"),
     authorities: buildRecord(auRows, "key", "description", AUTHORITIES, "Authorities"),
     profileNames: buildRecord(prRows, "key", "name", PROFILES, "Profiles (name)"),
