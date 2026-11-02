@@ -86,6 +86,18 @@ function chironLongitude(date: Date): number {
   return normLon(toDeg(Math.atan2(dy, dx)));
 }
 
+// The true (osculating) North Node: the ascending node of the Moon's actual
+// orbit at this instant, from its position and velocity in the ecliptic of
+// date. Human Design charts use the true node; the mean node used before
+// 2 Nov 2026 drifted up to about 1.5 degrees from it, enough to move a node
+// into the next gate. Matches the Story Loom birth web (src/lib/chart/sky.ts).
+function trueNode(date: Date): number {
+  const st = Astronomy.RotateState(Astronomy.Rotation_EQJ_ECT(date), Astronomy.GeoMoonState(date));
+  const hx = st.y * st.vz - st.z * st.vy;
+  const hy = st.z * st.vx - st.x * st.vz;
+  return normLon(toDeg(Math.atan2(hx, -hy)));
+}
+
 function eclipticLon(body: Astronomy.Body, date: Date): number {
   const vec = Astronomy.GeoVector(body, date, true);
   const ecl = Astronomy.Ecliptic(vec);
@@ -96,24 +108,7 @@ export function getPlanetaryLongitudes(date: Date): PlanetaryLongitudes {
   const sunLon = eclipticLon(Astronomy.Body.Sun, date);
   const moonLon = eclipticLon(Astronomy.Body.Moon, date);
 
-  // North Node via MoonNode search — use the ecliptic longitude of
-  // the ascending node as approximated by the Moon's Ecliptic.
-  // astronomy-engine exposes SearchMoonNode; we approximate with
-  // direct computation of the Moon's node.
-  let northNodeLon = 0;
-  try {
-    const mn = Astronomy.GeoMoon(date);
-    // The ecliptic position of the ascending node is not directly exposed;
-    // we use a solar system barycentric shortcut via the Moon's ecliptic lon.
-    // True node longitude decreases ~19.3°/year. Approximate from known epoch:
-    // Mean ascending node at J2000 = 125.044° (decreasing).
-    const jd = Astronomy.MakeTime(date).ut + 2451545.0;
-    const T = (jd - 2451545.0) / 36525.0;
-    northNodeLon = normLon(125.044555 - 1934.136 * T);
-    void mn; // silence unused warning
-  } catch {
-    northNodeLon = 0;
-  }
+  const northNodeLon = trueNode(date);
 
   return {
     Sun:       sunLon,
