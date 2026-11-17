@@ -123,12 +123,12 @@ const tracker = (): string => {
 };
 
 // Parse the text into chapters.
-interface Chapter { key: string; title: string; part: string; term: string; whatIs: string; voice: string[]; prompt: string; detail: string[]; note: string }
+interface Chapter { key: string; title: string; part: string; term: string; tab: string; whatIs: string; voice: string[]; prompt: string; detail: string[]; note: string }
 const chapters: Chapter[] = [];
 for (const b of text.split(/\n\n+/)) {
   const line = b.trim();
   const meta = LIFE_QUESTIONS_SECTIONS.find(s => line === s.key || line.startsWith(s.key + " "));
-  if (meta) { chapters.push({ key: meta.key, title: meta.title, part: meta.part, term: meta.term ?? "", whatIs: "", voice: [], prompt: "", detail: [], note: "" }); continue; }
+  if (meta) { chapters.push({ key: meta.key, title: meta.title, part: meta.part, term: meta.term ?? "", tab: meta.tab ?? meta.title, whatIs: "", voice: [], prompt: "", detail: [], note: "" }); continue; }
   const ch = chapters[chapters.length - 1];
   if (!ch) continue;
   if (line.startsWith(NOTE_MARKER)) { ch.note = line.slice(NOTE_MARKER.length); continue; }
@@ -181,8 +181,17 @@ chapters.forEach((ch, i) => {
     const body = ch.note.endsWith(" " + STORY_LOOM_NOTE.signature) ? ch.note.slice(0, -STORY_LOOM_NOTE.signature.length - 1) : ch.note;
     extra += `<aside class="note"><p class="label">A note from ${esc(STORY_LOOM_NOTE.signature)}</p><p>${esc(body)}</p><p class="sig">${esc(STORY_LOOM_NOTE.signature)}</p><a class="note-link" href="${esc(STORY_LOOM_NOTE.url)}">${esc(STORY_LOOM_NOTE.linkText)} →</a></aside>`;
   }
-  html += `<article class="chapter${hasChart ? "" : " solo"}"><div class="voice"><p class="num">${roman(i + 1)}${ch.term ? `<span class="term"> · ${esc(ch.term)}</span>` : ""}</p><h2>${esc(ch.title)}</h2>${ch.whatIs ? `<div class="whatis"><p class="label">What this is</p><p>${esc(ch.whatIs)}</p></div>` : ""}${voice}${prompt}${extra}</div>${chart}</article>`;
+  html += `<article class="chapter${hasChart ? "" : " solo"}" id="ch-${i + 1}"><div class="voice"><p class="num">${roman(i + 1)}${ch.term ? `<span class="term"> · ${esc(ch.term)}</span>` : ""}</p><h2>${esc(ch.title)}</h2>${ch.whatIs ? `<div class="whatis"><p class="label">What this is</p><p>${esc(ch.whatIs)}</p></div>` : ""}${voice}${prompt}${extra}</div>${chart}</article>`;
 });
+
+// Table of contents strip: sticky, grouped by part, highlights the chapter in view.
+const tocParts: { part: string; items: string[] }[] = [];
+chapters.forEach((ch, i) => {
+  let g = tocParts[tocParts.length - 1];
+  if (!g || g.part !== ch.part) { g = { part: ch.part, items: [] }; tocParts.push(g); }
+  g.items.push(`<a href="#ch-${i + 1}" data-ch="ch-${i + 1}" title="${esc(ch.title)}"><span class="tn">${roman(i + 1)}</span>${esc(ch.tab)}</a>`);
+});
+const toc = `<nav class="toc" aria-label="Chapters"><div class="toc-track">${tocParts.map(g => `<div class="toc-group"><span class="toc-part">${esc(g.part)}</span><div class="toc-items">${g.items.join("")}</div></div>`).join("")}</div></nav>`;
 
 const primer = `<details class="primer"><summary>New to Human Design and Gene Keys?<small>Start here · about 5 minutes</small></summary><div class="cards">${
   buildPrimerCards(profile).map(c => `<section class="card${c.showChart ? " wide" : ""}"><h3>${esc(c.title)}</h3><p>${esc(c.body)}</p>${c.showChart ? `<figure class="graph">${bodygraph(undefined, true)}</figure>` : ""}</section>`).join("")
@@ -316,6 +325,19 @@ figcaption{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top
 .note .sig{font-family:"Playfair Display",serif;font-style:italic;font-size:1.4rem;margin:.6em 0 .9em}
 .note-link{display:inline-block;font-family:"DM Sans",sans-serif;font-size:.88rem;font-weight:500;color:#fff;background:var(--terra);border-radius:999px;padding:10px 18px;text-decoration:none}
 .note-link:hover{background:#a84a2f}
+.toc{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);margin:0 -16px;padding:0 16px}
+.toc-track{display:flex;gap:22px;overflow-x:auto;scrollbar-width:none;padding:10px 0 8px;scroll-behavior:smooth}
+.toc-track::-webkit-scrollbar{display:none}
+.toc-group{flex:none;display:flex;flex-direction:column;gap:4px}
+.toc-part{font-family:"DM Sans",sans-serif;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);white-space:nowrap}
+.toc-items{display:flex;gap:6px}
+.toc a{flex:none;display:inline-flex;align-items:center;gap:6px;font-family:"DM Sans",sans-serif;font-size:.8rem;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:5px 11px;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+.toc a:hover{border-color:var(--gold);color:var(--ink)}
+.toc a .tn{font-family:"Playfair Display",serif;font-size:.72rem;color:var(--terra)}
+.toc a.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.toc a.on .tn{color:var(--gold)}
+.chapter{scroll-margin-top:72px}
+@media print{.toc{display:none}}
 .chip.both i{background:linear-gradient(90deg,#111 50%,#c0392b 50%)}
 .primer{margin:40px auto 0;max-width:1180px}
 .primer>summary{cursor:pointer;list-style:none;text-align:center;font-family:"Playfair Display",serif;font-style:italic;font-size:clamp(1.3rem,3vw,1.7rem);padding:22px 16px;border:1px solid var(--gold);border-radius:999px;max-width:560px;margin:0 auto}
@@ -336,6 +358,7 @@ figcaption{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top
   .solo{grid-template-columns:1fr;min-height:auto}
 }
 </style></head><body><div class="wrap">
+${toc}
 <section class="cover"><p>Mythograph</p><h1>My Human Design Journey</h1><p>Life Questions prototype · 4/1 Emotional Manifestor</p></section>
 ${primer}
 ${html}
@@ -347,6 +370,7 @@ function saveTracker(){var st={};document.querySelectorAll("#tracker [data-k]").
 function updateProgress(){var n=document.querySelectorAll('#tracker input[type="checkbox"]:checked').length;var p=document.querySelector("#tracker [data-progress]");if(p)p.textContent=n;}
 function initTracker(){var st=trackerState();document.querySelectorAll("#tracker [data-k]").forEach(function(el){var v=st[el.dataset.k];if(v!==undefined){if(el.type==="checkbox")el.checked=!!v;else el.value=v;}el.addEventListener(el.tagName==="TEXTAREA"||el.type==="number"||el.type==="date"?"input":"change",saveTracker);});updateProgress();}
 document.addEventListener("DOMContentLoaded",initTracker);
+document.addEventListener("DOMContentLoaded",function(){try{var links={};document.querySelectorAll(".toc a[data-ch]").forEach(function(a){links[a.dataset.ch]=a;});var current=null;var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){var a=links[e.target.id];if(a&&a!==current){if(current)current.classList.remove("on");a.classList.add("on");current=a;var tr=a.closest(".toc-track");if(tr){var l=a.offsetLeft-tr.clientWidth/2+a.clientWidth/2;tr.scrollTo({left:l,behavior:"smooth"});}}}});},{rootMargin:"-40% 0px -55% 0px"});document.querySelectorAll("article.chapter[id]").forEach(function(el){io.observe(el);});}catch(e){}});
 function printTracker(){var h=document.documentElement;var src=document.getElementById("tracker");if(!src)return;var root=document.createElement("div");root.id="print-root";var copy=src.cloneNode(true);var a=src.querySelectorAll("[data-k]"),b=copy.querySelectorAll("[data-k]");a.forEach(function(el,i){if(el.type==="checkbox")b[i].checked=el.checked;else b[i].value=el.value;});copy.removeAttribute("id");root.appendChild(copy);document.body.appendChild(root);h.classList.add("print-tracker");var done=function(){h.classList.remove("print-tracker");root.remove();window.removeEventListener("afterprint",done);};window.addEventListener("afterprint",done);window.print();}
 (function(){try{var wide=window.matchMedia("(min-width:960px)");var set=function(){document.querySelectorAll("details.chart").forEach(function(d){if(wide.matches)d.open=true;});};set();wide.addEventListener("change",set);}catch(e){}})();
 </script>

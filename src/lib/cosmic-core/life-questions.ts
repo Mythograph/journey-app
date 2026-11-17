@@ -73,6 +73,7 @@ export interface LifeQuestionSection {
   title: string;    // reader-facing title
   part: string;     // which of the four parts it belongs to
   term?: string;    // the Human Design term this chapter teaches, shown as a kicker
+  tab?: string;     // short label for the table-of-contents strip
 }
 
 export const LIFE_QUESTIONS_PARTS = [
@@ -85,28 +86,28 @@ export const LIFE_QUESTIONS_PARTS = [
 ] as const;
 
 export const LIFE_QUESTIONS_SECTIONS: LifeQuestionSection[] = [
-  { key: "WHO I AM",                          title: "What matters most",                            part: "At a Glance", term: "Your design in brief" },
-  { key: "WHAT KIND OF ENERGY DO I HAVE",     title: "What kind of energy do I have?",               part: "How I'm Built", term: "Energy type" },
-  { key: "WHAT ROLE AM I HERE TO PLAY",       title: "What role am I here to play?",                 part: "How I'm Built", term: "Profile" },
-  { key: "WHERE IS MY ENERGY STEADY",         title: "Where is my energy steady, and where do I borrow it?", part: "How I'm Built", term: "Defined and open centers" },
-  { key: "HOW DO I MOVE",                     title: "How do I move through the world?",             part: "How I'm Built", term: "Strategy" },
-  { key: "HOW DO I KNOW WHAT IS RIGHT",       title: "How do I know what's right for me?",           part: "How I'm Built", term: "Authority" },
-  { key: "WHAT DID I START OUT CARRYING",     title: "What did I start out carrying?",               part: "Where I've Been", term: "South Node · Uranus · Pluto" },
-  { key: "WHAT KEEPS TESTING ME",             title: "What keeps testing me?",                       part: "Where I've Been", term: "Saturn · Jupiter" },
-  { key: "WHERE AM I MOST TENDER",            title: "Where am I most tender?",                      part: "Where I've Been", term: "Chiron · Mars" },
-  { key: "WHAT KEEPS ME GOING",               title: "What keeps me going?",                         part: "Where I've Been", term: "Moon" },
-  { key: "WHAT IS MY LIFE ABOUT",             title: "What is my life about?",                       part: "What I'm Here For", term: "Sun · Earth · Incarnation cross" },
-  { key: "HOW DOES WHAT I CARRY COME OUT",    title: "How does what I carry come out?",              part: "What I'm Here For", term: "Mercury · Venus" },
-  { key: "WHERE IS MY LIFE PULLING ME",       title: "Where is my life pulling me?",                 part: "What I'm Here For", term: "North Node · Neptune" },
-  { key: "AM I MADE FOR THIS MOMENT?",        title: "Am I made for this moment?",                   part: "Where I Belong" },
-  { key: "WHAT IS MY GENIUS",                 title: "What is my genius?",                           part: "Where I Belong", term: "Gene Keys · Activation Sequence" },
-  { key: "HOW DO I LOVE AND CONNECT",         title: "How do I love and connect?",                   part: "Where I Belong", term: "Gene Keys · Venus Sequence" },
-  { key: "WHAT DO I OFFER THE WORLD",         title: "What do I offer the world?",                   part: "Where I Belong", term: "Gene Keys · Pearl Sequence" },
-  { key: "WHERE AM I NOW",                    title: "Where am I now?",                              part: "Writing It Forward", term: "Step 1 of 5 · 10 minutes" },
-  { key: "WHAT TRIES TO STOP ME",             title: "What tries to stop me?",                       part: "Writing It Forward", term: "Step 2 of 5 · 10 minutes" },
-  { key: "WHAT IS MY EXPERIMENT",             title: "What's my experiment?",                        part: "Writing It Forward", term: "Step 3 of 5 · four weeks" },
-  { key: "WHAT IS MY FIRST STEP",             title: "What's my first step?",                        part: "Writing It Forward", term: "Step 4 of 5 · this week" },
-  { key: "WHAT SENTENCE WILL I CARRY",        title: "What sentence will I carry?",                  part: "Writing It Forward", term: "Step 5 of 5 · 5 minutes" },
+  { key: "WHO I AM",                          title: "What matters most",                            part: "At a Glance", term: "Your design in brief" , tab: "At a glance" },
+  { key: "WHAT KIND OF ENERGY DO I HAVE",     title: "What kind of energy do I have?",               part: "How I'm Built", term: "Energy type" , tab: "Energy type" },
+  { key: "WHAT ROLE AM I HERE TO PLAY",       title: "What role am I here to play?",                 part: "How I'm Built", term: "Profile" , tab: "Profile" },
+  { key: "WHERE IS MY ENERGY STEADY",         title: "Where is my energy steady, and where do I borrow it?", part: "How I'm Built", term: "Defined and open centers" , tab: "Centers" },
+  { key: "HOW DO I MOVE",                     title: "How do I move through the world?",             part: "How I'm Built", term: "Strategy" , tab: "Strategy" },
+  { key: "HOW DO I KNOW WHAT IS RIGHT",       title: "How do I know what's right for me?",           part: "How I'm Built", term: "Authority" , tab: "Authority" },
+  { key: "WHAT DID I START OUT CARRYING",     title: "What did I start out carrying?",               part: "Where I've Been", term: "South Node · Uranus · Pluto" , tab: "Early life" },
+  { key: "WHAT KEEPS TESTING ME",             title: "What keeps testing me?",                       part: "Where I've Been", term: "Saturn · Jupiter" , tab: "Life's tests" },
+  { key: "WHERE AM I MOST TENDER",            title: "Where am I most tender?",                      part: "Where I've Been", term: "Chiron · Mars" , tab: "Tender places" },
+  { key: "WHAT KEEPS ME GOING",               title: "What keeps me going?",                         part: "Where I've Been", term: "Moon" , tab: "What fuels me" },
+  { key: "WHAT IS MY LIFE ABOUT",             title: "What is my life about?",                       part: "What I'm Here For", term: "Sun · Earth · Incarnation cross" , tab: "Life purpose" },
+  { key: "HOW DOES WHAT I CARRY COME OUT",    title: "How does what I carry come out?",              part: "What I'm Here For", term: "Mercury · Venus" , tab: "Voice and values" },
+  { key: "WHERE IS MY LIFE PULLING ME",       title: "Where is my life pulling me?",                 part: "What I'm Here For", term: "North Node · Neptune" , tab: "Where I'm headed" },
+  { key: "AM I MADE FOR THIS MOMENT?",        title: "Am I made for this moment?",                   part: "Where I Belong" , tab: "This moment" },
+  { key: "WHAT IS MY GENIUS",                 title: "What is my genius?",                           part: "Where I Belong", term: "Gene Keys · Activation Sequence" , tab: "Genius" },
+  { key: "HOW DO I LOVE AND CONNECT",         title: "How do I love and connect?",                   part: "Where I Belong", term: "Gene Keys · Venus Sequence" , tab: "Heart" },
+  { key: "WHAT DO I OFFER THE WORLD",         title: "What do I offer the world?",                   part: "Where I Belong", term: "Gene Keys · Pearl Sequence" , tab: "Contribution" },
+  { key: "WHERE AM I NOW",                    title: "Where am I now?",                              part: "Writing It Forward", term: "Step 1 of 5 · 10 minutes" , tab: "Where I am" },
+  { key: "WHAT TRIES TO STOP ME",             title: "What tries to stop me?",                       part: "Writing It Forward", term: "Step 2 of 5 · 10 minutes" , tab: "What stops me" },
+  { key: "WHAT IS MY EXPERIMENT",             title: "What's my experiment?",                        part: "Writing It Forward", term: "Step 3 of 5 · four weeks" , tab: "My experiment" },
+  { key: "WHAT IS MY FIRST STEP",             title: "What's my first step?",                        part: "Writing It Forward", term: "Step 4 of 5 · this week" , tab: "First step" },
+  { key: "WHAT SENTENCE WILL I CARRY",        title: "What sentence will I carry?",                  part: "Writing It Forward", term: "Step 5 of 5 · 5 minutes" , tab: "My sentence" },
 ];
 
 // ─── Static copy ──────────────────────────────────────────────────────────────
