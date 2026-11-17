@@ -8,6 +8,7 @@ import {
   buildLifeQuestionsNarrative,
   normalizeGrammar,
   REFLECTION_MARKER,
+  DETAIL_MARKER,
   LIFE_QUESTIONS_SECTIONS,
   LIFE_QUESTIONS_PARTS,
 } from "../src/lib/cosmic-core/index.js";
@@ -24,6 +25,8 @@ const BANNED = /\b(vibration|manifestation|resonance|authentic self|awakening|fr
 const report: string[] = [];
 const words = text.split(/\s+/).length;
 report.push(`words: ${words}`);
+const visible = text.split(/\n\n+/).filter(b => !b.startsWith(DETAIL_MARKER)).join(" ").split(/\s+/).length;
+report.push(`visible words (short layer + prompts + recap + closing): ${visible}`);
 const banned = text.match(BANNED) ?? [];
 report.push(`banned words: ${banned.length ? banned.join(", ") : "none"}`);
 const prose = text.split("\n").filter(l => !/^[A-Z][A-Z ?'—-]+$/.test(l.trim()));
@@ -40,8 +43,16 @@ const blocks = text.split(/\n\n+/);
 let html = "";
 let curPart = "";
 let idx = 0;
+let detail: string[] = [];
+const flush = () => {
+  if (!detail.length) return;
+  html += `<details><summary>In my chart</summary>${detail.map(d => `<p>${esc(d)}</p>`).join("")}</details>`;
+  detail = [];
+};
 for (const b of blocks) {
   const line = b.trim();
+  if (line.startsWith(DETAIL_MARKER)) { detail.push(line.slice(DETAIL_MARKER.length).replace(/\n/g, " ")); continue; }
+  flush();
   const meta = LIFE_QUESTIONS_SECTIONS.find(s => line === s.key || line.startsWith(s.key + " "));
   if (meta) {
     if (meta.part !== curPart) {
@@ -58,6 +69,7 @@ for (const b of blocks) {
     html += `<p>${esc(line.replace(/\n/g, " "))}</p>`;
   }
 }
+flush();
 html += "</section>";
 
 const page = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -76,6 +88,10 @@ h2{font-size:1.45rem;margin:2.4em 0 .8em;line-height:1.25}
 aside{background:var(--card);border-left:3px solid var(--gold);padding:14px 18px;margin:1.6em 0;border-radius:4px}
 aside .label{font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin:0 0 .4em}
 aside p{margin:0}
+details{margin:1.2em 0 2em;border-top:1px dashed var(--gold);padding-top:10px;color:var(--muted)}
+summary{cursor:pointer;color:var(--terra);font-size:.85rem;letter-spacing:.15em;text-transform:uppercase;padding:6px 0}
+details[open] summary{margin-bottom:.6em}
+details p{font-size:.95rem}
 </style></head><body><main>
 <div class="cover"><h1>My Human Design Journey</h1><p>Life Questions prototype · sample chart: 4/1 Emotional Manifestor</p></div>
 ${html}
