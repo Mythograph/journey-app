@@ -95,8 +95,12 @@ into a shared package that **both** journey-app and the Story Loom app depend on
   sequences as structured views: one chapter per sequence, drawn as a map).
   The reading opens with a "What matters most" summary and closes with five
   "Writing It Forward" steps built around a personalized four-week experiment
-  (strategy, authority and not-self practices). The live engine's closing
-  module in `narrative.ts` is unchanged. Preview with
+  (strategy, authority and not-self practices; `experimentPractices()` also
+  feeds a printable two-page tracker). An optional signed closing note
+  (`options.closingNote`) bridges to Story Loom; its copy lives in the app
+  layer at `src/lib/story-loom-bridge.ts`, never in cosmic-core (the URL there
+  is a placeholder to confirm). The live engine's closing module in
+  `narrative.ts` is unchanged. Preview with
   `npx tsx scripts/prototype-life-questions.ts <out-dir>`.
 
 Three naming systems coexist per gate by design: HD traditional name, Mythograph

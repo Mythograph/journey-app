@@ -9,6 +9,7 @@ import {
   normalizeGrammar,
   REFLECTION_MARKER,
   DETAIL_MARKER,
+  NOTE_MARKER,
   WHATIS_MARKER,
   LIFE_QUESTIONS_SECTIONS,
   LIFE_QUESTIONS_PARTS,
@@ -16,16 +17,18 @@ import {
   lifeQuestionsFocus,
   buildPrimerCards,
   villageViews,
+  experimentPractices,
   toSecondPerson,
 } from "../src/lib/cosmic-core/index.js";
 import { renderBodygraph } from "../src/lib/chart-engine/render.js";
+import { STORY_LOOM_NOTE } from "../src/lib/story-loom-bridge.js";
 import type { CenterName } from "../src/lib/chart-engine/types.js";
 import { activations, profile, geneKeys } from "./fixtures/sample-manifestor-41.js";
 
 const outDir = process.argv[2] ?? "out";
 mkdirSync(outDir, { recursive: true });
 
-const text = normalizeGrammar(buildLifeQuestionsNarrative({ profile, geneKeys, activations }));
+const text = normalizeGrammar(buildLifeQuestionsNarrative({ profile, geneKeys, activations }, { closingNote: STORY_LOOM_NOTE }));
 writeFileSync(join(outDir, "life-questions.txt"), text);
 
 // ── Voice audit ──────────────────────────────────────────────────────────────
@@ -90,15 +93,39 @@ const sequenceMap = (key: string): string => {
   }).join("")}</div>`;
 };
 
+// Printable four-week experiment tracker (two pages when printed).
+const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
+const tracker = (): string => {
+  const practices = experimentPractices(profile);
+  const grid = (mode: "check" | "tally") => `<table class="grid"><thead><tr><th></th>${DAYS.map(d => `<th>${d}</th>`).join("")}</tr></thead><tbody>${
+    [1, 2, 3, 4].map(w => `<tr><th>Week ${w}</th>${DAYS.map(() => `<td><span class="${mode === "check" ? "box" : "tally"}"></span></td>`).join("")}</tr>`).join("")
+  }</tbody></table>`;
+  const lines = (n: number) => `<div class="lines">${"<span></span>".repeat(n)}</div>`;
+  return `<section class="tracker" id="tracker">
+  <div class="tracker-bar"><div><p class="label">Your four-week tracker</p><p class="tracker-sub">Print it, keep it somewhere you'll see it, and check in each day.</p></div><button type="button" onclick="printTracker()">Print my tracker</button></div>
+  <div class="tracker-page">
+    <header class="tp-head"><p class="tp-brand">Mythograph · My Human Design Journey</p><h3>My Four-Week Experiment</h3><p class="tp-meta">Started on <span class="fill"></span> &nbsp; Finishes on <span class="fill"></span></p></header>
+    <div class="tp-expect"><p class="tp-label">What I expect to notice</p>${lines(3)}</div>
+    ${practices.map((pr, i) => `<div class="tp-practice"><div class="tp-ph"><span class="tp-num">${i + 1}</span><div><p class="tp-title">${esc(pr.title)}</p><p class="tp-detail">${esc(pr.detail)}</p><p class="tp-how">${pr.mode === "check" ? "Check off each day I practice it." : "Make a mark each time it shows up."}</p></div></div>${grid(pr.mode)}</div>`).join("")}
+  </div>
+  <div class="tracker-page tp-second">
+    <header class="tp-head"><h3>Weekly check-ins</h3><p class="tp-meta">Five minutes at the end of each week.</p></header>
+    ${[1, 2, 3, 4].map(w => `<div class="tp-week"><p class="tp-label">Week ${w} · What I noticed, and what I'll adjust</p>${lines(3)}</div>`).join("")}
+    <div class="tp-week tp-final"><p class="tp-label">After four weeks · What changed?</p>${lines(5)}</div>
+  </div>
+</section>`;
+};
+
 // Parse the text into chapters.
-interface Chapter { key: string; title: string; part: string; term: string; whatIs: string; voice: string[]; prompt: string; detail: string[] }
+interface Chapter { key: string; title: string; part: string; term: string; whatIs: string; voice: string[]; prompt: string; detail: string[]; note: string }
 const chapters: Chapter[] = [];
 for (const b of text.split(/\n\n+/)) {
   const line = b.trim();
   const meta = LIFE_QUESTIONS_SECTIONS.find(s => line === s.key || line.startsWith(s.key + " "));
-  if (meta) { chapters.push({ key: meta.key, title: meta.title, part: meta.part, term: meta.term ?? "", whatIs: "", voice: [], prompt: "", detail: [] }); continue; }
+  if (meta) { chapters.push({ key: meta.key, title: meta.title, part: meta.part, term: meta.term ?? "", whatIs: "", voice: [], prompt: "", detail: [], note: "" }); continue; }
   const ch = chapters[chapters.length - 1];
   if (!ch) continue;
+  if (line.startsWith(NOTE_MARKER)) { ch.note = line.slice(NOTE_MARKER.length); continue; }
   if (line.startsWith(WHATIS_MARKER)) { ch.whatIs = line.slice(WHATIS_MARKER.length).replace(/\n/g, " "); continue; }
   if (line.startsWith(DETAIL_MARKER)) ch.detail.push(line.slice(DETAIL_MARKER.length).replace(/\n/g, " "));
   else if (line.startsWith(REFLECTION_MARKER)) ch.prompt = line.slice(REFLECTION_MARKER.length);
@@ -143,7 +170,12 @@ chapters.forEach((ch, i) => {
     const inner = SEQ_KEYS[ch.key] ? sequenceMap(SEQ_KEYS[ch.key]) : `${graph}${ch.detail.map(d => `<p>${esc(d)}</p>`).join("")}`;
     chart = `<details class="chart"><summary>What your chart shows</summary>${inner}</details>`;
   }
-  html += `<article class="chapter${hasChart ? "" : " solo"}"><div class="voice"><p class="num">${roman(i + 1)}${ch.term ? `<span class="term"> · ${esc(ch.term)}</span>` : ""}</p><h2>${esc(ch.title)}</h2>${ch.whatIs ? `<div class="whatis"><p class="label">What this is</p><p>${esc(ch.whatIs)}</p></div>` : ""}${voice}${prompt}</div>${chart}</article>`;
+  let extra = ch.key === "WHAT IS MY EXPERIMENT" ? tracker() : "";
+  if (ch.note) {
+    const body = ch.note.endsWith(" " + STORY_LOOM_NOTE.signature) ? ch.note.slice(0, -STORY_LOOM_NOTE.signature.length - 1) : ch.note;
+    extra += `<aside class="note"><p class="label">A note from ${esc(STORY_LOOM_NOTE.signature)}</p><p>${esc(body)}</p><p class="sig">${esc(STORY_LOOM_NOTE.signature)}</p><a class="note-link" href="${esc(STORY_LOOM_NOTE.url)}">${esc(STORY_LOOM_NOTE.linkText)} →</a></aside>`;
+  }
+  html += `<article class="chapter${hasChart ? "" : " solo"}"><div class="voice"><p class="num">${roman(i + 1)}${ch.term ? `<span class="term"> · ${esc(ch.term)}</span>` : ""}</p><h2>${esc(ch.title)}</h2>${ch.whatIs ? `<div class="whatis"><p class="label">What this is</p><p>${esc(ch.whatIs)}</p></div>` : ""}${voice}${prompt}${extra}</div>${chart}</article>`;
 });
 
 const primer = `<details class="primer"><summary>New to Human Design and Gene Keys?<small>Start here · about 5 minutes</small></summary><div class="cards">${
@@ -217,6 +249,50 @@ figcaption{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top
 .practice strong{font-weight:500}
 .glance{font-size:1.12rem;line-height:1.55;margin:0 0 1em;padding-bottom:1em;border-bottom:1px solid var(--line)}
 .glance span{display:block;font-family:"DM Sans",sans-serif;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:.3em}
+.tracker{margin-top:28px;border:1px solid var(--gold);border-radius:12px;overflow:hidden;background:#fffdf8;color:#1a1410}
+.tracker-bar{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 20px;background:var(--panel);flex-wrap:wrap}
+.tracker-bar .label{font-family:"DM Sans",sans-serif;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin:0}
+.tracker-sub{margin:.2em 0 0;font-size:.95rem;color:var(--muted)}
+.tracker button{font-family:"DM Sans",sans-serif;font-size:.85rem;font-weight:500;letter-spacing:.04em;color:#fff;background:var(--terra);border:none;border-radius:999px;padding:10px 18px;cursor:pointer}
+.tracker button:hover{background:#a84a2f}
+.tracker-page{padding:22px 22px 8px;font-family:"DM Sans",sans-serif}
+.tp-second{border-top:1px dashed var(--gold)}
+.tp-head h3{font-family:"Playfair Display",serif;font-size:1.6rem;margin:.1em 0 .2em}
+.tp-brand{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:#9c8762;margin:0}
+.tp-meta{font-size:.85rem;color:#6b625a;margin:0 0 14px}
+.fill{display:inline-block;width:120px;border-bottom:1px solid #b39a6b}
+.tp-label{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:#c05a3c;margin:0 0 6px}
+.lines span{display:block;height:26px;border-bottom:1px solid #d8ccb4}
+.tp-expect{margin-bottom:18px}
+.tp-practice{margin:0 0 18px;break-inside:avoid}
+.tp-ph{display:flex;gap:12px;align-items:flex-start;margin-bottom:8px}
+.tp-num{flex:none;width:26px;height:26px;border-radius:50%;background:#c05a3c;color:#fff;font-family:"Playfair Display",serif;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.tp-title{font-family:"Fraunces",serif;font-weight:500;font-size:1.05rem;margin:0}
+.tp-detail{font-size:.85rem;color:#5f574f;margin:.1em 0 0;line-height:1.45}
+.tp-how{font-size:.72rem;color:#9c8762;margin:.25em 0 0;font-style:italic}
+.grid{width:100%;border-collapse:collapse;font-size:.75rem}
+.grid th{font-weight:500;color:#9c8762;padding:3px 0;text-align:center}
+.grid tbody th{text-align:left;white-space:nowrap;padding-right:8px;width:62px}
+.grid td{text-align:center;padding:4px 0;border-top:1px solid #efe7d6}
+.box{display:inline-block;width:16px;height:16px;border:1.5px solid #b39a6b;border-radius:4px}
+.tally{display:inline-block;width:28px;height:16px;border-bottom:1.5px solid #b39a6b}
+.tp-week{margin:0 0 16px;break-inside:avoid}
+@media print{
+  @page{size:letter;margin:0.55in}
+  html.print-tracker body>*:not(#print-root){display:none!important}
+  html.print-tracker body{background:#fff}
+  #print-root .tracker{border:none;margin:0;background:#fff}
+  #print-root .tracker-bar{display:none}
+  #print-root .tracker-page{padding:0}
+  #print-root .tp-second{border-top:none;break-before:page;page-break-before:always}
+  .box,.tp-num{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+.note{margin-top:40px;padding:26px 28px;border-top:3px solid var(--gold);background:var(--panel);border-radius:4px 4px 12px 12px}
+.note .label{font-family:"DM Sans",sans-serif;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin:0 0 .6em}
+.note p{font-size:1.08rem;line-height:1.65;margin:0}
+.note .sig{font-family:"Playfair Display",serif;font-style:italic;font-size:1.4rem;margin:.6em 0 .9em}
+.note-link{display:inline-block;font-family:"DM Sans",sans-serif;font-size:.88rem;font-weight:500;color:#fff;background:var(--terra);border-radius:999px;padding:10px 18px;text-decoration:none}
+.note-link:hover{background:#a84a2f}
 .chip.both i{background:linear-gradient(90deg,#111 50%,#c0392b 50%)}
 .primer{margin:40px auto 0;max-width:1180px}
 .primer>summary{cursor:pointer;list-style:none;text-align:center;font-family:"Playfair Display",serif;font-style:italic;font-size:clamp(1.3rem,3vw,1.7rem);padding:22px 16px;border:1px solid var(--gold);border-radius:999px;max-width:560px;margin:0 auto}
@@ -242,6 +318,7 @@ ${primer}
 ${html}
 </div>
 <script>
+function printTracker(){var h=document.documentElement;var src=document.getElementById("tracker");if(!src)return;var root=document.createElement("div");root.id="print-root";root.appendChild(src.cloneNode(true));document.body.appendChild(root);h.classList.add("print-tracker");var done=function(){h.classList.remove("print-tracker");root.remove();window.removeEventListener("afterprint",done);};window.addEventListener("afterprint",done);window.print();}
 (function(){try{var wide=window.matchMedia("(min-width:960px)");var set=function(){document.querySelectorAll("details.chart").forEach(function(d){if(wide.matches)d.open=true;});};set();wide.addEventListener("change",set);}catch(e){}})();
 </script>
 </body></html>`;

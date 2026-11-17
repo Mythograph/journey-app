@@ -887,6 +887,8 @@ function recap(p: HumanDesignProfile): string {
 
 export const DETAIL_MARKER = "◇ ";
 export const WHATIS_MARKER = "ⓘ ";
+/** A closing note from the author, set apart from the reader's own voice. */
+export const NOTE_MARKER = "❦ ";
 
 const TYPE_ESSENCE: Record<HdTypeName, string> = {
   "Manifestor": "I'm here to start things. My energy moves in bursts, on my own timing, without waiting for anyone's permission.",
@@ -1322,6 +1324,30 @@ const NOT_SELF_PRACTICE: Record<HdTypeName, string> = {
   "Reflector": "Track my disappointment. When it shows up, I note where I rushed, or where I am and who I'm with.",
 };
 
+export interface ExperimentPractice {
+  /** Short imperative title, e.g. "Inform before I act." */
+  title: string;
+  /** The rest of the practice, first person. */
+  detail: string;
+  /** "check" = tick each day it's done; "tally" = mark each time it shows up. */
+  mode: "check" | "tally";
+}
+
+function splitPractice(text: string, mode: ExperimentPractice["mode"]): ExperimentPractice {
+  const [title, ...rest] = text.split(/(?<=\.) /);
+  return { title, detail: rest.join(" "), mode };
+}
+
+/** The three practices of the four-week experiment, from strategy, authority and not-self signal. */
+export function experimentPractices(p: HumanDesignProfile): ExperimentPractice[] {
+  const auth: Authority = p.authority ?? "None";
+  const out: ExperimentPractice[] = [];
+  if (p.type) out.push(splitPractice(STRATEGY_PRACTICE[p.type], "check"));
+  out.push(splitPractice(AUTHORITY_PRACTICE[auth], "check"));
+  if (p.type) out.push(splitPractice(NOT_SELF_PRACTICE[p.type], "tally"));
+  return out;
+}
+
 function buildWritingForward(p: HumanDesignProfile, gk: GeneKeysProfile): string[] {
   const type = p.type || null;
   const auth: Authority = p.authority ?? "None";
@@ -1341,10 +1367,7 @@ function buildWritingForward(p: HumanDesignProfile, gk: GeneKeysProfile): string
       : "I can let it talk and choose anyway. Recognizing it is most of the work.",
   ]);
 
-  const items: string[] = [];
-  if (type) items.push(`1. ${STRATEGY_PRACTICE[type]}`);
-  items.push(`${items.length + 1}. ${AUTHORITY_PRACTICE[auth]}`);
-  if (type) items.push(`${items.length + 1}. ${NOT_SELF_PRACTICE[type]}`);
+  const items = experimentPractices(p).map((pr, i) => `${i + 1}. ${pr.title} ${pr.detail}`);
   const step3 = withPrompt("WHAT IS MY EXPERIMENT", [], p, [
     `Human Design only becomes real when I test it. For the next four weeks${t ? `, as a ${t.name} with ${AUTHORITY_NAME[auth]} authority` : ""}, I practice three things:`,
     ...items,
@@ -1366,7 +1389,12 @@ function buildWritingForward(p: HumanDesignProfile, gk: GeneKeysProfile): string
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
-export function buildLifeQuestionsNarrative(input: LifeQuestionsInput): string {
+export interface LifeQuestionsOptions {
+  /** An optional signed note from the author, placed after the final step. */
+  closingNote?: { text: string; signature: string };
+}
+
+export function buildLifeQuestionsNarrative(input: LifeQuestionsInput, options: LifeQuestionsOptions = {}): string {
   const { profile: p, geneKeys } = input;
   const ctx = buildCtx(input.activations);
 
@@ -1391,5 +1419,8 @@ export function buildLifeQuestionsNarrative(input: LifeQuestionsInput): string {
   const belong = sequences.length
     ? [withPrompt("AM I MADE FOR THIS MOMENT?", hinge().split("\n\n").slice(1), p), ...sequences]
     : [];
-  return [buildPrimer(p), recap(p), ...partOneToThree, ...belong, ...buildWritingForward(p, geneKeys)].join("\n\n");
+  const forward = buildWritingForward(p, geneKeys);
+  const note = options.closingNote;
+  if (note) forward[forward.length - 1] += `\n\n${NOTE_MARKER}${note.text} ${note.signature}`;
+  return [buildPrimer(p), recap(p), ...partOneToThree, ...belong, ...forward].join("\n\n");
 }
