@@ -93,25 +93,31 @@ const sequenceMap = (key: string): string => {
   }).join("")}</div>`;
 };
 
-// Printable four-week experiment tracker (two pages when printed).
+// Four-week experiment tracker: filled in right on the page and saved as the
+// reader goes (prototype: browser storage; live: saved to the reading's link).
+// It still prints cleanly as two pages for anyone who wants paper.
 const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
 const tracker = (): string => {
   const practices = experimentPractices(profile);
-  const grid = (mode: "check" | "tally") => `<table class="grid"><thead><tr><th></th>${DAYS.map(d => `<th>${d}</th>`).join("")}</tr></thead><tbody>${
-    [1, 2, 3, 4].map(w => `<tr><th>Week ${w}</th>${DAYS.map(() => `<td><span class="${mode === "check" ? "box" : "tally"}"></span></td>`).join("")}</tr>`).join("")
+  const grid = (pi: number, mode: "check" | "tally") => `<table class="grid"><thead><tr><th></th>${DAYS.map(d => `<th>${d}</th>`).join("")}</tr></thead><tbody>${
+    [1, 2, 3, 4].map(w => `<tr><th>Week ${w}</th>${DAYS.map((_, d) => mode === "check"
+      ? `<td><label class="box"><input type="checkbox" data-k="p${pi}w${w}d${d}" aria-label="Week ${w}, day ${d + 1}"><span></span></label></td>`
+      : `<td><input class="tally" type="number" min="0" max="20" inputmode="numeric" placeholder="0" data-k="p${pi}w${w}d${d}" aria-label="Week ${w}, day ${d + 1}, times"></td>`
+    ).join("")}</tr>`).join("")
   }</tbody></table>`;
-  const lines = (n: number) => `<div class="lines">${"<span></span>".repeat(n)}</div>`;
+  const note = (k: string, rows: number, ph: string) => `<textarea data-k="${k}" rows="${rows}" placeholder="${ph}"></textarea>`;
   return `<section class="tracker" id="tracker">
-  <div class="tracker-bar"><div><p class="label">Your four-week tracker</p><p class="tracker-sub">Print it, keep it somewhere you'll see it, and check in each day.</p></div><button type="button" onclick="printTracker()">Print my tracker</button></div>
+  <div class="tracker-bar"><div><p class="label">Your four-week tracker</p><p class="tracker-sub">Tap to check off each day. Everything saves as you go, right here in your reading.</p></div><p class="tracker-progress"><strong data-progress>0</strong> of ${practices.filter(p => p.mode === "check").length * 28} days</p></div>
   <div class="tracker-page">
-    <header class="tp-head"><p class="tp-brand">Mythograph · My Human Design Journey</p><h3>My Four-Week Experiment</h3><p class="tp-meta">Started on <span class="fill"></span> &nbsp; Finishes on <span class="fill"></span></p></header>
-    <div class="tp-expect"><p class="tp-label">What I expect to notice</p>${lines(3)}</div>
-    ${practices.map((pr, i) => `<div class="tp-practice"><div class="tp-ph"><span class="tp-num">${i + 1}</span><div><p class="tp-title">${esc(pr.title)}</p><p class="tp-detail">${esc(pr.detail)}</p><p class="tp-how">${pr.mode === "check" ? "Check off each day I practice it." : "Make a mark each time it shows up."}</p></div></div>${grid(pr.mode)}</div>`).join("")}
+    <div class="tp-dates"><label>Started on <input type="date" data-k="start"></label></div>
+    <div class="tp-expect"><p class="tp-label">What I expect to notice</p>${note("expect", 2, "Write it today, so you can compare at the end.")}</div>
+    ${practices.map((pr, i) => `<div class="tp-practice"><div class="tp-ph"><span class="tp-num">${i + 1}</span><div><p class="tp-title">${esc(pr.title)}</p><p class="tp-detail">${esc(pr.detail)}</p><p class="tp-how">${pr.mode === "check" ? "Check off each day I practice it." : "Note how many times it shows up."}</p></div></div><div class="grid-wrap">${grid(i, pr.mode)}</div></div>`).join("")}
   </div>
   <div class="tracker-page tp-second">
-    <header class="tp-head"><h3>Weekly check-ins</h3><p class="tp-meta">Five minutes at the end of each week.</p></header>
-    ${[1, 2, 3, 4].map(w => `<div class="tp-week"><p class="tp-label">Week ${w} · What I noticed, and what I'll adjust</p>${lines(3)}</div>`).join("")}
-    <div class="tp-week tp-final"><p class="tp-label">After four weeks · What changed?</p>${lines(5)}</div>
+    <p class="tp-label">Weekly check-ins · five minutes at the end of each week</p>
+    ${[1, 2, 3, 4].map(w => `<div class="tp-week"><p class="tp-wk">Week ${w}</p>${note(`week${w}`, 2, "What I noticed, and what I'll adjust")}</div>`).join("")}
+    <div class="tp-week tp-final"><p class="tp-wk">After four weeks · What changed?</p>${note("final", 3, "Look back at what you expected. What's different now?")}</div>
+    <p class="tp-save"><button type="button" class="linkish" onclick="printTracker()">Save a copy as PDF</button></p>
   </div>
 </section>`;
 };
@@ -273,9 +279,24 @@ figcaption{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top
 .grid{width:100%;border-collapse:collapse;font-size:.75rem}
 .grid th{font-weight:500;color:#9c8762;padding:3px 0;text-align:center}
 .grid tbody th{text-align:left;white-space:nowrap;padding-right:8px;width:62px}
-.grid td{text-align:center;padding:4px 0;border-top:1px solid #efe7d6}
-.box{display:inline-block;width:16px;height:16px;border:1.5px solid #b39a6b;border-radius:4px}
-.tally{display:inline-block;width:28px;height:16px;border-bottom:1.5px solid #b39a6b}
+.grid td{text-align:center;padding:2px 0;border-top:1px solid #efe7d6}
+.box{display:inline-flex;cursor:pointer;padding:4px}
+.box input{position:absolute;opacity:0;width:1px;height:1px}
+.box span{display:inline-block;width:24px;height:24px;border:1.5px solid #b39a6b;border-radius:6px;background:#fff;transition:background .15s}
+.box input:checked+span{background:#c05a3c;border-color:#c05a3c;box-shadow:inset 0 0 0 3px #fff}
+.box input:focus-visible+span{outline:2px solid #3a4f99;outline-offset:2px}
+.tally{width:34px;height:30px;text-align:center;font:inherit;font-size:.9rem;border:1.5px solid #d8ccb4;border-radius:6px;background:#fff;color:#1a1410;-moz-appearance:textfield}
+.tally::-webkit-inner-spin-button{-webkit-appearance:none}
+.grid-wrap{overflow-x:auto}
+.tracker textarea{width:100%;box-sizing:border-box;font:inherit;font-size:.95rem;line-height:1.5;border:1px solid #d8ccb4;border-radius:8px;padding:10px 12px;background:#fff;color:#1a1410;resize:vertical}
+.tracker textarea:focus,.tally:focus,.tp-dates input:focus{outline:2px solid #3a4f99;outline-offset:1px;border-color:transparent}
+.tp-dates{margin:0 0 14px;font-size:.85rem;color:#6b625a}
+.tp-dates input{font:inherit;border:1px solid #d8ccb4;border-radius:6px;padding:4px 8px;margin-left:6px;background:#fff;color:#1a1410}
+.tp-wk{font-family:"Fraunces",serif;font-weight:500;margin:0 0 6px}
+.tracker-progress{margin:0;font-size:.85rem;color:var(--muted)}
+.tracker-progress strong{font-family:"Playfair Display",serif;font-size:1.3rem;color:var(--terra)}
+.linkish{background:none!important;color:var(--indigo,#3a4f99)!important;text-decoration:underline;text-underline-offset:3px;padding:0!important;font-size:.85rem!important}
+.tp-save{margin:6px 0 14px}
 .tp-week{margin:0 0 16px;break-inside:avoid}
 @media print{
   @page{size:letter;margin:0.55in}
@@ -284,6 +305,8 @@ figcaption{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top
   #print-root .tracker{border:none;margin:0;background:#fff}
   #print-root .tracker-bar{display:none}
   #print-root .tracker-page{padding:0}
+  #print-root .tp-save{display:none}
+  #print-root textarea{border:none;border-bottom:1px solid #d8ccb4;border-radius:0;min-height:70px}
   #print-root .tp-second{border-top:none;break-before:page;page-break-before:always}
   .box,.tp-num{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
@@ -318,7 +341,13 @@ ${primer}
 ${html}
 </div>
 <script>
-function printTracker(){var h=document.documentElement;var src=document.getElementById("tracker");if(!src)return;var root=document.createElement("div");root.id="print-root";root.appendChild(src.cloneNode(true));document.body.appendChild(root);h.classList.add("print-tracker");var done=function(){h.classList.remove("print-tracker");root.remove();window.removeEventListener("afterprint",done);};window.addEventListener("afterprint",done);window.print();}
+var TRACK_KEY="mythograph-tracker-v1";
+function trackerState(){try{return JSON.parse(localStorage.getItem(TRACK_KEY)||"{}")}catch(e){return {}}}
+function saveTracker(){var st={};document.querySelectorAll("#tracker [data-k]").forEach(function(el){st[el.dataset.k]=el.type==="checkbox"?el.checked:el.value;});try{localStorage.setItem(TRACK_KEY,JSON.stringify(st))}catch(e){}updateProgress();}
+function updateProgress(){var n=document.querySelectorAll('#tracker input[type="checkbox"]:checked').length;var p=document.querySelector("#tracker [data-progress]");if(p)p.textContent=n;}
+function initTracker(){var st=trackerState();document.querySelectorAll("#tracker [data-k]").forEach(function(el){var v=st[el.dataset.k];if(v!==undefined){if(el.type==="checkbox")el.checked=!!v;else el.value=v;}el.addEventListener(el.tagName==="TEXTAREA"||el.type==="number"||el.type==="date"?"input":"change",saveTracker);});updateProgress();}
+document.addEventListener("DOMContentLoaded",initTracker);
+function printTracker(){var h=document.documentElement;var src=document.getElementById("tracker");if(!src)return;var root=document.createElement("div");root.id="print-root";var copy=src.cloneNode(true);var a=src.querySelectorAll("[data-k]"),b=copy.querySelectorAll("[data-k]");a.forEach(function(el,i){if(el.type==="checkbox")b[i].checked=el.checked;else b[i].value=el.value;});copy.removeAttribute("id");root.appendChild(copy);document.body.appendChild(root);h.classList.add("print-tracker");var done=function(){h.classList.remove("print-tracker");root.remove();window.removeEventListener("afterprint",done);};window.addEventListener("afterprint",done);window.print();}
 (function(){try{var wide=window.matchMedia("(min-width:960px)");var set=function(){document.querySelectorAll("details.chart").forEach(function(d){if(wide.matches)d.open=true;});};set();wide.addEventListener("change",set);}catch(e){}})();
 </script>
 </body></html>`;

@@ -96,10 +96,12 @@ into a shared package that **both** journey-app and the Story Loom app depend on
   The reading opens with a "What matters most" summary and closes with five
   "Writing It Forward" steps built around a personalized four-week experiment
   (strategy, authority and not-self practices; `experimentPractices()` also
-  feeds a printable two-page tracker). An optional signed closing note
+  feeds a fill-in tracker on the reading page: tap-to-check grids, tallies and
+  weekly notes, saved as the reader goes, with "Save a copy as PDF" as backup;
+  the prototype saves to browser storage, the live version should save to the
+  purchase record behind the reading's token). An optional signed closing note
   (`options.closingNote`) bridges to Story Loom; its copy lives in the app
-  layer at `src/lib/story-loom-bridge.ts`, never in cosmic-core (the URL there
-  is a placeholder to confirm). The live engine's closing module in
+  layer at `src/lib/story-loom-bridge.ts`, never in cosmic-core. The live engine's closing module in
   `narrative.ts` is unchanged. Preview with
   `npx tsx scripts/prototype-life-questions.ts <out-dir>`.
 

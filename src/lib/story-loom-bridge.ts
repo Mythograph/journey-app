@@ -19,6 +19,5 @@ export const STORY_LOOM_NOTE: ClosingNote = {
     "The sentence you just wrote is the beginning of what I call your golden thread: the motivation running beneath everything you do. In Story Loom, my one-on-one program, we follow that thread together, through your stories and the old myths you've been living by, until it grows into a narrative field, a way of speaking about your work that sounds like you wherever it shows up. If you feel the pull to go further, I'd love to hear where you're starting from.",
   signature: "Cléa",
   linkText: "Explore Story Loom",
-  // TODO(Cléa): confirm the Story Loom page URL.
-  url: "https://mythograph.co",
+  url: "https://cleahernandez.com",
 };
