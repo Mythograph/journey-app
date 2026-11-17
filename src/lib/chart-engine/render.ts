@@ -235,7 +235,14 @@ export function renderBodygraph({
     const w = gate >= 10 ? 22 : 16;
     let el = "";
     if (side) {
-      el += `<rect x="${f(x - w / 2)}" y="${f(y - 8)}" width="${w}" height="16" rx="8" fill="${sideColor(side, uid)}"/>`;
+      if (side === "both") {
+        // Split pill: left half black (conscious), right half red (unconscious).
+        const x0 = x - w / 2, x1 = x + w / 2;
+        el += `<path d="M ${f(x)},${f(y - 8)} H ${f(x0 + 8)} A 8 8 0 0 0 ${f(x0 + 8)},${f(y + 8)} H ${f(x)} Z" fill="${C_PERSONALITY}"/>`;
+        el += `<path d="M ${f(x)},${f(y - 8)} H ${f(x1 - 8)} A 8 8 0 0 1 ${f(x1 - 8)},${f(y + 8)} H ${f(x)} Z" fill="${C_DESIGN}"/>`;
+      } else {
+        el += `<rect x="${f(x - w / 2)}" y="${f(y - 8)}" width="${w}" height="16" rx="8" fill="${sideColor(side, uid)}"/>`;
+      }
       el += `<text x="${f(x)}" y="${f(y + 4.2)}" text-anchor="middle" font-size="11.5" font-weight="700" font-family="${FONT}" fill="#ffffff">${gate}</text>`;
     } else {
       el += `<text x="${f(x)}" y="${f(y + 4.2)}" text-anchor="middle" font-size="11.5" font-family="${FONT}" fill="${C_TEXT}">${gate}</text>`;
