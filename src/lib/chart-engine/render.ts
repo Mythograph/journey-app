@@ -83,85 +83,126 @@ const GATE_POS: Record<number, Pt> = {
   19: [294, 826], 39: [294, 850], 41: [294, 874],
 };
 
-// Cubic control points for channels that curve (keyed "a-b", lower gate first).
-// Channels not listed are drawn straight.
-const CURVES: Record<string, [Pt, Pt]> = {
-  // Spleen ↔ Throat (outer left arcs)
-  "16-48": [[2, 520], [90, 372]],
-  "20-57": [[30, 548], [116, 398]],
-  // Integration (G / Throat / Sacral / Spleen)
-  "10-20": [[168, 480], [176, 400]],
-  "20-34": [[150, 440], [150, 640]],
-  "10-34": [[150, 560], [176, 650]],
-  "10-57": [[130, 520], [70, 600]],
-  "34-57": [[90, 668], [150, 676]],
-  // Ego ↔ Throat, Ego ↔ Spleen
-  "21-45": [[386, 470], [330, 394]],
-  "26-44": [[240, 572], [118, 616]],
-  // Solar Plexus ↔ Throat (outer right arcs)
-  "35-36": [[420, 352], [520, 520]],
-  "12-22": [[398, 376], [486, 540]],
-  // Sacral ↔ Spleen / Solar Plexus
-  "27-50": [[170, 716], [130, 696]],
-  "6-59":  [[380, 700], [340, 716]],
-  // Root ↔ Spleen
-  "32-54": [[140, 824], [86, 764]],
-  "28-38": [[120, 856], [58, 786]],
-  "18-58": [[100, 888], [24, 806]],
-  // Root ↔ Solar Plexus
-  "19-49": [[374, 824], [430, 764]],
-  "39-55": [[394, 856], [466, 786]],
-  "30-41": [[414, 888], [500, 806]],
-};
+// Curved channels: [from gate, to gate, control 1, control 2]. Controls run in
+// that direction, so each pair reads as one smooth arc. Channels not listed
+// are drawn straight. Left and right outer arcs mirror each other.
+const CURVE_LIST: [number, number, Pt, Pt][] = [
+  // Throat → Spleen (outer left arcs) and Throat → Solar Plexus (outer right)
+  [16, 48, [90, 330], [6, 470]],
+  [20, 57, [110, 356], [30, 490]],
+  [35, 36, [434, 330], [518, 470]],
+  [12, 22, [414, 356], [494, 490]],
+  // Integration (G / Throat / Sacral / Spleen): nested arcs on the left
+  [10, 20, [150, 490], [150, 372]],
+  [20, 34, [112, 380], [112, 670]],
+  [10, 34, [156, 530], [156, 676]],
+  [10, 57, [130, 507], [62, 570]],
+  [34, 57, [150, 690], [90, 650]],
+  // Ego
+  [45, 21, [360, 390], [392, 470]],
+  [26, 44, [260, 600], [140, 612]],
+  // Sacral → Spleen / Solar Plexus
+  [27, 50, [170, 721], [140, 700]],
+  [59, 6, [344, 721], [384, 700]],
+  // Root → Spleen
+  [54, 32, [140, 826], [76, 780]],
+  [38, 28, [120, 852], [48, 800]],
+  [58, 18, [100, 878], [20, 820]],
+  // Root → Solar Plexus
+  [19, 49, [374, 826], [448, 780]],
+  [39, 55, [394, 852], [476, 800]],
+  [41, 30, [414, 878], [504, 820]],
+];
+
+const CURVES = new Map<string, [number, Pt, Pt]>();
+for (const [from, to, c1, c2] of CURVE_LIST) {
+  CURVES.set(`${Math.min(from, to)}-${Math.max(from, to)}`, [from, c1, c2]);
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function f(n: number): string { return n.toFixed(1); }
 const X = (x: number) => x + PAD_X;
 const Y = (y: number) => y + PAD_Y;
 
-function polyPoints(pts: Pt[]): string {
-  return pts.map(([x, y]) => `${f(X(x))},${f(Y(y))}`).join(" ");
+/** Closed path for a polygon with softly rounded corners. */
+function roundedPoly(pts: Pt[], r = 7): string {
+  const n = pts.length;
+  let d = "";
+  for (let i = 0; i < n; i++) {
+    const v = pts[i], prev = pts[(i + n - 1) % n], next = pts[(i + 1) % n];
+    const toward = (q: Pt): Pt => {
+      const dx = q[0] - v[0], dy = q[1] - v[1];
+      const len = Math.hypot(dx, dy) || 1;
+      const k = Math.min(r, len / 2) / len;
+      return [v[0] + dx * k, v[1] + dy * k];
+    };
+    const a = toward(prev), b = toward(next);
+    d += `${i === 0 ? "M" : "L"} ${f(X(a[0]))},${f(Y(a[1]))} Q ${f(X(v[0]))},${f(Y(v[1]))} ${f(X(b[0]))},${f(Y(b[1]))} `;
+  }
+  return d + "Z";
 }
 
 type Side = "p" | "d" | "both" | null;
+type Cubic = [Pt, Pt, Pt, Pt];
 
 function sideOf(gate: number, p: Set<number>, d: Set<number>): Side {
   const ip = p.has(gate), id = d.has(gate);
   return ip && id ? "both" : ip ? "p" : id ? "d" : null;
 }
 
-// Each SVG gets its own pattern id: several charts on one page must not share
-// one, or a chart hidden inside a closed <details> can blank the others.
-let renderCount = 0;
-
-function sideColor(s: Side, uid: string): string {
-  return s === "p" ? C_PERSONALITY : s === "d" ? C_DESIGN : s === "both" ? `url(#${uid})` : C_BG;
-}
-
-// Cubic for any channel (straight ones get thirds as control points).
-function channelCubic(a: number, b: number): [Pt, Pt, Pt, Pt] {
+// Cubic for any channel, running from gate a to gate b (straight ones get
+// thirds as control points).
+function channelCubic(a: number, b: number): Cubic {
   const pa = GATE_POS[a], pb = GATE_POS[b];
-  const key = `${Math.min(a, b)}-${Math.max(a, b)}`;
-  const curve = CURVES[key];
+  const curve = CURVES.get(`${Math.min(a, b)}-${Math.max(a, b)}`);
   if (curve) {
-    // Stored controls run from the lower gate to the higher one.
-    const [c1, c2] = curve;
-    return a < b ? [pa, c1, c2, pb] : [pa, c2, c1, pb];
+    const [from, c1, c2] = curve;
+    return from === a ? [pa, c1, c2, pb] : [pa, c2, c1, pb];
   }
   const c1: Pt = [pa[0] + (pb[0] - pa[0]) / 3, pa[1] + (pb[1] - pa[1]) / 3];
   const c2: Pt = [pa[0] + 2 * (pb[0] - pa[0]) / 3, pa[1] + 2 * (pb[1] - pa[1]) / 3];
   return [pa, c1, c2, pb];
 }
 
-function splitCubic([p0, p1, p2, p3]: [Pt, Pt, Pt, Pt]): [[Pt, Pt, Pt, Pt], [Pt, Pt, Pt, Pt]] {
+function splitCubic([p0, p1, p2, p3]: Cubic): [Cubic, Cubic] {
   const mid = (a: Pt, b: Pt): Pt => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
   const m1 = mid(p0, p1), m2 = mid(p1, p2), m3 = mid(p2, p3);
   const n1 = mid(m1, m2), n2 = mid(m2, m3), m = mid(n1, n2);
   return [[p0, m1, n1, m], [m, n2, m3, p3]];
 }
 
-function cubicPath([p0, p1, p2, p3]: [Pt, Pt, Pt, Pt]): string {
+function cubicPath([p0, p1, p2, p3]: Cubic): string {
   return `M ${f(X(p0[0]))},${f(Y(p0[1]))} C ${f(X(p1[0]))},${f(Y(p1[1]))} ${f(X(p2[0]))},${f(Y(p2[1]))} ${f(X(p3[0]))},${f(Y(p3[1]))}`;
+}
+
+function cubicAt([p0, p1, p2, p3]: Cubic, t: number): Pt {
+  const u = 1 - t;
+  const k0 = u * u * u, k1 = 3 * u * u * t, k2 = 3 * u * t * t, k3 = t * t * t;
+  return [k0 * p0[0] + k1 * p1[0] + k2 * p2[0] + k3 * p3[0], k0 * p0[1] + k1 * p1[1] + k2 * p2[1] + k3 * p3[1]];
+}
+
+/**
+ * A channel half carried by both sides is split lengthwise: two thin parallel
+ * strands, black (conscious) on the left or upper side, red (unconscious) on
+ * the other. Returns the two strand paths.
+ */
+function strands(c: Cubic, offset: number): [string, string] {
+  const N = 18;
+  const pts: Pt[] = [];
+  for (let i = 0; i <= N; i++) pts.push(cubicAt(c, i / N));
+  // Fix which side black runs on from the overall direction of the half.
+  const cx = pts[N][0] - pts[0][0], cy = pts[N][1] - pts[0][1];
+  let sign = 1;
+  const nx0 = -cy, ny0 = cx;
+  if (nx0 > 0.01 || (Math.abs(nx0) <= 0.01 && ny0 > 0)) sign = -1;
+  const build = (dir: number): string => pts.map((p, i) => {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(N, i + 1)];
+    const tx = b[0] - a[0], ty = b[1] - a[1];
+    const len = Math.hypot(tx, ty) || 1;
+    const ox = (-ty / len) * offset * dir * sign, oy = (tx / len) * offset * dir * sign;
+    return `${i === 0 ? "M" : "L"} ${f(X(p[0] + ox))},${f(Y(p[1] + oy))}`;
+  }).join(" ");
+  return [build(1), build(-1)];
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────────
@@ -189,39 +230,45 @@ export function renderBodygraph({
   const centerLit = (c: CenterName) => !focusing || focusCenters.has(c) || CENTER_GATES[c].some(g => focusGates.has(g));
   const op = (lit: boolean) => (focusing && !lit ? ` opacity="${FADE}"` : "");
 
-  const uid = `bg-both-${++renderCount}`;
   const parts: string[] = [];
-  parts.push(
-    `<defs><pattern id="${uid}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">` +
-    `<rect width="3" height="6" fill="${C_PERSONALITY}"/><rect x="3" width="3" height="6" fill="${C_DESIGN}"/></pattern></defs>`
-  );
+  const PIPE = 9.4, BORE = 6.6;
 
-  // 1 — channel pipes: outline, hollow interior, then colored halves.
+  // 1 — channel pipes: outline, hollow interior, then each gate's colored half.
+  const half = (c: Cubic, side: Side): string => {
+    if (!side) return "";
+    if (side === "both") {
+      const [black, red] = strands(c, BORE / 4);
+      return `<path d="${black}" fill="none" stroke="${C_PERSONALITY}" stroke-width="${BORE / 2}" stroke-linejoin="round"/>` +
+             `<path d="${red}" fill="none" stroke="${C_DESIGN}" stroke-width="${BORE / 2}" stroke-linejoin="round"/>`;
+    }
+    return `<path d="${cubicPath(c)}" fill="none" stroke="${side === "p" ? C_PERSONALITY : C_DESIGN}" stroke-width="${BORE}"/>`;
+  };
   for (const [a, b] of CHANNELS) {
     if (!GATE_POS[a] || !GATE_POS[b]) continue;
     const cubic = channelCubic(a, b);
     const lit = !focusing || focusGates.has(a) || focusGates.has(b) ||
       (focusCenters.has(centerOf(a)!) && focusCenters.has(centerOf(b)!));
     const [ha, hb] = splitCubic(cubic);
-    const sa = sideOf(a, personalityGates, designGates);
-    const sb = sideOf(b, personalityGates, designGates);
-    let g = `<path d="${cubicPath(cubic)}" fill="none" stroke="${C_LINE}" stroke-width="9" stroke-linecap="butt"/>`;
-    g += `<path d="${cubicPath(cubic)}" fill="none" stroke="${C_BG}" stroke-width="6.4" stroke-linecap="butt"/>`;
-    if (sa) g += `<path d="${cubicPath(ha)}" fill="none" stroke="${sideColor(sa, uid)}" stroke-width="6.4" stroke-linecap="butt"/>`;
-    if (sb) g += `<path d="${cubicPath(hb)}" fill="none" stroke="${sideColor(sb, uid)}" stroke-width="6.4" stroke-linecap="butt"/>`;
+    const g =
+      `<path d="${cubicPath(cubic)}" fill="none" stroke="${C_LINE}" stroke-width="${PIPE}"/>` +
+      `<path d="${cubicPath(cubic)}" fill="none" stroke="${C_BG}" stroke-width="${BORE}"/>` +
+      half(ha, sideOf(a, personalityGates, designGates)) +
+      half(hb, sideOf(b, personalityGates, designGates));
     parts.push(`<g${op(lit)}>${g}</g>`);
   }
 
-  // 2 — centers.
+  // 2 — centers (opaque, so pipes pass underneath).
   for (const name of Object.keys(CENTER_POLY) as CenterName[]) {
     const def = definedCenters.has(name);
     const lit = centerLit(name);
+    const d = roundedPoly(CENTER_POLY[name]);
     const ring = focusCenters.has(name)
-      ? `<polygon points="${polyPoints(CENTER_POLY[name])}" fill="none" stroke="${C_FOCUS}" stroke-width="7" stroke-linejoin="round" opacity="0.9"/>`
+      ? `<path d="${d}" fill="none" stroke="${C_FOCUS}" stroke-width="7.5" stroke-linejoin="round" opacity="0.9"/>`
       : "";
+    // An opaque base keeps faded centers from showing the pipes beneath them.
     parts.push(
-      `<g${op(lit)}>${ring}<polygon points="${polyPoints(CENTER_POLY[name])}" fill="${def ? C_DEF_FILL : C_BG}" ` +
-      `stroke="${def ? C_DEF_LINE : C_LINE}" stroke-width="1.8" stroke-linejoin="round"/></g>`
+      `<path d="${d}" fill="${C_BG}"/>` +
+      `<g${op(lit)}>${ring}<path d="${d}" fill="${def ? C_DEF_FILL : C_BG}" stroke="${def ? C_DEF_LINE : C_LINE}" stroke-width="1.8" stroke-linejoin="round"/></g>`
     );
   }
 
@@ -241,7 +288,7 @@ export function renderBodygraph({
         el += `<path d="M ${f(x)},${f(y - 8)} H ${f(x0 + 8)} A 8 8 0 0 0 ${f(x0 + 8)},${f(y + 8)} H ${f(x)} Z" fill="${C_PERSONALITY}"/>`;
         el += `<path d="M ${f(x)},${f(y - 8)} H ${f(x1 - 8)} A 8 8 0 0 1 ${f(x1 - 8)},${f(y + 8)} H ${f(x)} Z" fill="${C_DESIGN}"/>`;
       } else {
-        el += `<rect x="${f(x - w / 2)}" y="${f(y - 8)}" width="${w}" height="16" rx="8" fill="${sideColor(side, uid)}"/>`;
+        el += `<rect x="${f(x - w / 2)}" y="${f(y - 8)}" width="${w}" height="16" rx="8" fill="${side === "p" ? C_PERSONALITY : C_DESIGN}"/>`;
       }
       el += `<text x="${f(x)}" y="${f(y + 4.2)}" text-anchor="middle" font-size="11.5" font-weight="700" font-family="${FONT}" fill="#ffffff">${gate}</text>`;
     } else {
