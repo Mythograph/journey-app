@@ -15,10 +15,10 @@ import type { CenterName } from "./types.js";
 import { CHANNELS, CENTER_GATES } from "./data.js";
 
 // ── Canvas ─────────────────────────────────────────────────────────────────────
-const PAD_X = 44;
+const PAD_X = 54;
 const PAD_Y = 16;
 const W = 524 + PAD_X * 2;
-const H = 900 + PAD_Y * 2 + 22;
+const H = 900 + PAD_Y * 2 + 6;
 
 // ── Palette (Mythograph) ───────────────────────────────────────────────────────
 const C_BG          = "#fafaf7";   // page / pipe interior
@@ -34,7 +34,7 @@ const FONT          = `'DM Sans', 'Helvetica Neue', Arial, sans-serif`;
 // ── Centers ────────────────────────────────────────────────────────────────────
 type Pt = [number, number];
 
-const CENTER_POLY: Record<CenterName, Pt[]> = {
+const BASE_POLY: Record<CenterName, Pt[]> = {
   Head:        [[257, 4], [316, 100], [198, 100]],
   Ajna:        [[198, 143], [316, 143], [257, 247]],
   Throat:      [[203, 305], [310, 305], [310, 412], [203, 412]],
@@ -52,7 +52,7 @@ const CENTER_NAME_LABEL: Record<CenterName, string> = {
 };
 
 // ── Gate label positions (text centers, inside each center's edge) ─────────────
-const GATE_POS: Record<number, Pt> = {
+const BASE_GATE_POS: Record<number, Pt> = {
   // Head
   64: [231, 86], 61: [257, 86], 63: [283, 86],
   // Ajna
@@ -66,22 +66,36 @@ const GATE_POS: Record<number, Pt> = {
   1: [257, 453], 7: [236, 474], 13: [278, 474], 10: [204, 507], 25: [310, 507],
   15: [234, 540], 46: [280, 540], 2: [257, 562],
   // Ego
-  21: [386, 556], 51: [366, 572], 26: [342, 592], 40: [408, 600],
+  21: [385, 560], 51: [362, 578], 26: [340, 594], 40: [408, 602],
   // Sacral
   5: [231, 661], 14: [257, 661], 29: [283, 661],
   34: [220, 685], 27: [220, 721], 59: [294, 721],
   42: [231, 740], 3: [257, 740], 9: [283, 740],
   // Solar Plexus
-  36: [506, 646], 22: [484, 660], 37: [462, 673], 6: [422, 690],
-  49: [456, 708], 55: [480, 721], 30: [504, 734],
+  36: [508, 645], 22: [482, 659], 37: [456, 672], 6: [422, 690],
+  49: [456, 708], 55: [482, 722], 30: [508, 735],
   // Spleen
-  48: [18, 646], 57: [40, 660], 44: [62, 673], 50: [102, 690],
-  32: [68, 708], 28: [44, 721], 18: [20, 734],
+  48: [16, 645], 57: [42, 659], 44: [68, 672], 50: [102, 690],
+  32: [68, 708], 28: [42, 722], 18: [16, 735],
   // Root
   53: [231, 805], 60: [257, 805], 52: [283, 805],
   54: [220, 826], 38: [220, 850], 58: [220, 874],
   19: [294, 826], 39: [294, 850], 41: [294, 874],
 };
+
+// Centers and their gate numbers are drawn a little larger than the base
+// layout: each center, with its gates, is scaled about its own middle.
+const CENTER_SCALE = 1.1;
+const CENTER_POLY = {} as Record<CenterName, Pt[]>;
+const GATE_POS: Record<number, Pt> = {};
+for (const name of Object.keys(BASE_POLY) as CenterName[]) {
+  const pts = BASE_POLY[name];
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const mx = (Math.min(...xs) + Math.max(...xs)) / 2, my = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const grow = ([x, y]: Pt): Pt => [mx + (x - mx) * CENTER_SCALE, my + (y - my) * CENTER_SCALE];
+  CENTER_POLY[name] = pts.map(grow);
+  for (const gate of CENTER_GATES[name]) if (BASE_GATE_POS[gate]) GATE_POS[gate] = grow(BASE_GATE_POS[gate]);
+}
 
 // Curved channels: [from gate, to gate, control 1, control 2]. Controls run in
 // that direction, so each pair reads as one smooth arc. Channels not listed
@@ -215,7 +229,7 @@ export interface RenderInput {
   designActivations:      { planet: string; gate: number; line: number }[];
   /** Optional chapter focus: fade everything else and ring these gates/centers in gold. */
   focus?: { gates?: number[]; centers?: CenterName[] };
-  /** Small center names beside each center (useful in explainers). */
+  /** Center names are shown by default; pass false to hide them. */
   showCenterNames?: boolean;
 }
 
@@ -231,7 +245,7 @@ export function renderBodygraph({
   const op = (lit: boolean) => (focusing && !lit ? ` opacity="${FADE}"` : "");
 
   const parts: string[] = [];
-  const PIPE = 9.4, BORE = 6.6;
+  const PIPE = 13.6, BORE = 10;
 
   // 1 — channel pipes: outline, hollow interior, then each gate's colored half.
   const half = (c: Cubic, side: Side): string => {
@@ -279,38 +293,49 @@ export function renderBodygraph({
     const side = sideOf(gate, personalityGates, designGates);
     const center = centerOf(gate)!;
     const lit = !focusing || focusGates.has(gate) || (focusCenters.has(center) && !focusGates.size) || (focusCenters.has(center) && side !== null);
-    const w = gate >= 10 ? 22 : 16;
+    const w = gate >= 10 ? 26 : 19;
+    const R = 9.5; // pill half-height
     let el = "";
     if (side) {
       if (side === "both") {
         // Split pill: left half black (conscious), right half red (unconscious).
         const x0 = x - w / 2, x1 = x + w / 2;
-        el += `<path d="M ${f(x)},${f(y - 8)} H ${f(x0 + 8)} A 8 8 0 0 0 ${f(x0 + 8)},${f(y + 8)} H ${f(x)} Z" fill="${C_PERSONALITY}"/>`;
-        el += `<path d="M ${f(x)},${f(y - 8)} H ${f(x1 - 8)} A 8 8 0 0 1 ${f(x1 - 8)},${f(y + 8)} H ${f(x)} Z" fill="${C_DESIGN}"/>`;
+        el += `<path d="M ${f(x)},${f(y - R)} H ${f(x0 + R)} A ${R} ${R} 0 0 0 ${f(x0 + R)},${f(y + R)} H ${f(x)} Z" fill="${C_PERSONALITY}"/>`;
+        el += `<path d="M ${f(x)},${f(y - R)} H ${f(x1 - R)} A ${R} ${R} 0 0 1 ${f(x1 - R)},${f(y + R)} H ${f(x)} Z" fill="${C_DESIGN}"/>`;
       } else {
-        el += `<rect x="${f(x - w / 2)}" y="${f(y - 8)}" width="${w}" height="16" rx="8" fill="${side === "p" ? C_PERSONALITY : C_DESIGN}"/>`;
+        el += `<rect x="${f(x - w / 2)}" y="${f(y - R)}" width="${w}" height="${R * 2}" rx="${R}" fill="${side === "p" ? C_PERSONALITY : C_DESIGN}"/>`;
       }
-      el += `<text x="${f(x)}" y="${f(y + 4.2)}" text-anchor="middle" font-size="11.5" font-weight="700" font-family="${FONT}" fill="#ffffff">${gate}</text>`;
+      el += `<text x="${f(x)}" y="${f(y + 4.8)}" text-anchor="middle" font-size="13.5" font-weight="700" font-family="${FONT}" fill="#ffffff">${gate}</text>`;
     } else {
-      el += `<text x="${f(x)}" y="${f(y + 4.2)}" text-anchor="middle" font-size="11.5" font-family="${FONT}" fill="${C_TEXT}">${gate}</text>`;
+      el += `<text x="${f(x)}" y="${f(y + 4.8)}" text-anchor="middle" font-size="13.5" font-family="${FONT}" fill="${C_TEXT}">${gate}</text>`;
     }
     if (focusGates.has(gate)) {
-      el += `<rect x="${f(x - w / 2 - 4)}" y="${f(y - 12)}" width="${w + 8}" height="24" rx="12" fill="none" stroke="${C_FOCUS}" stroke-width="2.6"/>`;
+      el += `<rect x="${f(x - w / 2 - 4)}" y="${f(y - R - 4)}" width="${w + 8}" height="${R * 2 + 8}" rx="${R + 4}" fill="none" stroke="${C_FOCUS}" stroke-width="2.6"/>`;
     }
     parts.push(`<g${op(lit)}>${el}</g>`);
   }
 
-  // 4 — optional center names (outside the shapes, small caps).
-  if (showCenterNames) {
-    const at: Record<CenterName, [Pt, string]> = {
-      Head: [[330, 60], "start"], Ajna: [[330, 175], "start"], Throat: [[322, 300], "start"],
-      G: [[257, 511], "middle"], Ego: [[440, 546], "start"], Sacral: [[322, 773], "start"],
-      SolarPlexus: [[548, 690], "middle"], Spleen: [[-24, 690], "middle"], Root: [[257, 918], "middle"],
-    };
-    for (const name of Object.keys(at) as CenterName[]) {
-      const [[lx, ly], anchor] = at[name];
-      const rot = name === "Spleen" ? ` transform="rotate(-90 ${f(X(lx))} ${f(Y(ly))})"` : name === "SolarPlexus" ? ` transform="rotate(90 ${f(X(lx))} ${f(Y(ly))})"` : "";
-      parts.push(`<text${rot} x="${f(X(lx))}" y="${f(Y(ly))}" text-anchor="${anchor}" font-size="11" letter-spacing="1.2" font-family="${FONT}" fill="${C_TEXT}"${op(centerLit(name))}>${CENTER_NAME_LABEL[name].toUpperCase()}</text>`);
+  // 4 — center names: inside the shape where there is room, beside it where
+  // the gate numbers fill it (Ajna, Ego).
+  if (showCenterNames !== false) {
+    for (const name of Object.keys(CENTER_POLY) as CenterName[]) {
+      const pts = CENTER_POLY[name];
+      const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+      const l = Math.min(...xs), r = Math.max(...xs), t = Math.min(...ys), b = Math.max(...ys);
+      const mx = (l + r) / 2, my = (t + b) / 2;
+      let lines: string[] = [CENTER_NAME_LABEL[name].toUpperCase()];
+      let at: Pt = [mx, my], anchor = "middle", inside = true;
+      if (name === "Head") at = [mx, t + (b - t) * 0.56];
+      if (name === "Spleen") at = [l + (r - l) * 0.3, my];
+      if (name === "SolarPlexus") { at = [r - (r - l) * 0.27, my]; lines = ["SOLAR", "PLEXUS"]; }
+      if (name === "Ajna") { at = [r + 8, t + (b - t) * 0.3]; anchor = "start"; inside = false; }
+      if (name === "Ego") { at = [r + 8, my]; anchor = "start"; inside = false; }
+      const fill = inside && definedCenters.has(name) ? C_DEF_LINE : C_TEXT;
+      const y0 = at[1] + 4 - (lines.length - 1) * 6.5;
+      const text = lines.map((ln, i) =>
+        `<text x="${f(X(at[0]))}" y="${f(Y(y0 + i * 13))}" text-anchor="${anchor}" font-size="11" font-weight="600" letter-spacing="1.3" font-family="${FONT}" fill="${fill}">${ln}</text>`
+      ).join("");
+      parts.push(`<g${op(centerLit(name))}>${text}</g>`);
     }
   }
 

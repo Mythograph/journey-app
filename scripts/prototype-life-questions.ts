@@ -53,8 +53,7 @@ const dGates = new Set(real.filter(a => a.side === "unconscious").map(a => a.gat
 const all = new Set([...pGates, ...dGates]);
 const chans = CHANNEL_SPECS.filter(c => c.gates.every(g => all.has(g)));
 const definedCenters = new Set<CenterName>(chans.flatMap(c => c.centers) as CenterName[]);
-const bodygraph = (focus?: { gates: number[]; centers: string[] }, names = false) => renderBodygraph({
-  showCenterNames: names,
+const bodygraph = (focus?: { gates: number[]; centers: string[] }, _names = false) => renderBodygraph({
   definedCenters,
   definedChannels: chans.map(c => c.gates),
   personalityGates: pGates,
@@ -153,7 +152,7 @@ h2{font-family:"Playfair Display",serif;font-weight:700;font-size:clamp(1.9rem,4
 .chart[open] summary::after{content:" –"}
 .chart p{margin:0 0 1em}
 .graph{margin:4px 0 22px;background:#fafaf7;border:1px solid var(--line);border-radius:8px;padding:14px}
-.graph svg{display:block;width:100%;max-width:340px;height:auto;margin:0 auto}
+.graph svg{display:block;width:100%;max-width:430px;height:auto;margin:0 auto}
 figcaption{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;color:#3d362f;background:#fff;border:1px solid #e3dccf;border-radius:999px;padding:3px 9px}
 .chip i{width:8px;height:8px;border-radius:50%;background:#111}

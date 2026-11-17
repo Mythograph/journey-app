@@ -109,10 +109,11 @@ Pipeline (entry: `index.ts` → `generateChart(birthData)`):
    (note the **1.75° offset** documented in the file header, validated against
    known charts), then gates → channels → centers → type / strategy / authority /
    profile / incarnation cross.
-5. `render.ts` — hand-built SVG bodygraph in the classic layout (612×954 canvas):
+5. `render.ts` — hand-built SVG bodygraph in the classic layout (632×938 canvas):
    hollow channel "pipes" filled black/red/striped by side, plain gate numbers
-   along center edges, active gates as filled pills. Optional `focus` (fade the
-   chart, ring chapter gates/centers in gold) and `showCenterNames`.
+   along center edges, active gates as filled pills (split black/red when on
+   both sides), center names shown by default. Optional `focus` (fade the
+   chart, ring chapter gates/centers in gold); `showCenterNames: false` hides names.
 6. `data.ts` — static tables: gate wheel sequence, 34 channels, center→gates,
    motor centers, 192 incarnation cross names.
 7. `copy.ts` — human-written interpretive copy (channel essays, type/authority/
