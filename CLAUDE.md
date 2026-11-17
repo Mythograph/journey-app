@@ -9,10 +9,11 @@ A two-part product by Cléa Hernández, live at `journey.mythograph.co`:
 
 1. **Free Human Design bodygraph chart** (`/chart`) — enter birth data, get a
    calculated bodygraph SVG plus type/strategy/authority/profile/channel copy.
-2. **Paid Journey Narrative** ($37) — a long-form, first-person personal reading
-   structured as a 14-section Heroine's Journey across the chart's planetary
-   activations, plus a Gene Keys "Golden Path" section. Sold via Stripe,
-   delivered through a token-gated reading page.
+2. **Paid Journey Narrative** ($37) — a long-form, first-person personal reading,
+   sold via Stripe and delivered through a token-gated reading page. Two formats
+   exist, chosen by `READING_FORMAT` (see "Reading formats" below): the new
+   **Life Questions** reading and the original **classic** 14-section Heroine's
+   Journey with a Gene Keys "Golden Path" section.
 
 The chart engine is **self-hosted** — astronomy + Human Design derivation are
 computed in-process, with no third-party chart API at runtime.
@@ -44,10 +45,15 @@ src/
       stripe-webhook.ts         POST — verifies Stripe sig, creates token+purchase, forwards to Make.com
       generate-narrative.ts     GET ?token — triggers the background narrative function if not yet generated
       narrative-ready.ts        GET ?token — polled by the reading page; returns { ready: boolean }
-      save-narrative.ts         POST — internal callback (shared-secret) the bg function calls to persist text
+      save-narrative.ts         POST — internal callback (shared-secret) the bg function calls to persist text (+ chart snapshot)
+      tracker.ts                GET/POST ?token — the reader's four-week tracker entries, stored on the purchase
+    dev/sample-life-questions.ts  DEV ONLY (404 outside astro dev) — creates a purchase with a finished Life Questions reading for the sample chart
   lib/
     purchases.ts                Purchase type, HMAC token creation, Netlify Blobs storage (Map fallback in dev)
-    narrative.ts                App-level narrative orchestrator: chart → cosmic-core builder → normalize → (optional) polish
+    narrative.ts                App-level orchestrator: chart → cosmic-core builder (format per READING_FORMAT) → normalize → (optional polish, classic only)
+    story-loom-bridge.ts        Signed closing note bridging Life Questions readings to Story Loom (app layer, not cosmic-core)
+    reading/chart-snapshot.ts   ChartSnapshot (saved with each Life Questions reading) + adapters to profile/Gene Keys/activations
+    reading/life-questions-reading.ts  Renders a Life Questions reading as a full HTML page (spreads, chapter strip, bodygraphs, GK maps, tracker, print/PDF)
     narrative-template.txt      Reference copy of the original narrative structure (not imported)
     cosmic-core/                ★ SINGLE SOURCE OF TRUTH (shared with Story Loom) — see below
     chart-engine/               Self-hosted HD chart calculator — see below
@@ -85,7 +91,7 @@ into a shared package that **both** journey-app and the Story Loom app depend on
 - `normalize.ts` — deterministic grammar repair after template assembly
   (a/an articles, doubled function words at seams, spacing, paragraph caps).
 - `index.ts` — barrel export.
-- **Prototype (not live yet):** `life-questions.ts` rebuilds the reading around
+- **Life Questions reading** (live behind `READING_FORMAT`): `life-questions.ts` rebuilds the reading around
   plain life questions in four parts, with two layers per chapter: a short
   first-person version that mirrors a lived moment then names the placement,
   and a folded chart-reader layer in second person. Supporting files:
@@ -103,7 +109,8 @@ into a shared package that **both** journey-app and the Story Loom app depend on
   (`options.closingNote`) bridges to Story Loom; its copy lives in the app
   layer at `src/lib/story-loom-bridge.ts`, never in cosmic-core. The live engine's closing module in
   `narrative.ts` is unchanged. Preview with
-  `npx tsx scripts/prototype-life-questions.ts <out-dir>`.
+  `npx tsx scripts/prototype-life-questions.ts <out-dir>` (same renderer as the
+  live page).
 
 Three naming systems coexist per gate by design: HD traditional name, Mythograph
 quantum name, and Gene Keys Shadow/Gift/Siddhi. Keep all three.
@@ -158,6 +165,23 @@ Strict, and baked into the cosmic-core copy:
 - Plain text only — no markdown symbols. Section headings are ALL CAPS on their
   own line; the reading page maps them to numbered titles.
 
+## Reading formats
+
+- `READING_FORMAT=life-questions` → new purchases get the Life Questions
+  reading; anything else (or unset) → classic. Default is classic, so
+  deploying code never changes what customers receive until the env var flips.
+- Stored readings keep their format. `[token].astro` detects Life Questions
+  text (`isLifeQuestionsText`: starts with `BEFORE YOU BEGIN`) and returns the
+  page built by `renderLifeQuestionsDocument`; classic text renders as before.
+- Life Questions readings store a `chart` snapshot on the purchase, so the page
+  draws bodygraphs without geocoding again (falls back to `generateChart`).
+- The tracker saves to `purchase.tracker` via `/api/tracker`, with browser
+  storage as a cache; the token is the credential, as for the page itself.
+- The narrative email (Make) receives a clean text version for Life Questions
+  readings (`lifeQuestionsPlainText`) plus a new `readingUrl` field.
+- The polish pass is skipped for Life Questions (it can't be trusted with the
+  layer markers).
+
 ## How the narrative is generated (current)
 
 Deterministic, not streamed from an LLM:
@@ -184,7 +208,7 @@ Edit the narrative by changing the **template strings in
   SVG plus type/authority/profile/channel copy and a synopsis.
 - `/journey/[token]` — paid reading. Verifies the purchase by token; three UI
   states: narrative ready (renders sections), generating (polls), or awaiting
-  birth data.
+  birth data. Life Questions readings render as their own full page.
 - `/dev/test-journey` — dev shortcut that fakes a purchase. **Remove before prod.**
 
 ## Purchase / fulfilment flow
@@ -198,7 +222,8 @@ page later triggers narrative generation on first visit.
 ## Env vars (set in Netlify; see `.env.example`)
 
 - `ANTHROPIC_API_KEY` — only needed if the polish pass is enabled.
-- `ENABLE_NARRATIVE_POLISH` — `"true"` to turn on layer-3 LLM polish (default off).
+- `ENABLE_NARRATIVE_POLISH` — `"true"` to turn on layer-3 LLM polish (default off; classic only).
+- `READING_FORMAT` — `"life-questions"` for the new reading; unset = classic.
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
 - `MAKE_WEBHOOK_URL` (Stripe→token email), `MAKE_NARRATIVE_WEBHOOK_URL` (narrative→email)
 - `INTERNAL_CALLBACK_SECRET` — guards `/api/save-narrative`

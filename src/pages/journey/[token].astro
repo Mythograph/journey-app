@@ -2,7 +2,10 @@
 import "~/styles/global.css";
 import { getPurchase, updatePurchase } from "~/lib/purchases.js";
 import { generateChart } from "~/lib/chart-engine/index.js";
-import { REFLECTION_MARKER } from "~/lib/cosmic-core/index.js";
+import { REFLECTION_MARKER, isLifeQuestionsText } from "~/lib/cosmic-core/index.js";
+import { chartFromSnapshot, readingInputsFromChart } from "~/lib/reading/chart-snapshot.js";
+import { renderLifeQuestionsDocument } from "~/lib/reading/life-questions-reading.js";
+import { STORY_LOOM_NOTE } from "~/lib/story-loom-bridge.js";
 import type { BirthData, Chart } from "~/lib/chart-engine/types.js";
 
 const { token } = Astro.params;
@@ -49,6 +52,36 @@ if (Astro.request.method === "POST") {
 
 const hasBirthData = Boolean(purchase.birthData);
 const hasNarrative = Boolean(purchase.narrative);
+
+// ── Life Questions readings: rendered as their own full page ──────────────────
+// The format is detected from the stored text, so readings written in the
+// classic format keep rendering below exactly as before.
+if (hasNarrative && isLifeQuestionsText(purchase.narrative)) {
+  let lqChart: Chart | null = null;
+  try {
+    lqChart = purchase.chart
+      ? chartFromSnapshot(purchase.chart)
+      : purchase.birthData ? await generateChart(purchase.birthData) : null;
+  } catch {
+    lqChart = null;
+  }
+  if (lqChart) {
+    const inputs = readingInputsFromChart(lqChart);
+    const authority = lqChart.authority === "None" ? "" : `${lqChart.authority} `;
+    const html = renderLifeQuestionsDocument({
+      text: purchase.narrative!,
+      ...inputs,
+      name: purchase.name,
+      subtitle: `${lqChart.profile} ${authority}${lqChart.type}`,
+      closingNote: STORY_LOOM_NOTE,
+      tracker: { initial: purchase.tracker ?? {}, saveUrl: "/api/tracker", token: purchase.token },
+      renameForm: purchase.birthData,
+    });
+    return new Response(html, {
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store" },
+    });
+  }
+}
 
 const SECTION_META: Record<string, { num: string; title: string }> = {
   "THE ORDINARY WORLD":                  { num: "I",     title: "The Ordinary World" },

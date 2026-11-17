@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "crypto";
 import type { BirthData } from "./chart-engine/types.js";
+import type { ChartSnapshot } from "./reading/chart-snapshot.js";
 
 export interface Purchase {
   token: string;
@@ -9,6 +10,10 @@ export interface Purchase {
   paidAt: string; // ISO timestamp
   birthData?: BirthData;
   narrative?: string;
+  /** Chart saved with a Life Questions reading, so the page needn't re-geocode. */
+  chart?: ChartSnapshot;
+  /** The reader's four-week tracker entries (Life Questions readings). */
+  tracker?: Record<string, string | boolean>;
 }
 
 // ── Token creation ─────────────────────────────────────────────────────────────

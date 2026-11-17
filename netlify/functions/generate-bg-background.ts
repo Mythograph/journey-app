@@ -2,6 +2,8 @@ import type { Handler } from "@netlify/functions";
 import type { Purchase } from "../../src/lib/purchases.js";
 import { generateChart } from "../../src/lib/chart-engine/index.js";
 import { streamNarrative } from "../../src/lib/narrative.js";
+import { snapshotFromChart } from "../../src/lib/reading/chart-snapshot.js";
+import { isLifeQuestionsText, lifeQuestionsPlainText } from "../../src/lib/cosmic-core/index.js";
 
 // Background function: runs for up to 15 minutes on all plans (including free).
 // Invoked via POST from /api/generate-narrative with the full purchase object in the body.
@@ -38,7 +40,7 @@ const handler: Handler = async (event) => {
     const saveRes = await fetch(`${siteUrl}/api/save-narrative`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: purchase.token, narrative: accumulated, secret: callbackSecret }),
+      body: JSON.stringify({ token: purchase.token, narrative: accumulated, secret: callbackSecret, chart: snapshotFromChart(chart) }),
     });
     if (!saveRes.ok) {
       const text = await saveRes.text();
@@ -52,7 +54,14 @@ const handler: Handler = async (event) => {
       await fetch(makeUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: purchase.email, name: purchase.name, narrative: accumulated }),
+        // Life Questions readings are built for the page (spreads, maps,
+        // tracker), so the email carries a clean text version plus the link.
+        body: JSON.stringify({
+          email: purchase.email,
+          name: purchase.name,
+          narrative: isLifeQuestionsText(accumulated) ? lifeQuestionsPlainText(accumulated) : accumulated,
+          readingUrl: `${siteUrl}/journey/${purchase.token}`,
+        }),
       });
     }
   } catch (err) {

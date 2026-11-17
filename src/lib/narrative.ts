@@ -11,9 +11,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Chart, CenterName } from "./chart-engine/types.js";
 import { CENTER_GATES, GATE_CENTER } from "./chart-engine/data.js";
+import { STORY_LOOM_NOTE } from "./story-loom-bridge.js";
 import {
   buildJourneyNarrative,
+  buildLifeQuestionsNarrative,
   normalizeGrammar,
+  type Activation,
   EMPTY_GENE_KEYS,
   CENTER_ORDER,
   type HumanDesignProfile,
@@ -181,9 +184,38 @@ async function polishNarrative(text: string): Promise<string> {
 
 // ─── Generation ───────────────────────────────────────────────────────────────
 
+// ─── Reading format ───────────────────────────────────────────────────────────
+// "life-questions" = the new two-layer reading (cosmic-core/life-questions.ts).
+// "classic" = the original Heroine's Journey reading. New purchases use
+// whichever READING_FORMAT names; readings already stored keep their format,
+// and the reading page detects it from the text itself.
+export type ReadingFormat = "classic" | "life-questions";
+
+export function readingFormat(): ReadingFormat {
+  return process.env.READING_FORMAT === "life-questions" ? "life-questions" : "classic";
+}
+
+export function activationsFromChart(chart: Chart): Activation[] {
+  return [
+    ...chart.personalityActivations.map(a => ({ planet: a.planet, gate: a.gate, line: a.line, side: "conscious" as const })),
+    ...chart.designActivations.map(a => ({ planet: a.planet, gate: a.gate, line: a.line, side: "unconscious" as const })),
+  ];
+}
+
 export async function generateNarrative(chart: Chart, name: string): Promise<string> {
   const hd = humanDesignProfileFromChart(chart);
   const gk = geneKeysProfileFromChart(chart);
+
+  if (readingFormat() === "life-questions") {
+    // Deterministic and already voice-checked; the polish pass is skipped
+    // because it can't be trusted to keep the layer markers intact.
+    return normalizeGrammar(
+      buildLifeQuestionsNarrative(
+        { profile: hd, geneKeys: gk, activations: activationsFromChart(chart) },
+        { closingNote: STORY_LOOM_NOTE },
+      ),
+    );
+  }
 
   const draft = buildJourneyNarrative(hd, gk, name);
   const normalized = normalizeGrammar(draft);

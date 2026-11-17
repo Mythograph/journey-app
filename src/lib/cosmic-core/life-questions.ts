@@ -1431,6 +1431,26 @@ function buildWritingForward(p: HumanDesignProfile, gk: GeneKeysProfile): string
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
+/** True when stored reading text was written by the Life Questions builder. */
+export function isLifeQuestionsText(text: string | null | undefined): boolean {
+  return !!text && /^BEFORE YOU BEGIN\b/.test(text.trimStart());
+}
+
+/**
+ * The reading as plain text for email: layer markers removed, the folded
+ * chart-reader layer dropped, headings kept.
+ */
+export function lifeQuestionsPlainText(text: string): string {
+  return text
+    .split(/\n\n+/)
+    .filter(b => !b.startsWith(DETAIL_MARKER))
+    .map(b => {
+      for (const m of [WHATIS_MARKER, REFLECTION_MARKER, NOTE_MARKER]) if (b.startsWith(m)) return b.slice(m.length);
+      return b;
+    })
+    .join("\n\n");
+}
+
 export interface LifeQuestionsOptions {
   /** An optional signed note from the author, placed after the final step. */
   closingNote?: { text: string; signature: string };
