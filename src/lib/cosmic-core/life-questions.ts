@@ -26,7 +26,7 @@
 
 import { GATES, type GateBand, type GateField } from "./gates.js";
 import { TYPE_PROFILES, type HdTypeName } from "./types.js";
-import { PROFILE_LINES, profileLineDescription } from "./profiles.js";
+import { PROFILE_LINES } from "./profiles.js";
 import { CENTERS, CENTER_ORDER, type CenterName } from "./centers.js";
 import { CROSS_VARIATIONS, crossVariation } from "./crosses.js";
 import { crossDescription } from "./cross-descriptions.js";
@@ -142,12 +142,12 @@ const TYPE_RHYTHM: Partial<Record<HdTypeName, string>> = {
   "Reflector": "sampling the energy around me and resting when it is done",
 };
 
-const NOT_SELF: Record<HdTypeName, string> = {
-  "Manifestor": "Anger is my not-self signal. When it rises, it usually carries a message: someone was caught off guard, or I was trying to move on someone else's terms.",
-  "Generator": "Frustration is my not-self signal. When it rises, it usually means I said yes with my head instead of my gut, or I am pushing at a door that never opened for me.",
-  "Manifesting Generator": "Frustration and anger are my not-self signals. Frustration means I committed to something my gut never answered. Anger means I moved fast and forgot to tell the people my speed would affect.",
-  "Projector": "Bitterness is my not-self signal. When it rises, it usually means I offered guidance nobody asked for, or I am pouring myself into a place that doesn't see me.",
-  "Reflector": "Disappointment is my not-self signal. When it rises, it usually means I decided too fast, or I am living in a place or among people that don't feel good to be in.",
+const NOT_SELF_DETAIL: Record<HdTypeName, string> = {
+  "Manifestor": "Anger usually carries a message: someone was caught off guard, or I was trying to move on someone else's terms.",
+  "Generator": "Frustration usually means I said yes with my head instead of my gut, or I'm pushing at a door that never opened for me.",
+  "Manifesting Generator": "Frustration means I committed to something my gut never answered. Anger means I moved fast and forgot to tell the people my speed would affect.",
+  "Projector": "Bitterness usually means I offered guidance nobody asked for, or I'm pouring myself into a place that doesn't see me.",
+  "Reflector": "Disappointment usually means I decided too fast, or I'm living among people or places that don't feel good to be in.",
 };
 
 // How I move: an image, the practice, and the language for it.
@@ -227,7 +227,7 @@ const AUTHORITY_DEEP: Record<Authority, { open: string[]; rule: string }> = {
     open: [
       "The shore shows what is really on it once the tide goes out. My authority works the same way. It is emotional, which means my truth lives in my Solar Plexus and reveals itself over time. In the first rush of excitement or dread, I can't see clearly yet. When the wave has moved through and I still feel the same way, I know.",
     ],
-    rule: "My working rule is simple: no big yes on the same day. I sleep on it, sometimes more than once, and notice how it feels in the morning and in the evening, on a bright day and a heavy one. For small things, a night is enough. For big ones, I give myself a week or more. If someone needs an answer before I have one, I can say so: \"I don't decide on the spot. I'll let you know by Friday.\"",
+    rule: "For small things, a night is enough. For big ones, I give myself a week or more, and notice how it feels in the morning and in the evening, on a bright day and a heavy one. If someone needs an answer before I have one, I can say so: \"I don't decide on the spot. I'll let you know by Friday.\"",
   },
   "Sacral": {
     open: [
@@ -351,6 +351,8 @@ interface Ctx {
   usedFullChannel: boolean;
   usedFullHanging: boolean;
   hangingCount: number;
+  briefed: Set<number>;
+  shortUsedLight: boolean;
 }
 
 function buildCtx(activations: Activation[]): Ctx {
@@ -358,7 +360,7 @@ function buildCtx(activations: Activation[]): Ctx {
   const definedChannels = CHANNEL_SPECS.filter(c => c.gates.every(g => definedGates.has(g)));
   const definedCenters = new Set<CenterName>();
   for (const c of definedChannels) c.centers.forEach(x => definedCenters.add(x));
-  return { activations, definedGates, definedChannels, definedCenters, grounded: new Set(), centersExplained: new Set(), usedFullChannel: false, usedFullHanging: false, hangingCount: 0 };
+  return { activations, definedGates, definedChannels, definedCenters, grounded: new Set(), centersExplained: new Set(), usedFullChannel: false, usedFullHanging: false, hangingCount: 0, briefed: new Set(), shortUsedLight: false };
 }
 
 const PLANET_LABEL: Record<string, string> = {
@@ -410,6 +412,17 @@ function ground(ctx: Ctx, gate: number | null | undefined): string {
   const theme = ctx.centersExplained.has(center) ? "" : `, the center of ${CENTER_THEME[center]}`;
   ctx.centersExplained.add(center);
   const where = `Gate ${gate} sits in my ${defined ? "defined" : "open"} ${centerName(center)}${theme}`;
+
+  if (ctx.briefed.has(gate)) {
+    if (mine && ctx.definedGates.has(gate)) return `Gate ${gate} is half of my ${channelLabel(mine)}, so it is consistent in me.`;
+    const pg = chans.map(c => partnerGate(c, gate));
+    const pp = pg.find(x => planetsIn(ctx, x).length > 0) ?? pg[0];
+    if (!pp) return "";
+    const w = planetsIn(ctx, pp);
+    return w.length
+      ? `Gate ${gate}'s channel partner is ${g(pp)}, where my ${listAnd(w)} sits, but the channel isn't complete.`
+      : `Gate ${gate}'s channel partner is ${g(pp)}, which isn't in my chart, so I feel this energy most fully around people who carry it.`;
+  }
 
   if (mine && ctx.definedGates.has(gate)) {
     if (!ctx.usedFullChannel) {
@@ -502,44 +515,43 @@ function withPrompt(heading: string, body: string[], profile: HumanDesignProfile
   return out.join("\n\n");
 }
 
+// Each section builds its short version first (which marks the gates it
+// briefly grounds), then a detail layer that only adds to it: the other side
+// of the chart, the channel story, and the longer interpretive copy.
+
+/** "My unconscious Moon is in Gate 9 (Focus)", only when it differs from the conscious one. */
+function otherSide(label: string, c: number | null, u: number | null, tail: (n: number) => string): string {
+  if (!u || u === c) return "";
+  return `My unconscious ${label} is in ${g(u)}. ${tail(u)}`;
+}
+
 function sectionCore(p: HumanDesignProfile, ctx: Ctx): string {
+  const short = shortCore(p, ctx);
   const t = p.type ? TYPE_PROFILES[p.type] : undefined;
   const body: string[] = [];
-  if (t) {
-    body.push(`I am a ${t.name}.`);
-    body.push(t.typeDescription);
-  }
+  if (t) body.push(t.typeDescription);
   const pc = p.profileConscious, pu = p.profileUnconscious;
   if (pc && pu && PROFILE_LINES[pc] && PROFILE_LINES[pu]) {
-    const d = (n: number) => profileLineDescription(n).replace(/\byour\b/g, "my");
     body.push(
-      `My profile is ${pc}/${pu}, the ${PROFILE_LINES[pc].name} and the ${PROFILE_LINES[pu].name}. A profile is the role I play in other people's lives and the way I learn. My conscious ${pc} line is how I see myself: ${d(pc)}. My unconscious ${pu} line is how other people often experience me before I notice it myself: ${d(pu)}.`
+      `My profile is ${pc}/${pu}, the ${PROFILE_LINES[pc].name} and the ${PROFILE_LINES[pu].name}. A profile is the role I play in other people's lives and the way I learn. The first number is my conscious line, how I see myself. The second is my unconscious line, how other people experience me before I notice it myself.`
     );
     if (PROFILE_EXPERIMENTS[pc]) body.push(PROFILE_EXPERIMENTS[pc]);
   }
-  return withPrompt("WHO AM I AT MY CORE", body, p, shortCore(p, ctx));
+  return withPrompt("WHO AM I AT MY CORE", body, p, short);
 }
 
 function sectionCenters(p: HumanDesignProfile, ctx: Ctx): string {
+  const short = shortCenters(p, ctx);
   const body: string[] = [];
-  body.push(
-    "My design is a body of nine energy centers. The defined ones are colored in on my chart. They work the same way every day, and other people feel them coming from me. The open ones are where I take the world in and amplify it. They are where I'm most easily conditioned, because much of what moves through them isn't mine, and over a lifetime they become where I grow wisest."
-  );
-
   const defined = CENTER_ORDER.filter(c => ctx.definedCenters.has(c));
   const open = CENTER_ORDER.filter(c => !ctx.definedCenters.has(c));
   const count = (n: number) => ["None", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"][n];
 
   if (defined.length) {
-    body.push(
-      `${count(defined.length)} of my centers are defined. ` +
-      defined.map(c => `In my ${centerName(c)}, ${CENTERS[c].defined}.`).join(" ") +
-      " This is the ground I move from."
-    );
+    body.push(defined.map(c => `In my ${centerName(c)}, ${CENTERS[c].defined}.`).join(" ") + " This is the ground I move from.");
   }
   if (open.length) {
     body.push(
-      `${count(open.length)} ${open.length === 1 ? "is" : "are"} open. ` +
       open.map(c => `In my open ${centerName(c)}, ${CENTERS[c].open}.`).join(" ") +
       " In each of these, the work is noticing when I'm amplifying something that belongs to someone else."
     );
@@ -554,28 +566,29 @@ function sectionCenters(p: HumanDesignProfile, ctx: Ctx): string {
     let sideNote = "";
     if (sides.size === 1 && sides.has("unconscious")) sideNote = ` All of them are on the unconscious, Design side of my chart, so they run through my body below awareness.`;
     if (sides.size === 1 && sides.has("conscious")) sideNote = ` All of them are on my conscious side, so I tend to notice them in myself.`;
-    let para = `My open ${centerName(c)} deserves a closer look, because it holds ${gates.length === 1 ? "an activated gate" : `${count(gates.length).toLowerCase()} activated gates`}: ${listAnd(names)}.${sideNote} ${gates.length === 1 ? "It is" : "Each is"} half of a channel, waiting for a matching gate in someone else's chart. When I spend time with people who carry those other halves, I can feel ${BORROWED[c]}.`;
+    let para = `My open ${centerName(c)} holds ${gates.length === 1 ? "an activated gate" : `${count(gates.length).toLowerCase()} activated gates`}: ${listAnd(names)}.${sideNote} ${gates.length === 1 ? "It is" : "Each is"} half of a channel, waiting for a matching gate in someone else's chart. When I spend time with people who carry those other halves, I can feel ${BORROWED[c]}.`;
     if (c === "Sacral") {
       para += " That surge is real, and it is borrowed. It belongs to the connection, and it fades when the person leaves.";
       const rhythm = p.type ? TYPE_RHYTHM[p.type] : undefined;
-      if (rhythm) para += ` Knowing this is one of the keys to avoiding burnout. In the right company my body can feel like a workhorse, while my own design is built for ${rhythm}.`;
+      if (rhythm) para += ` My own design is built for ${rhythm}.`;
     }
     body.push(para);
   }
 
   // A defining conscious light (Sun or Earth) in open ground.
-  const lights: { planet: string; gate: number }[] = [];
-  if (p.sunConscious) lights.push({ planet: "Sun", gate: p.sunConscious });
-  if (p.earthConscious) lights.push({ planet: "Earth", gate: p.earthConscious });
-  const inOpen = lights.find(l => !ctx.definedCenters.has(GATE_TO_CENTER[l.gate]));
-  if (inOpen) {
-    const c = GATE_TO_CENTER[inOpen.gate];
+  const light = [
+    p.sunConscious ? { planet: "Sun", gate: p.sunConscious } : null,
+    p.earthConscious ? { planet: "Earth", gate: p.earthConscious } : null,
+  ].find(l => l && !ctx.definedCenters.has(GATE_TO_CENTER[l.gate]));
+  if (light) {
+    const c = GATE_TO_CENTER[light.gate];
     body.push(
-      `One of my defining gifts sits in open ground. My ${inOpen.planet} in ${g(inOpen.gate)} lives in my open ${centerName(c)}, so the very thing I'm here to express runs through the part of me most shaped by others. It can take years to trust this gift as mine, and claiming it is some of the most important work I'll do. ${ground(ctx, inOpen.gate)}`
+      ctx.shortUsedLight
+        ? ground(ctx, light.gate)
+        : `One of my defining gifts sits in open ground. My ${light.planet} in ${g(light.gate)} lives in my open ${centerName(c)}, so the very thing I'm here to express runs through the part of me most shaped by others. It can take years to trust this gift as mine, and claiming it is some of the most important work I'll do. ${ground(ctx, light.gate)}`
     );
   }
-
-  return withPrompt("WHERE IS MY ENERGY STEADY", body, p, shortCenters(p, ctx));
+  return withPrompt("WHERE IS MY ENERGY STEADY", body, p, short);
 }
 
 /** Shortest path of defined channels from the Throat to a motor center. */
@@ -611,84 +624,61 @@ function motorToThroat(ctx: Ctx): { motor: CenterName; path: ChannelSpec[] } | n
 
 function sectionMove(p: HumanDesignProfile, ctx: Ctx): string {
   if (!p.type) return "";
-  const body = [...STRATEGY_DEEP[p.type]];
+  const short = shortMove(p, ctx);
+  // The deep copy's middle paragraph is the practice the short version already gives.
+  const deep = STRATEGY_DEEP[p.type];
+  const body = [deep[0], deep[2]];
 
   if (p.type === "Manifestor" || p.type === "Manifesting Generator") {
     const m = motorToThroat(ctx);
     if (m) {
-      const chans = m.path.map(channelLabel);
       body.push(
-        `My design shows why this matters so much for me. My ${centerName(m.motor)} connects to my Throat through the ${listAnd(chans)}, so my energy can turn straight into action and speech. That is the initiating power in my design. It also means I can move before anyone around me sees it coming, and when I skip the informing, people feel ambushed, they push back, and I feel controlled.`
+        `My design shows why this matters so much for me. My ${centerName(m.motor)} connects to my Throat through the ${listAnd(m.path.map(channelLabel))}, so my energy can turn straight into action and speech. That is the initiating power in my design. It also means I can move before anyone around me sees it coming.`
       );
     }
   }
-  body.push(NOT_SELF[p.type]);
-
-  if (!ctx.definedCenters.has("Sacral") && (p.type === "Manifestor" || p.type === "Projector" || p.type === "Reflector")) {
-    const rhythm = TYPE_RHYTHM[p.type]!;
-    const informRest = p.type === "Manifestor"
-      ? "So I also inform people about my limits: \"I'm done for today.\" \"I'll come back to this after the weekend.\" Informing about rest is part of my strategy, and it is one of the clearest ways out of the burnout that comes from living on borrowed energy."
-      : "So I rest before I'm exhausted, and I leave the room before I've taken on more than my own energy can carry. Rest is part of my strategy.";
-    body.push(
-      `There is a second part to this. My Sacral is open, so I take in and amplify the steady life-force of the Generators around me. In a busy room I can feel like the most productive person there and keep going long after my own energy has run out. My energy is built for ${rhythm}. ${informRest}`
-    );
-  }
-  return withPrompt("HOW DO I MOVE", body, p, shortMove(p, ctx));
+  // The short version names the signal; the detail says what it is telling me.
+  body.push(NOT_SELF_DETAIL[p.type]);
+  return withPrompt("HOW DO I MOVE", body, p, short);
 }
 
 function sectionDecide(p: HumanDesignProfile, ctx: Ctx): string {
+  const short = shortDecide(p, ctx);
   const auth: Authority = p.authority ?? "None";
   const deep = AUTHORITY_DEEP[auth] ?? AUTHORITY_DEEP["None"];
   const body = [...deep.open];
 
   if (auth === "Emotional") {
     const waves = ctx.definedChannels.filter(c => c.wave);
-    if (waves.length) {
-      body.push(
-        `Human Design describes several kinds of emotional wave, each with its own shape, depending on which channels connect to the Solar Plexus. My Solar Plexus is fed by ${waves.length === 1 ? "one of them" : `${waves.length === 2 ? "two" : waves.length} of them`}, and learning to recognize ${waves.length === 1 ? "it" : "them"} is some of the most useful self-knowledge I can have.`
-      );
-      for (const w of waves) {
-        // Tie the wave to a purpose placement where one sits on it.
-        let extra = "";
-        const lifesWork = p.sunConscious;
-        if (lifesWork && w.gates.includes(lifesWork)) {
-          extra = ` ${g(lifesWork)} is also my conscious Sun, so this wave and my purpose are bound together. My emotions are often how I discover what matters most to me.`;
-        }
-        body.push(WAVE_COPY[w.wave!](w, extra));
+    for (const w of waves) {
+      let extra = "";
+      const lifesWork = p.sunConscious;
+      if (lifesWork && w.gates.includes(lifesWork)) {
+        extra = ` ${g(lifesWork)} is also my conscious Sun, so this wave and my purpose are bound together. My emotions are often how I discover what matters most to me.`;
       }
-      if (waves.length >= 2) {
-        body.push(
-          "My waves can stack. One rises while another builds quietly underneath, and when both drop at once, the crash can feel like burnout or failure. Often it is two waves landing at the same time, and it passes."
-        );
-      }
-      // Single Solar Plexus gates whose channel isn't complete: borrowed waves.
-      const hanging = CHANNEL_SPECS.filter(c => c.wave && !ctx.definedChannels.includes(c))
-        .map(c => ({ c, mine: c.gates.filter(x => ctx.definedGates.has(x)) }))
-        .filter(x => x.mine.length === 1);
-      if (hanging.length) {
-        const bits = hanging.map(h => `Gate ${h.mine[0]}, half of the ${WAVE_NAME[h.c.wave!]} ${channelLabel(h.c)}`);
-        body.push(
-          `I also carry single gates from other waves: ${bits.join("; and ")}. These channels aren't complete in my chart, so these aren't my waves. Around people who carry the missing halves, I may feel those rhythms move through me for a while, which is worth remembering when a mood doesn't match my own patterns.`
-        );
-      }
+      body.push(WAVE_COPY[w.wave!](w, extra));
+    }
+    if (waves.length >= 2) {
+      body.push("My waves can stack. One rises while another builds quietly underneath, and when both drop at once, the crash can feel like burnout or failure. Often it is two waves landing at the same time, and it passes.");
+    }
+    const hanging = CHANNEL_SPECS.filter(c => c.wave && !ctx.definedChannels.includes(c))
+      .map(c => ({ c, mine: c.gates.filter(x => ctx.definedGates.has(x)) }))
+      .filter(x => x.mine.length === 1);
+    if (hanging.length) {
+      const bits = hanging.map(h => `Gate ${h.mine[0]}, half of the ${WAVE_NAME[h.c.wave!]} ${channelLabel(h.c)}`);
+      body.push(`I also carry single gates from other waves: ${bits.join("; and ")}. These channels aren't complete in my chart, so these aren't my waves. Around people who carry the missing halves, I may feel those rhythms move through me for a while, which is worth remembering when a mood doesn't match my own patterns.`);
     }
   }
   body.push(deep.rule);
-  if (p.type) {
-    body.push(`This is the most practical sequence in my whole design. ${AUTHORITY_STEP[auth]}. ${STRATEGY_STEP[p.type]}. Much of the frustration I've known has come from skipping a step.`);
-  }
-  return withPrompt("HOW DO I KNOW WHAT IS RIGHT", body, p, shortDecide(p, ctx));
+  return withPrompt("HOW DO I KNOW WHAT IS RIGHT", body, p, short);
 }
 
 function sectionStart(p: HumanDesignProfile, ctx: Ctx): string {
+  const short = shortStart(p, ctx);
   const body: string[] = [];
   const sc = p.southNodeConscious, su = p.southNodeUnconscious;
-  if (sc || su) {
-    body.push(
-      `${PLANET_PLAIN.SouthNode} ${placement("South Node", sc, su)}. I came in practicing ${pairExpr(sc, su, "low")}. Over a lifetime, the work is to ${pairExpr(sc, su, "arc", "verb", "and to")}.`
-    );
-    body.push(groundAll(ctx, [sc, su]));
-  }
+  body.push(otherSide("South Node", sc, su, n => `There I practiced ${firstClause(expr(n, "low"))}, and the work is to ${expr(n, "arc", "verb")}.`));
+  body.push(groundAll(ctx, [sc, su]));
   const uc = p.uranusConscious, uu = p.uranusUnconscious, pc = p.plutoConscious, pu = p.plutoUnconscious;
   if (uc || pc) {
     const gen: string[] = [PLANET_PLAIN.Generation];
@@ -697,122 +687,99 @@ function sectionStart(p: HumanDesignProfile, ctx: Ctx): string {
     body.push(gen.join(" "));
     body.push(groundAll(ctx, [uc, uu, pc, pu]));
   }
-  body.push(
-    "The world I grew up in had its own story about who I was and what was possible. Some of it served me. Some of it didn't. Seeing what I started out carrying is how I begin to tell the difference."
-  );
-  return withPrompt("WHAT DID I START OUT CARRYING", body, p, shortStart(p, ctx));
+  body.push("The world I grew up in had its own story about who I was and what was possible. Some of it served me. Some of it didn't. Seeing what I started out carrying is how I begin to tell the difference.");
+  return withPrompt("WHAT DID I START OUT CARRYING", body, p, short);
 }
 
 function sectionTests(p: HumanDesignProfile, ctx: Ctx): string {
-  const body: string[] = [];
-  const sc = p.saturnConscious, su = p.saturnUnconscious;
-  if (sc || su) {
-    let s = `${PLANET_PLAIN.Saturn} ${placement("Saturn", sc, su)}.`;
-    if (sc && su && sc !== su) {
-      s += ` Consciously, the lesson starts with ${expr(sc, "low")}, and grows into ${expr(sc, "high", "gerund")}. Underneath, it starts with ${expr(su, "low")}, and grows into ${expr(su, "high", "gerund")}.`;
-    } else {
-      const x = sc || su;
-      s += ` The lesson starts with ${expr(x, "low")}, and grows into ${expr(x, "high", "gerund")}.`;
-    }
-    body.push(s);
-    body.push(groundAll(ctx, [sc, su]));
-  }
-  const jc = p.jupiterConscious, ju = p.jupiterUnconscious;
-  if (jc || ju) {
-    body.push(`${PLANET_PLAIN.Jupiter} ${placement("Jupiter", jc, ju)}. When I meet Saturn's lessons honestly, I grow into ${pairExpr(jc, ju, "high", "gerund")}.`);
-    body.push(groundAll(ctx, [jc, ju]));
-  }
-  return withPrompt("WHAT KEEPS TESTING ME", body, p, shortTests(p, ctx));
+  const short = shortTests(p, ctx);
+  const sc = p.saturnConscious, su = p.saturnUnconscious, jc = p.jupiterConscious, ju = p.jupiterUnconscious;
+  const body = [
+    PLANET_PLAIN.Saturn,
+    otherSide("Saturn", sc, su, n => `Underneath, the lesson starts with ${expr(n, "low")}, and grows into ${expr(n, "high", "gerund")}.`),
+    groundAll(ctx, [sc, su]),
+    otherSide("Jupiter", jc, ju, n => `It adds another kind of opening: ${expr(n, "high", "gerund")}.`),
+    groundAll(ctx, [jc, ju]),
+  ];
+  return withPrompt("WHAT KEEPS TESTING ME", body, p, short);
 }
 
 function sectionTender(p: HumanDesignProfile, ctx: Ctx): string {
+  const short = shortTender(p, ctx);
+  const cc = p.chironConscious, cu = p.chironUnconscious, mu = p.marsUnconscious, mc = p.marsConscious;
   const body: string[] = [];
-  const cc = p.chironConscious, cu = p.chironUnconscious;
   if (cc || cu) {
     body.push(
-      `${PLANET_PLAIN.Chiron} ${placement("Chiron", cc, cu)}. The work here is to ${pairExpr(cc, cu, "arc", "verb", "and to")}. I'm not meant to fix or erase this wound. I cross it more deeply each time, with more capacity to hold what I find. Chiron doesn't color in gates the way the other planets do, so these gates may look blank on my bodygraph.`
+      [
+        otherSide("Chiron", cc, cu, n => `There, the work is to ${expr(n, "arc", "verb")}.`),
+        "I'm not meant to fix or erase this wound. I cross it more deeply each time, with more capacity to hold what I find. Chiron doesn't color in gates the way the other planets do, so these gates may look blank on my bodygraph.",
+      ].filter(Boolean).join(" ")
     );
     body.push(groundAll(ctx, [cc, cu]));
   }
-  const mu = p.marsUnconscious, mc = p.marsConscious;
-  if (mu || mc) {
-    let s = PLANET_PLAIN.Mars;
-    if (mu) s += ` My unconscious Mars is in ${g(mu)}. The fight I carry most privately, where I've questioned my worth and my right to take up space, lives here. The work is to ${expr(mu, "arc", "verb")}. What has hurt me most here has also taught me the most.`;
-    if (mc) s += ` My conscious Mars is in ${g(mc)}, and it shows what I'll stand up for: ${expr(mc, "high")}.`;
-    body.push(s);
-    body.push(groundAll(ctx, [mu, mc]));
-  }
-  return withPrompt("WHERE AM I MOST TENDER", body, p, shortTender(p, ctx));
+  if (mc) body.push(`My conscious Mars is in ${g(mc)}, and it shows what I'll stand up for: ${expr(mc, "high")}. The ache underneath and the stand I take in the world are two ends of one fire.`);
+  body.push(groundAll(ctx, [mu, mc]));
+  return withPrompt("WHERE AM I MOST TENDER", body, p, short);
 }
 
 function sectionGoing(p: HumanDesignProfile, ctx: Ctx): string {
   const mc = p.moonConscious, mu = p.moonUnconscious;
   if (!mc && !mu) return "";
+  const short = shortGoing(p, ctx);
   const body = [
-    `${PLANET_PLAIN.Moon} ${placement("Moon", mc, mu)}. At my core, I'm moved by ${pairExpr(mc, mu, "high", "gerund", "and by")}. These are what I return to when I've lost the thread. When I tend to them, I have the energy and heart to keep going. When I neglect them, something essential goes quiet.`,
+    otherSide("Moon", mc, mu, n => `It adds another fuel: ${expr(n, "high", "gerund")}.`),
     groundAll(ctx, [mc, mu]),
     "My body is the first ally I have. When I listen to it and tend my needs, I'm resourced. When I override it, I lose the very support that keeps me on the path.",
   ];
-  return withPrompt("WHAT KEEPS ME GOING", body, p, shortGoing(p, ctx));
+  return withPrompt("WHAT KEEPS ME GOING", body, p, short);
 }
 
 function sectionAbout(p: HumanDesignProfile, ctx: Ctx): string {
+  const short = shortAbout(p, ctx);
   const body: string[] = [];
   const v = crossVariation(p.incarnationCross);
   body.push(
-    `The deepest answer to why I'm here is my incarnation cross${p.incarnationCross ? `, the ${p.incarnationCross}` : ""}. It is built from the four gates of my Sun and Earth, on both sides of my chart. The Sun is the gift I'm here to give, and the Earth beneath it is the ground I stand on to give it.`
+    `This theme comes from my incarnation cross${p.incarnationCross ? `, the ${p.incarnationCross}` : ""}. It is built from the four gates of my Sun and Earth, on both sides of my chart. The Sun is the gift I'm here to give, and the Earth beneath it is the ground I stand on to give it.`
   );
   if (v) body.push(CROSS_VARIATIONS[v].description);
   const sc = p.sunConscious, ec = p.earthConscious, su = p.sunUnconscious, eu = p.earthUnconscious;
-  if (sc) {
-    body.push(
-      `Consciously, my Sun is in ${g(sc)} and my Earth is in ${g(ec)}. This is the role I know I'm playing: I'm here to ${expr(sc, "high", "verb")}, standing on ${expr(ec, "high")}.`
-    );
-  }
   if (su) {
-    body.push(
-      `Beneath that, my unconscious Sun is in ${g(su)} and my unconscious Earth is in ${g(eu)}. Others often recognize this in me before I do: I'm built to ${expr(su, "high", "verb")}, standing on ${expr(eu, "high")}.`
-    );
+    body.push(`Beneath that, my unconscious Sun is in ${g(su)} and my unconscious Earth is in ${g(eu)}. Others often recognize this in me before I do: I'm built to ${expr(su, "high", "verb")}, standing on ${expr(eu, "high")}.`);
   }
   const cd = crossDescription(sc, v);
-  if (cd) body.push(cd);
+  if (cd) body.push(cd.split(/(?<=\.)\s/).slice(1).join(" "));
   body.push(groundAll(ctx, [sc, ec, su, eu]));
   const t = p.type ? TYPE_PROFILES[p.type] : undefined;
   if (t) body.push(`As a ${t.name}, I serve the world by ${t.purposeGerund}. Most people don't fully recognize their cross until they're decades into living it.`);
-  return withPrompt("WHAT IS MY LIFE ABOUT", body, p, shortAbout(p, ctx));
+  return withPrompt("WHAT IS MY LIFE ABOUT", body, p, short);
 }
 
 function sectionComesOut(p: HumanDesignProfile, ctx: Ctx): string {
-  const body: string[] = [];
+  const short = shortComesOut(p, ctx);
   const mc = p.mercuryConscious, mu = p.mercuryUnconscious, vc = p.venusConscious, vu = p.venusUnconscious;
-  if (mc || mu) {
-    body.push(`${PLANET_PLAIN.Mercury} ${placement("Mercury", mc, mu)}. At its best, my voice works by ${pairExpr(mc, mu, "high", "gerund", "and by")}.`);
-    body.push(groundAll(ctx, [mc, mu]));
-  }
-  if (vc || vu) {
-    body.push(`${PLANET_PLAIN.Venus} ${placement("Venus", vc, vu)}. What I value most is ${pairExpr(vc, vu, "high")}. These show up in how I love, what I protect, and what I choose to make.`);
-    body.push(groundAll(ctx, [vc, vu]));
-  }
-  return withPrompt("HOW DOES WHAT I CARRY COME OUT", body, p, shortComesOut(p, ctx));
+  const body = [
+    otherSide("Mercury", mc, mu, n => `It gives my voice a second register: ${expr(n, "high", "gerund")}.`),
+    groundAll(ctx, [mc, mu]),
+    otherSide("Venus", vc, vu, n => `I also value ${expr(n, "high")}.`),
+    vc || vu ? "These values show up in how I love, what I protect, and what I choose to make." : "",
+    groundAll(ctx, [vc, vu]),
+  ];
+  return withPrompt("HOW DOES WHAT I CARRY COME OUT", body, p, short);
 }
 
 function sectionPulling(p: HumanDesignProfile, ctx: Ctx): string {
-  const body: string[] = [];
-  const nc = p.northNodeConscious, nu = p.northNodeUnconscious, sc = p.southNodeConscious, su = p.southNodeUnconscious;
-  if (nc || nu) {
-    let s = `${PLANET_PLAIN.NorthNode} ${placement("North Node", nc, nu)}. It asks me to grow into ${pairExpr(nc, nu, "high", "gerund")}.`;
-    if (sc || su) s += ` Where my South Node set the early scenery, this is the direction my life bends toward once those early lessons have done their work. It often feels unfamiliar at first, and then like coming home.`;
-    body.push(s);
-    body.push(groundAll(ctx, [nc, nu]));
-  }
+  const short = shortPulling(p, ctx);
+  const nc = p.northNodeConscious, nu = p.northNodeUnconscious;
+  const body = [
+    otherSide("North Node", nc, nu, n => `It also pulls me toward ${expr(n, "high", "gerund")}.`),
+    groundAll(ctx, [nc, nu]),
+  ];
   const ec = p.neptuneConscious, eu = p.neptuneUnconscious;
   if (ec || eu) {
-    body.push(
-      `${PLANET_PLAIN.Neptune} ${placement("Neptune", ec, eu)}. At its clearest, this is ${pairExpr(ec, eu, "high")}. In the fog, it can look like ${pairExpr(ec, eu, "low")}. When I've drifted from the thread, this is where I come back to re-anchor.`
-    );
+    body.push(`${PLANET_PLAIN.Neptune} ${placement("Neptune", ec, eu)}. At its clearest, this is ${pairExpr(ec, eu, "high")}. In the fog, it can look like ${pairExpr(ec, eu, "low")}. When I've drifted from the thread, this is where I come back to re-anchor.`);
     body.push(groundAll(ctx, [ec, eu]));
   }
-  return withPrompt("WHERE IS MY LIFE PULLING ME", body, p, shortPulling(p, ctx));
+  return withPrompt("WHERE IS MY LIFE PULLING ME", body, p, short);
 }
 
 function hinge(): string {
@@ -905,7 +872,10 @@ function briefGround(ctx: Ctx, gate: number | null | undefined): string {
   if (!gate || !GATES[gate] || !ctx.definedGates.has(gate)) return "";
   const c = GATE_TO_CENTER[gate];
   const d = ctx.definedCenters.has(c);
-  return `${g(gate)} lives in my ${d ? "defined" : "open"} ${centerName(c)}, the center of ${CENTER_THEME[c]}, so ${d ? "this runs steadily in me" : "it comes and goes with the company I keep"}.`;
+  ctx.briefed.add(gate);
+  const theme = ctx.centersExplained.has(c) ? "" : `, the center of ${CENTER_THEME[c]}`;
+  ctx.centersExplained.add(c);
+  return `${g(gate)} lives in my ${d ? "defined" : "open"} ${centerName(c)}${theme}, so ${d ? "this runs steadily in me" : "it comes and goes with the company I keep"}.`;
 }
 
 function shortCore(p: HumanDesignProfile, _ctx: Ctx): string[] {
@@ -931,6 +901,7 @@ function shortCenters(p: HumanDesignProfile, ctx: Ctx): string[] {
     out.push("The one to watch for me is my open Sacral. In busy, productive company I can work like a Generator for days, then crash, because that energy was borrowed.");
   } else {
     const light = [p.sunConscious, p.earthConscious].find(x => x && !ctx.definedCenters.has(GATE_TO_CENTER[x]));
+    if (light) ctx.shortUsedLight = true;
     if (light) out.push(`One of my core gifts, ${g(light)}, sits in my open ${centerName(GATE_TO_CENTER[light])}, so it can take years to trust it as mine.`);
   }
   return out;
@@ -1026,7 +997,7 @@ function shortPulling(p: HumanDesignProfile, ctx: Ctx): string[] {
 // The Village Journey: a plain short version (what Gene Keys are, and my three
 // headline gifts), with the full sequence walk folded beneath.
 function layeredVillage(village: string, gk: GeneKeysProfile, p: HumanDesignProfile): string {
-  const body = village.split("\n\n").slice(1);
+  const body = village.split("\n\n").slice(2);
   const gift = (n: number | null) => (n && GENE_KEY_FREQUENCIES[n] ? GENE_KEY_FREQUENCIES[n].gift : "");
   const short: string[] = [
     "The Gene Keys read the same 64 gates as a spectrum: a Shadow (how the energy contracts under fear), a Gift (what it becomes with awareness), and a Siddhi (its fullest flowering). Three sequences map how I find my people and what I bring them.",
