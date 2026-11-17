@@ -87,22 +87,44 @@ export const LIFE_QUESTIONS_PARTS = [
 
 // Journey threads: a short first-person passage on each part's title page.
 // They carry the reader from one part to the next, so the reading moves as
-// one journey: the map, what I travel in, the road behind, the thread I
-// follow, the people I walk with, and the steps I take next.
-export const LIFE_QUESTIONS_PART_THREADS: Record<(typeof LIFE_QUESTIONS_PARTS)[number], string> = {
-  "At a Glance":
-    "Before I walk anywhere, I look at the map. Here is mine, in a few lines.",
-  "How I'm Built":
-    "Before I set out, I want to know what I'm traveling in: my energy, the role I play, the way I'm built to move and to choose. Nobody handed me instructions for any of this, so I learned most of it the hard way, often by trying to be someone else. These chapters are the instructions I never got.",
-  "Where I've Been":
-    "I know how I'm built now. But a design only comes alive in a life, and mine has a history. Before I look ahead, I turn around and look at the road behind me: what I carried, what kept testing me, where it hurt, and what kept me going anyway.",
-  "What I'm Here For":
-    "Looking back, I can see a thread running through all of it, through the detours, the hard years and the things that kept me going. It was there long before I had words for it. Now I turn to face it: what my life keeps returning to, how it wants to come through me, and where it's pulling me next.",
-  "Where I Belong":
-    "No one walks the whole road alone. Somewhere along the way the question changes from who I am to who I'm with, and what we might make together. These chapters follow my gifts outward, into the people I draw close and the circle I'm here to help gather.",
-  "Writing It Forward":
-    "This is where the map ends and the walking begins. I've seen how I'm built, where I've been, what I'm here for and who I'm here with. Now I take the next steps myself, small and real, starting this week.",
+// one journey (the map, what I travel in, the road behind, the thread I
+// follow, the people I walk with, the steps I take next), and each one
+// names a single thing from the reader's own chart.
+type PartName = (typeof LIFE_QUESTIONS_PARTS)[number];
+
+const TYPE_HERE: Record<HdTypeName, string> = {
+  "Manifestor": "here to start things",
+  "Generator": "here to build what lights me up",
+  "Manifesting Generator": "here to respond and then move fast",
+  "Projector": "here to see clearly and guide",
+  "Reflector": "here to reflect my community back to itself",
 };
+
+export function lifeQuestionsPartThreads(p: HumanDesignProfile, gk: GeneKeysProfile): Record<PartName, string> {
+  const auth: Authority = p.authority ?? "None";
+  const profileTag = p.profileConscious && p.profileUnconscious ? `${p.profileConscious}/${p.profileUnconscious} ` : "";
+  const mapOf = p.type
+    ? `the map of a ${profileTag}${p.type} with ${AUTHORITY_NAME[auth]} authority`
+    : "my map";
+  const sn = p.southNodeConscious ?? p.southNodeUnconscious;
+  const early = sn && GATES[sn] ? ` Early on, I knew a lot about ${firstClause(expr(sn, "low"))}.` : "";
+  const sun = p.sunConscious && GATES[p.sunConscious] ? GATES[p.sunConscious].traditionalName : "";
+  const attraction = gk.attraction ? GENE_KEY_FREQUENCIES[gk.attraction]?.gift : "";
+  return {
+    "At a Glance":
+      `Before I walk anywhere, I look at the map. Here is mine, ${mapOf}, in a few lines.`,
+    "How I'm Built":
+      `Before I set out, I want to know what I'm traveling in.${p.type ? ` I'm a ${p.type}, ${TYPE_HERE[p.type]}.` : ""} Nobody handed me instructions for any of this, so I learned most of it the hard way, often by trying to be someone else. These chapters are the instructions I never got.`,
+    "Where I've Been":
+      `I know how I'm built now. But a design only comes alive in a life, and mine has a history.${early} Before I look ahead, I turn around and look at the road behind me: what I carried, what kept testing me, where it hurt, and what kept me going anyway.`,
+    "What I'm Here For":
+      `Looking back, I can see a thread running through all of it, through the detours, the hard years and the things that kept me going. It was there long before I had words for it.${sun ? ` Now I have one: ${sun}.` : ""} I turn to face it: what my life keeps returning to, how it wants to come through me, and where it's pulling me next.`,
+    "Where I Belong":
+      `No one walks the whole road alone. Somewhere along the way the question changes from who I am to who I'm with, and what we might make together.${attraction ? ` People tend to find me through my gift of ${attraction}.` : ""} These chapters follow my gifts outward, into the people I draw close and the circle I'm here to help gather.`,
+    "Writing It Forward":
+      `This is where the map ends and the walking begins. I've seen how I'm built, where I've been, what I'm here for and who I'm here with. Now I take the next steps myself, small and real, starting this week${p.type ? `, and in my own way: ${STRATEGY_SHORT[p.type].replace(/^(?!I )./, c => c.toLowerCase())}` : ""}.`,
+  };
+}
 
 export const LIFE_QUESTIONS_SECTIONS: LifeQuestionSection[] = [
   { key: "WHO I AM",                          title: "What matters most",                            part: "At a Glance", term: "Your design in brief" , tab: "At a glance" },

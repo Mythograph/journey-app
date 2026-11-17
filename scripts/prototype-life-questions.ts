@@ -13,7 +13,7 @@ import {
   WHATIS_MARKER,
   LIFE_QUESTIONS_SECTIONS,
   LIFE_QUESTIONS_PARTS,
-  LIFE_QUESTIONS_PART_THREADS,
+  lifeQuestionsPartThreads,
   CHANNEL_SPECS,
   lifeQuestionsFocus,
   buildPrimerCards,
@@ -74,6 +74,7 @@ const bodygraph = (focus?: { gates: number[]; centers: string[] }, _names = fals
   focus: focus ? { gates: focus.gates, centers: focus.centers as CenterName[] } : undefined,
 });
 const focusMap = lifeQuestionsFocus({ profile, geneKeys, activations });
+const partThreads = lifeQuestionsPartThreads(profile, geneKeys);
 
 // Gene Keys chapters draw their sequence as a map instead of paragraphs.
 const SEQ_KEYS: Record<string, string> = { "WHAT IS MY GENIUS": "activation", "HOW DO I LOVE AND CONNECT": "venus", "WHAT DO I OFFER THE WORLD": "pearl" };
@@ -145,7 +146,7 @@ chapters.forEach((ch, i) => {
   if (ch.part !== curPart) {
     curPart = ch.part;
     const pn = LIFE_QUESTIONS_PARTS.indexOf(ch.part as typeof LIFE_QUESTIONS_PARTS[number]);
-    const thread = LIFE_QUESTIONS_PART_THREADS[ch.part as typeof LIFE_QUESTIONS_PARTS[number]] ?? "";
+    const thread = partThreads[ch.part as typeof LIFE_QUESTIONS_PARTS[number]] ?? "";
     html += `<section class="part"><p class="part-num">Part ${roman(pn + 1)}</p><h1>${esc(ch.part)}</h1>${thread ? `<p class="thread">${esc(thread)}</p>` : ""}</section>`;
   }
   const f = focusMap[ch.key];
