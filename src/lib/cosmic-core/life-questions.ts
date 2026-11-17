@@ -85,6 +85,25 @@ export const LIFE_QUESTIONS_PARTS = [
   "Writing It Forward",
 ] as const;
 
+// Journey threads: a short first-person passage on each part's title page.
+// They carry the reader from one part to the next, so the reading moves as
+// one journey: the map, what I travel in, the road behind, the thread I
+// follow, the people I walk with, and the steps I take next.
+export const LIFE_QUESTIONS_PART_THREADS: Record<(typeof LIFE_QUESTIONS_PARTS)[number], string> = {
+  "At a Glance":
+    "Before I walk anywhere, I look at the map. Here is mine, in a few lines.",
+  "How I'm Built":
+    "Before I set out, I want to know what I'm traveling in: my energy, the role I play, the way I'm built to move and to choose. Nobody handed me instructions for any of this, so I learned most of it the hard way, often by trying to be someone else. These chapters are the instructions I never got.",
+  "Where I've Been":
+    "I know how I'm built now. But a design only comes alive in a life, and mine has a history. Before I look ahead, I turn around and look at the road behind me: what I carried, what kept testing me, where it hurt, and what kept me going anyway.",
+  "What I'm Here For":
+    "Looking back, I can see a thread running through all of it, through the detours, the hard years and the things that kept me going. It was there long before I had words for it. Now I turn to face it: what my life keeps returning to, how it wants to come through me, and where it's pulling me next.",
+  "Where I Belong":
+    "No one walks the whole road alone. Somewhere along the way the question changes from who I am to who I'm with, and what we might make together. These chapters follow my gifts outward, into the people I draw close and the circle I'm here to help gather.",
+  "Writing It Forward":
+    "This is where the map ends and the walking begins. I've seen how I'm built, where I've been, what I'm here for and who I'm here with. Now I take the next steps myself, small and real, starting this week.",
+};
+
 export const LIFE_QUESTIONS_SECTIONS: LifeQuestionSection[] = [
   { key: "WHO I AM",                          title: "What matters most",                            part: "At a Glance", term: "Your design in brief" , tab: "At a glance" },
   { key: "WHAT KIND OF ENERGY DO I HAVE",     title: "What kind of energy do I have?",               part: "How I'm Built", term: "Energy type" , tab: "Energy type" },

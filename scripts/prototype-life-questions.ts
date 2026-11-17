@@ -13,6 +13,7 @@ import {
   WHATIS_MARKER,
   LIFE_QUESTIONS_SECTIONS,
   LIFE_QUESTIONS_PARTS,
+  LIFE_QUESTIONS_PART_THREADS,
   CHANNEL_SPECS,
   lifeQuestionsFocus,
   buildPrimerCards,
@@ -144,7 +145,8 @@ chapters.forEach((ch, i) => {
   if (ch.part !== curPart) {
     curPart = ch.part;
     const pn = LIFE_QUESTIONS_PARTS.indexOf(ch.part as typeof LIFE_QUESTIONS_PARTS[number]);
-    html += `<section class="part"><p class="part-num">Part ${roman(pn + 1)}</p><h1>${esc(ch.part)}</h1></section>`;
+    const thread = LIFE_QUESTIONS_PART_THREADS[ch.part as typeof LIFE_QUESTIONS_PARTS[number]] ?? "";
+    html += `<section class="part"><p class="part-num">Part ${roman(pn + 1)}</p><h1>${esc(ch.part)}</h1>${thread ? `<p class="thread">${esc(thread)}</p>` : ""}</section>`;
   }
   const f = focusMap[ch.key];
   const hasChart = ch.detail.length > 0;
@@ -338,6 +340,7 @@ figcaption{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top
 .toc a.on .tn{color:var(--gold)}
 .chapter{scroll-margin-top:72px}
 @media print{.toc{display:none}}
+.thread{font-family:"Fraunces",serif;font-style:italic;font-size:clamp(1.15rem,2.4vw,1.4rem);line-height:1.6;max-width:640px;margin:1.4em auto 0;color:var(--muted)}
 .chip.both i{background:linear-gradient(90deg,#111 50%,#c0392b 50%)}
 .primer{margin:40px auto 0;max-width:1180px}
 .primer>summary{cursor:pointer;list-style:none;text-align:center;font-family:"Playfair Display",serif;font-style:italic;font-size:clamp(1.3rem,3vw,1.7rem);padding:22px 16px;border:1px solid var(--gold);border-radius:999px;max-width:560px;margin:0 auto}
