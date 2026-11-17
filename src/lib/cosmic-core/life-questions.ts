@@ -31,8 +31,8 @@ import { CENTERS, CENTER_ORDER, type CenterName } from "./centers.js";
 import { CROSS_VARIATIONS, crossVariation } from "./crosses.js";
 import { crossDescription } from "./cross-descriptions.js";
 import { PROFILE_EXPERIMENTS, type Authority } from "./navigation.js";
-import { REFLECTION_MARKER, injectReflectionPrompts } from "./reflections.js";
-import type { GeneKeysProfile } from "./gene-keys.js";
+import { REFLECTION_MARKER } from "./reflections.js";
+import { GENE_KEY_FREQUENCIES, type GeneKeysProfile } from "./gene-keys.js";
 import { gateMoment } from "./gate-moments.js";
 import { buildPrimer } from "./primer.js";
 import { villageViews, type SequenceView, type SphereView } from "./village.js";
@@ -46,10 +46,7 @@ import {
   type ChannelSpec,
   type EmotionalWave,
 } from "./channels.js";
-import {
-  buildClosingModule,
-  type HumanDesignProfile,
-} from "./narrative.js";
+import type { HumanDesignProfile } from "./narrative.js";
 
 // ─── Input ────────────────────────────────────────────────────────────────────
 
@@ -79,6 +76,7 @@ export interface LifeQuestionSection {
 }
 
 export const LIFE_QUESTIONS_PARTS = [
+  "At a Glance",
   "How I'm Built",
   "Where I've Been",
   "What I'm Here For",
@@ -87,6 +85,7 @@ export const LIFE_QUESTIONS_PARTS = [
 ] as const;
 
 export const LIFE_QUESTIONS_SECTIONS: LifeQuestionSection[] = [
+  { key: "WHO I AM",                          title: "What matters most",                            part: "At a Glance", term: "Your design in brief" },
   { key: "WHAT KIND OF ENERGY DO I HAVE",     title: "What kind of energy do I have?",               part: "How I'm Built", term: "Energy type" },
   { key: "WHAT ROLE AM I HERE TO PLAY",       title: "What role am I here to play?",                 part: "How I'm Built", term: "Profile" },
   { key: "WHERE IS MY ENERGY STEADY",         title: "Where is my energy steady, and where do I borrow it?", part: "How I'm Built", term: "Defined and open centers" },
@@ -103,13 +102,11 @@ export const LIFE_QUESTIONS_SECTIONS: LifeQuestionSection[] = [
   { key: "WHAT IS MY GENIUS",                 title: "What is my genius?",                           part: "Where I Belong", term: "Gene Keys · Activation Sequence" },
   { key: "HOW DO I LOVE AND CONNECT",         title: "How do I love and connect?",                   part: "Where I Belong", term: "Gene Keys · Venus Sequence" },
   { key: "WHAT DO I OFFER THE WORLD",         title: "What do I offer the world?",                   part: "Where I Belong", term: "Gene Keys · Pearl Sequence" },
-  { key: "WHO I AM",                          title: "What matters most",                            part: "Where I Belong" },
-  { key: "THE PEN",                           title: "The Pen",                                      part: "Writing It Forward" },
-  { key: "THE EDGE",                          title: "The Edge",                                     part: "Writing It Forward" },
-  { key: "THE RANGE",                         title: "The Range",                                    part: "Writing It Forward" },
-  { key: "THE TURN",                          title: "The Turn",                                     part: "Writing It Forward" },
-  { key: "THE SCENE",                         title: "The Scene",                                    part: "Writing It Forward" },
-  { key: "THE LINE",                          title: "The Line",                                     part: "Writing It Forward" },
+  { key: "WHERE AM I NOW",                    title: "Where am I now?",                              part: "Writing It Forward", term: "Step 1 of 5 · 10 minutes" },
+  { key: "WHAT TRIES TO STOP ME",             title: "What tries to stop me?",                       part: "Writing It Forward", term: "Step 2 of 5 · 10 minutes" },
+  { key: "WHAT IS MY EXPERIMENT",             title: "What's my experiment?",                        part: "Writing It Forward", term: "Step 3 of 5 · four weeks" },
+  { key: "WHAT IS MY FIRST STEP",             title: "What's my first step?",                        part: "Writing It Forward", term: "Step 4 of 5 · this week" },
+  { key: "WHAT SENTENCE WILL I CARRY",        title: "What sentence will I carry?",                  part: "Writing It Forward", term: "Step 5 of 5 · 5 minutes" },
 ];
 
 // ─── Static copy ──────────────────────────────────────────────────────────────
@@ -347,6 +344,16 @@ const PROMPTS: Record<string, (p: HumanDesignProfile) => string> = {
     "Who have I been drawn to again and again, and what pattern do I see now? What would it mean to meet my core wound with care?",
   "WHAT DO I OFFER THE WORLD": () =>
     "What would I offer if I weren't trying to prove anything? Where do people already recognize me for it?",
+  "WHERE AM I NOW": () =>
+    "Where can I already see my design at work in my life? Where am I still living by someone else's pattern? One honest sentence for each.",
+  "WHAT TRIES TO STOP ME": () =>
+    "What exact sentence does that voice say? Write it in quotes, the way it actually sounds. Then name the one thing in my life it's keeping me from starting.",
+  "WHAT IS MY EXPERIMENT": () =>
+    "What do I expect to notice by the end of four weeks? Write it down today, so I can come back and compare.",
+  "WHAT IS MY FIRST STEP": () =>
+    "Write the scene in the present tense: where I am, who's there, and the first thing I do. Stop at the moment I act, and leave the outcome unwritten.",
+  "WHAT SENTENCE WILL I CARRY": () =>
+    "Draft it rough, then cut until every word earns its place. Say it out loud. If it sounds like me and I could steer by it on a hard day, it's my line.",
   "WHERE IS MY LIFE PULLING ME": () =>
     "What would it mean to lean all the way into where I am going, instead of half-protecting myself from it?",
 };
@@ -856,16 +863,21 @@ This is where the reading turns outward. Having found my purpose, I begin lookin
 
 function recap(p: HumanDesignProfile): string {
   const t = p.type ? TYPE_PROFILES[p.type] : undefined;
-  const lines: string[] = ["WHO I AM — A RECAP", "Before the story gets too long to hold, here is what matters most."];
+  const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
+  const lines: string[] = ["WHO I AM — A RECAP"];
   if (t) lines.push(`My nature: I'm a ${t.name}. I serve by ${t.purposeGerund}.`);
+  const pc = p.profileConscious, pu = p.profileUnconscious;
+  if (pc && pu && LINE_CONSCIOUS[pc] && LINE_UNCONSCIOUS[pu]) {
+    lines.push(`My role: I'm a ${pc}/${pu}. ${cap(LINE_CONSCIOUS[pc])}, and ${LINE_UNCONSCIOUS[pu]}.`);
+  }
   if (p.type) {
     const auth: Authority = p.authority ?? "None";
     lines.push(`How I move and decide: ${STRATEGY_SHORT[p.type]}. ${AUTHORITY_SHORT[auth]}.`);
   }
-  if (p.sunConscious) lines.push(`What my life is about: ${pairExpr(p.sunConscious, p.sunUnconscious, "high")}.`);
+  if (p.sunConscious) lines.push(`What my life is about: ${cap(pairExpr(p.sunConscious, p.sunUnconscious, "high"))}.`);
   if (p.southNodeConscious) lines.push(`Where I'm growing: I'm learning to ${pairExpr(p.southNodeConscious, p.southNodeUnconscious, "arc", "verb", "and to")}.`);
-  if (p.moonConscious) lines.push(`What keeps me going: ${pairExpr(p.moonConscious, p.moonUnconscious, "high", "gerund")}.`);
-  if (p.northNodeConscious) lines.push(`Where I'm headed: toward ${pairExpr(p.northNodeConscious, p.northNodeUnconscious, "high", "gerund")}.`);
+  if (p.moonConscious) lines.push(`What keeps me going: ${cap(pairExpr(p.moonConscious, p.moonUnconscious, "high", "gerund"))}.`);
+  if (p.northNodeConscious) lines.push(`Where I'm headed: Toward ${pairExpr(p.northNodeConscious, p.northNodeUnconscious, "high", "gerund")}.`);
   return lines.join("\n\n");
 }
 
@@ -1280,6 +1292,78 @@ function joinClausesPlain(items: string[]): string {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
+// ─── Writing It Forward: five steps, from reading to living ──────────────────
+
+const STRATEGY_PRACTICE: Record<HdTypeName, string> = {
+  "Manifestor": "Inform before I act. Each day, I tell at least one person what I'm about to do before I do it, starting with whoever it affects most.",
+  "Generator": "Respond before I commit. Before any yes, I turn the question into a yes-or-no and listen for my gut's answer.",
+  "Manifesting Generator": "Respond, then inform. I wait for my gut's yes, then tell the people my speed will affect before I leap.",
+  "Projector": "Wait for the invitation. I notice when I'm asked for my insight, and offer it only then.",
+  "Reflector": "Take my time. I pick one decision and give it the full four weeks, noticing how it feels each week.",
+};
+
+const AUTHORITY_PRACTICE: Record<Authority, string> = {
+  "Emotional": "No big yes on the same day. I sleep on every decision that matters, and check how it feels across a few different moods.",
+  "Sacral": "Let my gut answer first. I answer out loud with my body's yes or no before my mind builds a case.",
+  "Splenic": "Trust the first quiet knowing. At least once a day, I act on it without asking it to explain itself.",
+  "Ego Manifested": "Promise only what I want. Each time I catch myself saying \"I should,\" I pause and check whether my heart is in it.",
+  "Ego Projected": "Hear my own want. I talk one decision through with someone who listens, until I hear what I actually want.",
+  "Self-Projected": "Talk it out. I talk one decision through out loud with a good listener and notice what sounds true.",
+  "Mental Projected": "Change the setting. I talk one decision through with someone I trust, in a place where I feel well.",
+  "Lunar": "Give it a full cycle. One big decision gets the whole month before I commit.",
+  "None": "Give it time. One big decision waits until the urgency fades and I can see what stays true.",
+};
+
+const NOT_SELF_PRACTICE: Record<HdTypeName, string> = {
+  "Manifestor": "Track my anger. When it flares, I jot down what happened just before. It's information about where I skipped informing.",
+  "Generator": "Track my frustration. When it shows up, I note what I said yes to without my gut.",
+  "Manifesting Generator": "Track frustration and anger. Each time, I note whether I skipped responding or skipped informing.",
+  "Projector": "Track my bitterness. When it shows up, I note where I gave without being invited.",
+  "Reflector": "Track my disappointment. When it shows up, I note where I rushed, or where I am and who I'm with.",
+};
+
+function buildWritingForward(p: HumanDesignProfile, gk: GeneKeysProfile): string[] {
+  const type = p.type || null;
+  const auth: Authority = p.authority ?? "None";
+  const ache = p.marsUnconscious ? firstClause(expr(p.marsUnconscious, "low")) : "";
+  const gift = gk.lifesWork ? GENE_KEY_FREQUENCIES[gk.lifesWork]?.gift ?? "" : "";
+  const t = type ? TYPE_PROFILES[type] : undefined;
+
+  const step1 = withPrompt("WHERE AM I NOW", [], p, [
+    "I've read what my design can tell me. From here, the story is mine to write, and these five steps turn the reading into something I live.",
+    "First, I name where I'm standing today, honestly, without wishing I were further along. That's my starting point.",
+  ]);
+
+  const step2 = withPrompt("WHAT TRIES TO STOP ME", [], p, [
+    "Whenever I get close to something that matters, a familiar voice speaks up. It's trying to keep me safe, and it repeats the same line every time.",
+    ache
+      ? `Mine tends to circle my oldest ache, the one that can show up as ${ache}. I can let it talk and choose anyway. Recognizing it is most of the work.`
+      : "I can let it talk and choose anyway. Recognizing it is most of the work.",
+  ]);
+
+  const items: string[] = [];
+  if (type) items.push(`1. ${STRATEGY_PRACTICE[type]}`);
+  items.push(`${items.length + 1}. ${AUTHORITY_PRACTICE[auth]}`);
+  if (type) items.push(`${items.length + 1}. ${NOT_SELF_PRACTICE[type]}`);
+  const step3 = withPrompt("WHAT IS MY EXPERIMENT", [], p, [
+    `Human Design only becomes real when I test it. For the next four weeks${t ? `, as a ${t.name} with ${AUTHORITY_NAME[auth]} authority` : ""}, I practice three things:`,
+    ...items,
+    "At the end of the four weeks, I look back at what changed. That's my evidence, and it's worth more than anything in this reading.",
+  ]);
+
+  const step4 = withPrompt("WHAT IS MY FIRST STEP", [], p, [
+    "Change starts as one small scene. This week, I choose one moment where I move the way I'm built to move, in my own timing, even with that familiar voice in the background.",
+    gift ? `It doesn't need to be big. It just needs to give my gift of ${gift} a little more room than it had last week.` : "It doesn't need to be big. It just needs to give my gifts a little more room than they had last week.",
+  ]);
+
+  const step5 = withPrompt("WHAT SENTENCE WILL I CARRY", [], p, [
+    "Last, I write one sentence I can carry: something that holds my design and the direction I'm walking in, plain enough to say on an ordinary morning.",
+    "It's the seed of how I talk about myself, in my bio, with someone new, or when I'm deciding what to say yes to. This is where the reading ends and my story keeps going.",
+  ]);
+
+  return [step1, step2, step3, step4, step5];
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 export function buildLifeQuestionsNarrative(input: LifeQuestionsInput): string {
@@ -1307,7 +1391,5 @@ export function buildLifeQuestionsNarrative(input: LifeQuestionsInput): string {
   const belong = sequences.length
     ? [withPrompt("AM I MADE FOR THIS MOMENT?", hinge().split("\n\n").slice(1), p), ...sequences]
     : [];
-  const tail = [recap(p), buildClosingModule(p, geneKeys)].join("\n\n");
-
-  return [buildPrimer(p), ...partOneToThree, ...belong, injectReflectionPrompts(tail, p)].join("\n\n");
+  return [buildPrimer(p), recap(p), ...partOneToThree, ...belong, ...buildWritingForward(p, geneKeys)].join("\n\n");
 }

@@ -46,7 +46,12 @@ console.log(report.join("\n"));
 
 // ── HTML preview: chapters as spreads ────────────────────────────────────────
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const roman = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX"];
+const roman = (n: number): string => {
+  const map: [number, string][] = [[10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+  let out = "";
+  for (const [v, sym] of map) while (n >= v) { out += sym; n -= v; }
+  return out;
+};
 
 // Bodygraph inputs from the fixture (Chiron never defines a gate).
 const real = activations.filter(a => a.planet !== "Chiron");
@@ -106,11 +111,20 @@ chapters.forEach((ch, i) => {
   if (ch.part !== curPart) {
     curPart = ch.part;
     const pn = LIFE_QUESTIONS_PARTS.indexOf(ch.part as typeof LIFE_QUESTIONS_PARTS[number]);
-    html += `<section class="part"><p class="part-num">Part ${roman[pn]}</p><h1>${esc(ch.part)}</h1></section>`;
+    html += `<section class="part"><p class="part-num">Part ${roman(pn + 1)}</p><h1>${esc(ch.part)}</h1></section>`;
   }
   const f = focusMap[ch.key];
   const hasChart = ch.detail.length > 0;
-  const voice = ch.voice.map((v, j) => `<p class="${j === 0 && hasChart ? "mirror" : "say"}">${esc(v)}</p>`).join("");
+  const voice = ch.voice.map((v, j) => {
+    const step = v.match(/^(\d)\. (.*)$/);
+    if (step) {
+      const [lead, ...rest] = step[2].split(/(?<=\.) /);
+      return `<div class="practice"><span class="practice-num">${step[1]}</span><p><strong>${esc(lead)}</strong> ${esc(rest.join(" "))}</p></div>`;
+    }
+    const label = ch.key === "WHO I AM" ? v.match(/^([A-Z][A-Za-z' ]{2,30}): (.*)$/) : null;
+    if (label) return `<p class="glance"><span>${esc(label[1])}</span>${esc(label[2])}</p>`;
+    return `<p class="${j === 0 && hasChart ? "mirror" : "say"}">${esc(v)}</p>`;
+  }).join("");
   const prompt = ch.prompt ? `<aside class="prompt"><p class="label">To write with</p><p>${esc(ch.prompt)}</p></aside>` : "";
   let chart = "";
   if (hasChart) {
@@ -129,7 +143,7 @@ chapters.forEach((ch, i) => {
     const inner = SEQ_KEYS[ch.key] ? sequenceMap(SEQ_KEYS[ch.key]) : `${graph}${ch.detail.map(d => `<p>${esc(d)}</p>`).join("")}`;
     chart = `<details class="chart"><summary>What your chart shows</summary>${inner}</details>`;
   }
-  html += `<article class="chapter${hasChart ? "" : " solo"}"><div class="voice"><p class="num">${roman[i]}${ch.term ? `<span class="term"> · ${esc(ch.term)}</span>` : ""}</p><h2>${esc(ch.title)}</h2>${ch.whatIs ? `<div class="whatis"><p class="label">What this is</p><p>${esc(ch.whatIs)}</p></div>` : ""}${voice}${prompt}</div>${chart}</article>`;
+  html += `<article class="chapter${hasChart ? "" : " solo"}"><div class="voice"><p class="num">${roman(i + 1)}${ch.term ? `<span class="term"> · ${esc(ch.term)}</span>` : ""}</p><h2>${esc(ch.title)}</h2>${ch.whatIs ? `<div class="whatis"><p class="label">What this is</p><p>${esc(ch.whatIs)}</p></div>` : ""}${voice}${prompt}</div>${chart}</article>`;
 });
 
 const primer = `<details class="primer"><summary>New to Human Design and Gene Keys?<small>Start here · about 5 minutes</small></summary><div class="cards">${
@@ -197,6 +211,12 @@ figcaption{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top
 .path{border-left:2px dashed var(--gold);margin:0 0 0 22px;padding:10px 0 10px 18px}
 .path-name{font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
 .path p{margin:.15em 0 0 !important;font-size:.88rem;font-style:italic}
+.practice{display:flex;gap:16px;align-items:flex-start;background:var(--panel);border-radius:10px;padding:16px 18px;margin:0 0 12px}
+.practice-num{flex:none;width:34px;height:34px;border-radius:50%;background:var(--terra);color:#fff;font-family:"Playfair Display",serif;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:1.05rem}
+.practice p{margin:0;font-size:1.08rem;line-height:1.55}
+.practice strong{font-weight:500}
+.glance{font-size:1.12rem;line-height:1.55;margin:0 0 1em;padding-bottom:1em;border-bottom:1px solid var(--line)}
+.glance span{display:block;font-family:"DM Sans",sans-serif;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:.3em}
 .chip.both i{background:linear-gradient(90deg,#111 50%,#c0392b 50%)}
 .primer{margin:40px auto 0;max-width:1180px}
 .primer>summary{cursor:pointer;list-style:none;text-align:center;font-family:"Playfair Display",serif;font-style:italic;font-size:clamp(1.3rem,3vw,1.7rem);padding:22px 16px;border:1px solid var(--gold);border-radius:999px;max-width:560px;margin:0 auto}

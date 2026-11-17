@@ -92,7 +92,11 @@ into a shared package that **both** journey-app and the Story Loom app depend on
   `channels.ts` (wiring + emotional wave types), `gate-moments.ts` (DRAFT
   shadow/gift moments for all 64 gates, for Cléa's edit), `primer.ts` (the
   "New to Human Design and Gene Keys?" explainer), `village.ts` (Gene Keys
-  sequences as structured views: one chapter per sequence, drawn as a map). Preview with
+  sequences as structured views: one chapter per sequence, drawn as a map).
+  The reading opens with a "What matters most" summary and closes with five
+  "Writing It Forward" steps built around a personalized four-week experiment
+  (strategy, authority and not-self practices). The live engine's closing
+  module in `narrative.ts` is unchanged. Preview with
   `npx tsx scripts/prototype-life-questions.ts <out-dir>`.
 
 Three naming systems coexist per gate by design: HD traditional name, Mythograph
