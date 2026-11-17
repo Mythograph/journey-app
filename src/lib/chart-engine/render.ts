@@ -297,10 +297,47 @@ export interface RenderInput {
   designGates: Set<number>;
   personalityActivations: { planet: string; gate: number; line: number }[];
   designActivations:      { planet: string; gate: number; line: number }[];
+  /** Optional chapter focus: fade the chart and ring these gates/centers in gold. */
+  focus?: { gates?: number[]; centers?: CenterName[] };
+}
+
+const C_FOCUS = "#c8a24a";
+
+function renderFocus(
+  focus: { gates?: number[]; centers?: CenterName[] },
+  definedCenters: Set<CenterName>,
+  pGates: Set<number>,
+  dGates: Set<number>,
+): string {
+  const parts: string[] = [];
+  // Fade everything drawn so far.
+  parts.push(`<rect width="${W}" height="${H}" fill="#fafaf7" opacity="0.62"/>`);
+  for (const name of focus.centers ?? []) {
+    const [cx, cy] = POS[name];
+    const def = definedCenters.has(name);
+    parts.push(renderShapeFill(cx, cy, CENTER_SHAPE[name], CENTER_R[name], def));
+    parts.push(renderGateCircles(name, pGates, dGates));
+    parts.push(renderCenterLabel(cx, cy, CENTER_SHAPE[name], CENTER_R[name], def, CENTER_LABEL[name]));
+    parts.push(shapeAttrs(cx, cy, CENTER_SHAPE[name], CENTER_R[name]) + ` fill="none" stroke="${C_FOCUS}" stroke-width="4"/>`);
+  }
+  for (const gate of focus.gates ?? []) {
+    const pos = GATE_POS[gate];
+    if (!pos) continue;
+    const [gx, gy] = pos;
+    const isP = pGates.has(gate), isD = dGates.has(gate);
+    const bg = isP && isD ? C_BOTH : isP ? C_PERSONALITY : isD ? C_DESIGN : "#ffffff";
+    const tc = isP || isD ? "#fff" : C_INACTIVE_GATE;
+    parts.push(
+      `<circle cx="${gx}" cy="${gy}" r="${CIRC_R}" fill="${bg}"/>`,
+      `<text x="${gx}" y="${gy + 3}" text-anchor="middle" font-size="7" font-family="sans-serif" fill="${tc}" font-weight="700">${gate}</text>`,
+      `<circle cx="${gx}" cy="${gy}" r="${CIRC_R + 4}" fill="none" stroke="${C_FOCUS}" stroke-width="2.5"/>`,
+    );
+  }
+  return parts.join("\n");
 }
 
 export function renderBodygraph({
-  definedCenters, personalityGates, designGates,
+  definedCenters, personalityGates, designGates, focus,
 }: RenderInput): string {
   const names = Object.keys(POS) as CenterName[];
   const parts: string[] = [];
@@ -334,6 +371,11 @@ export function renderBodygraph({
   for (const name of names) {
     const [cx, cy] = POS[name];
     parts.push(renderShapeStroke(cx, cy, CENTER_SHAPE[name], CENTER_R[name], definedCenters.has(name)));
+  }
+
+  // 6 — optional chapter focus
+  if (focus && ((focus.gates?.length ?? 0) + (focus.centers?.length ?? 0)) > 0) {
+    parts.push(renderFocus(focus, definedCenters, personalityGates, designGates));
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%;height:auto">\n` +
