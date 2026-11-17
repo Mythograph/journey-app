@@ -91,7 +91,8 @@ into a shared package that **both** journey-app and the Story Loom app depend on
   and a folded chart-reader layer in second person. Supporting files:
   `channels.ts` (wiring + emotional wave types), `gate-moments.ts` (DRAFT
   shadow/gift moments for all 64 gates, for Cléa's edit), `primer.ts` (the
-  "New to Human Design and Gene Keys?" explainer). Preview with
+  "New to Human Design and Gene Keys?" explainer), `village.ts` (Gene Keys
+  sequences as structured views: one chapter per sequence, drawn as a map). Preview with
   `npx tsx scripts/prototype-life-questions.ts <out-dir>`.
 
 Three naming systems coexist per gate by design: HD traditional name, Mythograph

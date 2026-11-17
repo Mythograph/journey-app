@@ -15,6 +15,8 @@ import {
   CHANNEL_SPECS,
   lifeQuestionsFocus,
   buildPrimerCards,
+  villageViews,
+  toSecondPerson,
 } from "../src/lib/cosmic-core/index.js";
 import { renderBodygraph } from "../src/lib/chart-engine/render.js";
 import type { CenterName } from "../src/lib/chart-engine/types.js";
@@ -64,6 +66,25 @@ const bodygraph = (focus?: { gates: number[]; centers: string[] }, _names = fals
 });
 const focusMap = lifeQuestionsFocus({ profile, geneKeys, activations });
 
+// Gene Keys chapters draw their sequence as a map instead of paragraphs.
+const SEQ_KEYS: Record<string, string> = { "WHAT IS MY GENIUS": "activation", "HOW DO I LOVE AND CONNECT": "venus", "WHAT DO I OFFER THE WORLD": "pearl" };
+const views = villageViews(geneKeys);
+const sequenceMap = (key: string): string => {
+  const v = views.find(x => x.key === key);
+  if (!v) return "";
+  const you = (s: string) => esc(toSecondPerson(s));
+  return `<div class="seq"><p class="seq-title">${esc(v.title)} · ${you(v.subtitle)}</p>${v.steps.map(st => {
+    if (st.kind === "pathway") return `<div class="path"><span class="path-name">${esc(st.pathway.name.replace(/^The /, ""))}</span><p>${you(st.pathway.line)}</p></div>`;
+    const sp = st.sphere;
+    const line = sp.line ? `<span class="gk-line">Line ${sp.line}${sp.lineName ? ` · ${esc(sp.lineName)}` : ""}</span>` : "";
+    if (sp.repeat) return `<div class="sphere repeat"><div class="sp-head"><span class="sp-label">${esc(sp.label)}</span><span class="gk">GK ${sp.gate}</span></div><p class="sp-note">${you(sp.note)}.</p></div>`;
+    return `<div class="sphere"><div class="sp-head"><span class="sp-label">${esc(sp.label)}</span><span class="gk">GK ${sp.gate}</span></div>` +
+      `<p class="sp-note">${you(sp.note)} ${line}</p>` +
+      `<div class="spectrum"><span><small>Shadow</small>${esc(sp.shadow)}</span><i>›</i><span class="gift"><small>Gift</small>${esc(sp.gift)}</span><i>›</i><span><small>Siddhi</small>${esc(sp.siddhi)}</span></div>` +
+      (sp.lineText ? `<p class="sp-line">${you(sp.lineText)}</p>` : "") + `</div>`;
+  }).join("")}</div>`;
+};
+
 // Parse the text into chapters.
 interface Chapter { key: string; title: string; part: string; term: string; whatIs: string; voice: string[]; prompt: string; detail: string[] }
 const chapters: Chapter[] = [];
@@ -105,7 +126,8 @@ chapters.forEach((ch, i) => {
       return `<span class="chip ${cls}"><i></i>Gate ${gate} · ${esc(planet)}</span>`;
     }).join("");
     const graph = f ? `<figure class="graph">${bodygraph(f)}${chips ? `<figcaption>${chips}</figcaption>` : ""}</figure>` : "";
-    chart = `<details class="chart"><summary>What your chart shows</summary>${graph}${ch.detail.map(d => `<p>${esc(d)}</p>`).join("")}</details>`;
+    const inner = SEQ_KEYS[ch.key] ? sequenceMap(SEQ_KEYS[ch.key]) : `${graph}${ch.detail.map(d => `<p>${esc(d)}</p>`).join("")}`;
+    chart = `<details class="chart"><summary>What your chart shows</summary>${inner}</details>`;
   }
   html += `<article class="chapter${hasChart ? "" : " solo"}"><div class="voice"><p class="num">${roman[i]}${ch.term ? `<span class="term"> · ${esc(ch.term)}</span>` : ""}</p><h2>${esc(ch.title)}</h2>${ch.whatIs ? `<div class="whatis"><p class="label">What this is</p><p>${esc(ch.whatIs)}</p></div>` : ""}${voice}${prompt}</div>${chart}</article>`;
 });
@@ -157,6 +179,24 @@ figcaption{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;color:#3d362f;background:#fff;border:1px solid #e3dccf;border-radius:999px;padding:3px 9px}
 .chip i{width:8px;height:8px;border-radius:50%;background:#111}
 .chip.unconscious i{background:#c0392b}
+.seq{display:flex;flex-direction:column;align-items:stretch}
+.seq-title{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--soft);margin:0 0 14px}
+.sphere{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.sphere.repeat{opacity:.75;padding:10px 16px}
+.sp-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.sp-label{font-family:"Playfair Display",serif;font-weight:700;font-size:1.15rem;color:var(--ink)}
+.gk{font-size:.72rem;font-weight:500;letter-spacing:.08em;color:#fff;background:var(--terra);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.sp-note{margin:.2em 0 .7em !important;font-size:.88rem;color:var(--soft)}
+.gk-line{display:inline-block;margin-left:4px;color:var(--terra)}
+.spectrum{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 .6em}
+.spectrum span{display:flex;flex-direction:column;font-size:.92rem;color:var(--muted);line-height:1.25}
+.spectrum span.gift{color:var(--ink);font-weight:500}
+.spectrum small{font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--soft)}
+.spectrum i{font-style:normal;color:var(--gold);font-size:1.1rem}
+.sp-line{margin:0 !important;font-size:.9rem}
+.path{border-left:2px dashed var(--gold);margin:0 0 0 22px;padding:10px 0 10px 18px}
+.path-name{font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+.path p{margin:.15em 0 0 !important;font-size:.88rem;font-style:italic}
 .chip.both i{background:linear-gradient(90deg,#111 50%,#c0392b 50%)}
 .primer{margin:40px auto 0;max-width:1180px}
 .primer>summary{cursor:pointer;list-style:none;text-align:center;font-family:"Playfair Display",serif;font-style:italic;font-size:clamp(1.3rem,3vw,1.7rem);padding:22px 16px;border:1px solid var(--gold);border-radius:999px;max-width:560px;margin:0 auto}

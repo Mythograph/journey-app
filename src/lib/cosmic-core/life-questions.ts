@@ -32,9 +32,10 @@ import { CROSS_VARIATIONS, crossVariation } from "./crosses.js";
 import { crossDescription } from "./cross-descriptions.js";
 import { PROFILE_EXPERIMENTS, type Authority } from "./navigation.js";
 import { REFLECTION_MARKER, injectReflectionPrompts } from "./reflections.js";
-import { GENE_KEY_FREQUENCIES, type GeneKeysProfile } from "./gene-keys.js";
+import type { GeneKeysProfile } from "./gene-keys.js";
 import { gateMoment } from "./gate-moments.js";
 import { buildPrimer } from "./primer.js";
+import { villageViews, type SequenceView, type SphereView } from "./village.js";
 import {
   CHANNEL_SPECS,
   GATE_TO_CENTER,
@@ -46,7 +47,6 @@ import {
   type EmotionalWave,
 } from "./channels.js";
 import {
-  buildVillageJourney,
   buildClosingModule,
   type HumanDesignProfile,
 } from "./narrative.js";
@@ -100,7 +100,9 @@ export const LIFE_QUESTIONS_SECTIONS: LifeQuestionSection[] = [
   { key: "HOW DOES WHAT I CARRY COME OUT",    title: "How does what I carry come out?",              part: "What I'm Here For", term: "Mercury · Venus" },
   { key: "WHERE IS MY LIFE PULLING ME",       title: "Where is my life pulling me?",                 part: "What I'm Here For", term: "North Node · Neptune" },
   { key: "AM I MADE FOR THIS MOMENT?",        title: "Am I made for this moment?",                   part: "Where I Belong" },
-  { key: "THE VILLAGE JOURNEY",               title: "The Village Journey",                          part: "Where I Belong", term: "Gene Keys" },
+  { key: "WHAT IS MY GENIUS",                 title: "What is my genius?",                           part: "Where I Belong", term: "Gene Keys · Activation Sequence" },
+  { key: "HOW DO I LOVE AND CONNECT",         title: "How do I love and connect?",                   part: "Where I Belong", term: "Gene Keys · Venus Sequence" },
+  { key: "WHAT DO I OFFER THE WORLD",         title: "What do I offer the world?",                   part: "Where I Belong", term: "Gene Keys · Pearl Sequence" },
   { key: "WHO I AM",                          title: "What matters most",                            part: "Where I Belong" },
   { key: "THE PEN",                           title: "The Pen",                                      part: "Writing It Forward" },
   { key: "THE EDGE",                          title: "The Edge",                                     part: "Writing It Forward" },
@@ -339,8 +341,12 @@ const PROMPTS: Record<string, (p: HumanDesignProfile) => string> = {
     "How does what is true in me want to come out, in words, in making, in presence? Where do I dilute it before anyone hears it?",
   "AM I MADE FOR THIS MOMENT?": () =>
     "What is happening in my time that seems to need something I carry? Where do I feel called beyond my own becoming?",
-  "THE VILLAGE JOURNEY": () =>
-    "Who is already in my village, and who am I still looking for? What do I bring to a circle that none of us could reach alone?",
+  "WHAT IS MY GENIUS": () =>
+    "Where does my genius show up without effort? Who noticed it in me before I did?",
+  "HOW DO I LOVE AND CONNECT": () =>
+    "Who have I been drawn to again and again, and what pattern do I see now? What would it mean to meet my core wound with care?",
+  "WHAT DO I OFFER THE WORLD": () =>
+    "What would I offer if I weren't trying to prove anything? Where do people already recognize me for it?",
   "WHERE IS MY LIFE PULLING ME": () =>
     "What would it mean to lean all the way into where I am going, instead of half-protecting myself from it?",
 };
@@ -721,7 +727,7 @@ function sectionStart(p: HumanDesignProfile, ctx: Ctx): string {
   const short = shortStart(p, ctx);
   const body: string[] = [];
   const sc = p.southNodeConscious, su = p.southNodeUnconscious;
-  body.push(PLANET_PLAIN.SouthNode + " " + sides("South Node", sc, su, n => `Early on, I practiced ${expr(n, "low")}. Over a lifetime, the work is to ${expr(n, "arc", "verb")}.`));
+  body.push(PLANET_PLAIN.SouthNode + " " + sides("South Node", sc, su, n => `Early on, I practiced ${firstClause(expr(n, "low"))}. Over a lifetime, the work is to ${expr(n, "arc", "verb")}.`));
   body.push(groundAll(ctx, [sc, su]));
   const uc = p.uranusConscious, uu = p.uranusUnconscious, pc = p.plutoConscious, pu = p.plutoUnconscious;
   if (uc || pc) {
@@ -740,7 +746,7 @@ function sectionTests(p: HumanDesignProfile, ctx: Ctx): string {
   const sc = p.saturnConscious, su = p.saturnUnconscious, jc = p.jupiterConscious, ju = p.jupiterUnconscious;
   const body = [
     PLANET_PLAIN.Saturn,
-    sides("Saturn", sc, su, n => `The lesson starts with ${expr(n, "low")}, and grows into ${expr(n, "high", "gerund")}.`),
+    sides("Saturn", sc, su, n => `The lesson starts with ${firstClause(expr(n, "low"))}, and grows into ${expr(n, "high", "gerund")}.`),
     groundAll(ctx, [sc, su]),
     PLANET_PLAIN.Jupiter,
     sides("Jupiter", jc, ju, n => `Things open up through ${expr(n, "high", "gerund")}.`),
@@ -1210,22 +1216,69 @@ export function lifeQuestionsFocus(input: LifeQuestionsInput): Record<string, Ch
   };
 }
 
-// The Village Journey: a plain short version (what Gene Keys are, and my three
-// headline gifts), with the full sequence walk folded beneath.
-function layeredVillage(village: string, gk: GeneKeysProfile, p: HumanDesignProfile): string {
-  const body = village.split("\n\n").slice(2);
-  const gift = (n: number | null) => (n && GENE_KEY_FREQUENCIES[n] ? GENE_KEY_FREQUENCIES[n].gift : "");
-  const short: string[] = [
-    "The Gene Keys read the same 64 gates as a spectrum: a Shadow (how the energy contracts under fear), a Gift (what it becomes with awareness), and a Siddhi (its fullest flowering). Three sequences map how I find my people and what I bring them.",
-  ];
-  const headline: string[] = [];
-  if (gift(gk.lifesWork)) headline.push(`my Life's Work carries the gift of ${gift(gk.lifesWork)} (Gene Key ${gk.lifesWork})`);
-  if (gift(gk.attraction)) headline.push(`I draw people in through ${gift(gk.attraction)} (Gene Key ${gk.attraction})`);
-  if (gift(gk.pearl)) headline.push(`what I ultimately offer through service is ${gift(gk.pearl)} (Gene Key ${gk.pearl})`);
-  if (headline.length) short.push(`In short: ${headline.join("; ")}.`);
-  return withPrompt("THE VILLAGE JOURNEY", body, p, short);
+// ─── The Gene Keys sequences, one chapter each ───────────────────────────────
+
+const SEQUENCE_CHAPTER: Record<SequenceView["key"], { heading: string; anchor: string; lead: string; whatIs: string }> = {
+  activation: {
+    heading: "WHAT IS MY GENIUS",
+    anchor: "Life's Work",
+    lead: "My genius moves through four spheres",
+    whatIs: "The Activation Sequence is the first of three Gene Keys sequences. It's drawn from the same four gates as your incarnation cross, your Sun and Earth on both sides, and it describes your individual genius: what you're here to do, what you're here to become, how your presence lands, and the purpose underneath it all.",
+  },
+  venus: {
+    heading: "HOW DO I LOVE AND CONNECT",
+    anchor: "Attraction",
+    lead: "My heart moves through these spheres",
+    whatIs: "The Venus Sequence describes how you attract people, how you relate, and the core wound that relationships tend to touch. It's drawn from your Moon, Venus and Mars. It's the heart of the Gene Keys, and the slowest to unfold.",
+  },
+  pearl: {
+    heading: "WHAT DO I OFFER THE WORLD",
+    anchor: "Pearl",
+    lead: "My contribution moves through these spheres",
+    whatIs: "The Pearl Sequence describes what you offer the world and how prosperity finds you: your vocation, the way your essence shows up publicly, the kind of community you create, and the gift that emerges through a life of service. It's drawn from your Sun, Mars and Jupiter.",
+  },
+};
+
+function sphereDetail(sp: SphereView): string {
+  if (sp.repeat) return `${sp.label} · Gene Key ${sp.gate} (${sp.gateName}). ${sp.note}.`;
+  const line = sp.line ? ` · Line ${sp.line}${sp.lineName ? `, ${sp.lineName}` : ""}` : "";
+  return `${sp.label} · Gene Key ${sp.gate} (${sp.gateName})${line}. ${sp.note}. Shadow of ${sp.shadow}, Gift of ${sp.gift}, Siddhi of ${sp.siddhi}. ${sp.lineText}`.trim();
 }
 
+function sectionSequence(view: SequenceView, p: HumanDesignProfile): string {
+  const meta = SEQUENCE_CHAPTER[view.key];
+  const spheres = view.steps.filter(s => s.kind === "sphere").map(s => (s as { sphere: SphereView }).sphere);
+  if (!spheres.length) return "";
+  const anchor = spheres.find(s => s.label === meta.anchor) ?? spheres[0];
+  const short: string[] = [
+    gateMoment(anchor.gate, "gift"),
+    `That's my ${anchor.label}, Gene Key ${anchor.gate}. Its shadow is ${anchor.shadow}, and its gift is ${anchor.gift}.`,
+  ];
+  const fresh = spheres.filter(s => !s.repeat);
+  if (fresh.length > 1) {
+    // Merge spheres that share a gift ("Patience in my SQ and my Core").
+    const byGift: { gift: string; labels: string[] }[] = [];
+    for (const sp of fresh) {
+      const last = byGift[byGift.length - 1];
+      if (last && last.gift === sp.gift) last.labels.push(sp.label);
+      else byGift.push({ gift: sp.gift, labels: [sp.label] });
+    }
+    short.push(`${meta.lead}: ${joinClausesPlain(byGift.map(b => `${b.gift} in my ${b.labels.join(" and my ")}`))}.`);
+  }
+  if (view.key === "venus") {
+    const core = spheres.find(s => s.label === "Core");
+    if (core) short.push(`At the center sits my Core wound, ${core.shadow}, which opens over time into ${core.gift}.`);
+  }
+  const body = view.steps.map(st => st.kind === "sphere"
+    ? sphereDetail(st.sphere)
+    : `${st.pathway.name}. ${st.pathway.line}`);
+  return withPrompt(meta.heading, body, p, short, meta.whatIs);
+}
+
+function joinClausesPlain(items: string[]): string {
+  if (items.length <= 2) return items.join(" and ");
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
@@ -1248,12 +1301,11 @@ export function buildLifeQuestionsNarrative(input: LifeQuestionsInput): string {
     sectionPulling(p, ctx),
   ].filter(Boolean);
 
-  // Hinge, Village Journey and closing reuse the existing prompt injector,
-  // which already knows those headings.
-  const village = buildVillageJourney(geneKeys);
-  const belong = village
-    ? [withPrompt("AM I MADE FOR THIS MOMENT?", hinge().split("\n\n").slice(1), p),
-       layeredVillage(village, geneKeys, p)]
+  // Part IV: the hinge, then one chapter per Gene Keys sequence.
+  const views = villageViews(geneKeys);
+  const sequences = views.map(v => sectionSequence(v, p)).filter(Boolean);
+  const belong = sequences.length
+    ? [withPrompt("AM I MADE FOR THIS MOMENT?", hinge().split("\n\n").slice(1), p), ...sequences]
     : [];
   const tail = [recap(p), buildClosingModule(p, geneKeys)].join("\n\n");
 
