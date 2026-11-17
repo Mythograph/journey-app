@@ -15,3 +15,5 @@ export * from "./cross-descriptions.js";
 export * from "./reflections.js";
 export * from "./narrative.js";
 export * from "./normalize.js";
+export * from "./channels.js";
+export * from "./life-questions.js";

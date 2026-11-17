@@ -1,0 +1,858 @@
+// Cosmic Core — the Life Questions narrative (prototype).
+//
+// A rework of the Journey Narrative that organizes the reading around plain
+// questions a person asks about their own life, instead of the fourteen
+// stages of the hero's/heroine's journey. Mythic imagery stays as seasoning
+// (the Herald, the Tide), but every chapter answers a question the reader
+// already carries, and every placement is grounded in the body: which center
+// the gate sits in, whether that center is defined or open, and which channel
+// it completes or reaches toward.
+//
+// Four parts:
+//   I.   How I'm Built       — type & profile, centers, how I move, how I decide
+//   II.  Where I've Been     — South Node + generation, Saturn/Jupiter, Chiron/Mars, Moon
+//   III. What I'm Here For   — cross (Sun/Earth told once), Mercury/Venus, North Node/Neptune
+//   IV.  Where I Belong      — the hinge, the Village Journey (Gene Keys), recap
+//   then the existing closing module (THE PEN through THE LINE).
+//
+// Rules the builder enforces so output stays readable for any chart:
+//   - One name per gate in the Human Design chapters: "Gate N (Traditional
+//     Name)". Quantum names and Gene Keys names stay out of Parts I to III.
+//   - Each planet chapter opens with one plain sentence on what that planet
+//     describes, so the reader never has to guess why it is in that chapter.
+//   - A gate is grounded in the body once. Later chapters refer back to it
+//     by number and name without re-explaining.
+//   - Chiron is narrated but never defines a channel or center.
+
+import { GATES, type GateBand, type GateField } from "./gates.js";
+import { TYPE_PROFILES, type HdTypeName } from "./types.js";
+import { PROFILE_LINES, profileLineDescription } from "./profiles.js";
+import { CENTERS, CENTER_ORDER, type CenterName } from "./centers.js";
+import { CROSS_VARIATIONS, crossVariation } from "./crosses.js";
+import { crossDescription } from "./cross-descriptions.js";
+import { PROFILE_EXPERIMENTS, type Authority } from "./navigation.js";
+import { REFLECTION_MARKER, injectReflectionPrompts } from "./reflections.js";
+import type { GeneKeysProfile } from "./gene-keys.js";
+import {
+  CHANNEL_SPECS,
+  GATE_TO_CENTER,
+  CENTER_GATE_LIST,
+  channelsForGate,
+  partnerGate,
+  channelLabel,
+  type ChannelSpec,
+  type EmotionalWave,
+} from "./channels.js";
+import {
+  buildVillageJourney,
+  buildClosingModule,
+  type HumanDesignProfile,
+} from "./narrative.js";
+
+// ─── Input ────────────────────────────────────────────────────────────────────
+
+export type Side = "conscious" | "unconscious";
+
+export interface Activation {
+  /** Sun, Earth, Moon, NorthNode, SouthNode, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Chiron */
+  planet: string;
+  gate: number;
+  line?: number | null;
+  side: Side;
+}
+
+export interface LifeQuestionsInput {
+  profile: HumanDesignProfile;
+  geneKeys: GeneKeysProfile;
+  activations: Activation[];
+}
+
+// ─── Section metadata (for the reading page / previews) ──────────────────────
+
+export interface LifeQuestionSection {
+  key: string;      // ALL-CAPS heading as emitted in the text
+  title: string;    // reader-facing title
+  part: string;     // which of the four parts it belongs to
+}
+
+export const LIFE_QUESTIONS_PARTS = [
+  "How I'm Built",
+  "Where I've Been",
+  "What I'm Here For",
+  "Where I Belong",
+  "Writing It Forward",
+] as const;
+
+export const LIFE_QUESTIONS_SECTIONS: LifeQuestionSection[] = [
+  { key: "WHO AM I AT MY CORE",               title: "Who am I at my core?",                         part: "How I'm Built" },
+  { key: "WHERE IS MY ENERGY STEADY",         title: "Where is my energy steady, and where do I borrow it?", part: "How I'm Built" },
+  { key: "HOW DO I MOVE",                     title: "How do I move through the world?",             part: "How I'm Built" },
+  { key: "HOW DO I KNOW WHAT IS RIGHT",       title: "How do I know what's right for me?",           part: "How I'm Built" },
+  { key: "WHAT DID I START OUT CARRYING",     title: "What did I start out carrying?",               part: "Where I've Been" },
+  { key: "WHAT KEEPS TESTING ME",             title: "What keeps testing me?",                       part: "Where I've Been" },
+  { key: "WHERE AM I MOST TENDER",            title: "Where am I most tender?",                      part: "Where I've Been" },
+  { key: "WHAT KEEPS ME GOING",               title: "What keeps me going?",                         part: "Where I've Been" },
+  { key: "WHAT IS MY LIFE ABOUT",             title: "What is my life about?",                       part: "What I'm Here For" },
+  { key: "HOW DOES WHAT I CARRY COME OUT",    title: "How does what I carry come out?",              part: "What I'm Here For" },
+  { key: "WHERE IS MY LIFE PULLING ME",       title: "Where is my life pulling me?",                 part: "What I'm Here For" },
+  { key: "AM I MADE FOR THIS MOMENT?",        title: "Am I made for this moment?",                   part: "Where I Belong" },
+  { key: "THE VILLAGE JOURNEY",               title: "The Village Journey",                          part: "Where I Belong" },
+  { key: "WHO I AM",                          title: "What matters most",                            part: "Where I Belong" },
+  { key: "THE PEN",                           title: "The Pen",                                      part: "Writing It Forward" },
+  { key: "THE EDGE",                          title: "The Edge",                                     part: "Writing It Forward" },
+  { key: "THE RANGE",                         title: "The Range",                                    part: "Writing It Forward" },
+  { key: "THE TURN",                          title: "The Turn",                                     part: "Writing It Forward" },
+  { key: "THE SCENE",                         title: "The Scene",                                    part: "Writing It Forward" },
+  { key: "THE LINE",                          title: "The Line",                                     part: "Writing It Forward" },
+];
+
+// ─── Static copy ──────────────────────────────────────────────────────────────
+
+const MOTORS = new Set<CenterName>(["Sacral", "SolarPlexus", "Root", "Ego"]);
+
+const CENTER_THEME: Record<CenterName, string> = {
+  Head: "inspiration and mental pressure",
+  Ajna: "thinking and making sense of things",
+  Throat: "expression and action",
+  G: "identity, love and direction",
+  Ego: "willpower and self-worth",
+  Sacral: "life-force and work energy",
+  SolarPlexus: "emotions",
+  Spleen: "instinct, health and timing",
+  Root: "pressure and drive",
+};
+
+// What a person with this center open feels when someone completes one of
+// their hanging gates there.
+const BORROWED: Record<CenterName, string> = {
+  Head: "a rush of inspiration or mental pressure that seems to come out of nowhere",
+  Ajna: "sudden certainty, ideas clicking into place faster than usual",
+  Throat: "an urge to speak up and be seen",
+  G: "a clear sense of direction that fades when they leave",
+  Ego: "a surge of willpower and the urge to promise and prove",
+  Sacral: "a surge of steady, Generator-like energy: focus that suddenly comes easily, a rhythm I can keep, the power to push through",
+  SolarPlexus: "moods that feel like mine but belong to the connection",
+  Spleen: "a sense of safety and wellbeing, or a fear that isn't mine",
+  Root: "pressure to hurry and get things done",
+};
+
+const TYPE_RHYTHM: Partial<Record<HdTypeName, string>> = {
+  "Manifestor": "bursts of initiation followed by real rest",
+  "Projector": "focused bursts of guidance with plenty of recovery between them",
+  "Reflector": "sampling the energy around me and resting when it is done",
+};
+
+const NOT_SELF: Record<HdTypeName, string> = {
+  "Manifestor": "Anger is my not-self signal. When it rises, it usually carries a message: someone was caught off guard, or I was trying to move on someone else's terms.",
+  "Generator": "Frustration is my not-self signal. When it rises, it usually means I said yes with my head instead of my gut, or I am pushing at a door that never opened for me.",
+  "Manifesting Generator": "Frustration and anger are my not-self signals. Frustration means I committed to something my gut never answered. Anger means I moved fast and forgot to tell the people my speed would affect.",
+  "Projector": "Bitterness is my not-self signal. When it rises, it usually means I offered guidance nobody asked for, or I am pouring myself into a place that doesn't see me.",
+  "Reflector": "Disappointment is my not-self signal. When it rises, it usually means I decided too fast, or I am living in a place or among people that don't feel good to be in.",
+};
+
+// How I move: an image, the practice, and the language for it.
+const STRATEGY_DEEP: Record<HdTypeName, string[]> = {
+  "Manifestor": [
+    "In the old stories, a herald rides ahead of the queen. The herald announces that she is coming, so the gates open and no one reaches for a weapon. My strategy as a Manifestor asks me to be my own herald: to inform before I act.",
+    "Informing is different from asking permission. Asking hands my power to someone else and waits for their yes. Informing keeps the decision mine and lets the people it touches know what is coming. \"Just letting you know, I'm taking Friday off.\" \"I've decided to step back from the committee, and I wanted you to hear it from me first.\" The sentence is short, and what it does is large. People who aren't caught off guard push back far less, and the resistance that used to meet me at every turn begins to thin.",
+    "I don't have to inform everyone about everything. I inform the people my action will touch, starting with the one or two closest to it. Over time it stops feeling like a task and becomes a rhythm, the way the herald's horn becomes part of the procession.",
+  ],
+  "Generator": [
+    "A tuning fork doesn't decide to ring. Something strikes it, and it answers with its true note. My strategy as a Generator is to respond: to let life bring something to me and notice what my body answers before my mind starts arguing.",
+    "The answer is usually a sound or a pull. An \"uh-huh\" that rises before I've thought it through, or an \"unh-unh\" that closes like a door. It helps to let people ask me yes-or-no questions: \"Do you want to take this on?\" \"Is this the right project for you right now?\" My gut answers those far better than it answers \"What do you want to do with your life?\"",
+    "Responding doesn't mean waiting passively. My life is full of things to respond to: an email, a conversation, an idea someone else had, a sign on a wall. The practice is to let those arrive and answer the ones my body lights up for, and to stop starting things from pure willpower.",
+  ],
+  "Manifesting Generator": [
+    "A tuning fork doesn't decide to ring. Something strikes it, and it answers with its true note, then the sound carries fast and far. My strategy as a Manifesting Generator is to respond first, then inform, then move.",
+    "The response is a gut answer, an \"uh-huh\" or an \"unh-unh\" that arrives before my mind has a case. Once the yes is real, I am built to move quickly and often on several tracks at once, skipping steps that turn out not to matter. Before I leap, I let the people my speed will affect know what's coming: \"I'm switching this project to a new approach this week.\"",
+    "Quitting things is part of my design. When my gut stops answering, the energy is finished, and dropping what's done makes room for what's next. The practice is to trust the response, inform as I go, and let my path be non-linear without apologizing for it.",
+  ],
+  "Projector": [
+    "At the crossroads in the old stories, the guide doesn't chase travelers down the road. The ones who need her come and ask. My strategy as a Projector is to wait for the invitation, especially for the big things: work, love, where I live, who I guide.",
+    "Waiting for the invitation is different from waiting for my life to start. I study what fascinates me, I get very good at it, and I make myself visible in ways that let the right people find me. When someone asks, \"What do you see here?\" or \"Would you work with me on this?\", my insight lands. When I offer it unasked, it tends to slide off or provoke.",
+    "Recognition is the key ingredient. An invitation from someone who doesn't really see me is worth declining. The right one feels like being seen, and that is where my energy goes furthest.",
+  ],
+  "Reflector": [
+    "The moon doesn't decide in a single night. It moves through every phase before it returns to where it began. My strategy as a Reflector is to wait about a full lunar cycle, roughly twenty-eight days, before any big decision.",
+    "Over that cycle the Moon moves through all 64 gates and lights up my open centers one by one, so I get to feel a choice from every angle. Talking it through with people I trust along the way helps me hear what stays true. \"I'll have an answer for you next month\" is a complete sentence for me.",
+    "My environment matters more than almost anything. Because I take in so much of the people and places around me, the right community is the first decision, and many others follow from it.",
+  ],
+};
+
+// Short forms for the "put together" sentence and the recap.
+const STRATEGY_STEP: Record<HdTypeName, string> = {
+  "Manifestor": "Then I inform. Then I initiate",
+  "Generator": "Then I respond to what life brings, and give my energy only to what my gut says yes to",
+  "Manifesting Generator": "Then I respond, inform, and move",
+  "Projector": "Then I wait for the invitation that truly sees me",
+  "Reflector": "Then I talk it through, and decide once the cycle has passed",
+};
+
+const STRATEGY_SHORT: Record<HdTypeName, string> = {
+  "Manifestor": "I inform the people my actions touch, then I act",
+  "Generator": "I respond to what life brings, and follow my gut's yes",
+  "Manifesting Generator": "I respond, inform, and move fast once the yes is real",
+  "Projector": "I wait for invitations from people who truly see me",
+  "Reflector": "I give big decisions a full lunar cycle",
+};
+
+const AUTHORITY_STEP: Record<Authority, string> = {
+  "Emotional": "I wait for clarity",
+  "Sacral": "I listen for my gut's answer",
+  "Splenic": "I catch the first quiet knowing",
+  "Ego Manifested": "I check whether my heart is really in it",
+  "Ego Projected": "I talk until I hear what my heart wants",
+  "Self-Projected": "I talk it through and listen to my own voice",
+  "Mental Projected": "I talk it out with trusted people in the right places",
+  "Lunar": "I let a full moon cycle pass",
+  "None": "I give it time",
+};
+
+const AUTHORITY_SHORT: Record<Authority, string> = {
+  "Emotional": "I wait for my emotional wave to settle before I commit",
+  "Sacral": "I trust my gut's yes or no in the moment",
+  "Splenic": "I trust the quiet first knowing, which speaks only once",
+  "Ego Manifested": "I commit only when my heart is really behind it",
+  "Ego Projected": "I talk it through until I hear what my heart wants",
+  "Self-Projected": "I hear my truth in my own voice as I talk it through",
+  "Mental Projected": "I talk it out with trusted people and notice where I feel clear",
+  "Lunar": "I let a full lunar cycle pass before big decisions",
+  "None": "I give big decisions time and notice what stays true",
+};
+
+// How I decide: an image and a working rule for every authority. Emotional
+// gets its wave-typing paragraphs inserted between these two by the builder.
+const AUTHORITY_DEEP: Record<Authority, { open: string[]; rule: string }> = {
+  "Emotional": {
+    open: [
+      "The shore shows what is really on it once the tide goes out. My authority works the same way. It is emotional, which means my truth lives in my Solar Plexus and reveals itself over time. In the first rush of excitement or dread, I can't see clearly yet. When the wave has moved through and I still feel the same way, I know.",
+    ],
+    rule: "My working rule is simple: no big yes on the same day. I sleep on it, sometimes more than once, and notice how it feels in the morning and in the evening, on a bright day and a heavy one. For small things, a night is enough. For big ones, I give myself a week or more. If someone needs an answer before I have one, I can say so: \"I don't decide on the spot. I'll let you know by Friday.\"",
+  },
+  "Sacral": {
+    open: [
+      "My body answers before my mind does. My authority is sacral, which means my truth arrives as a gut response in the moment: a lift, a pull, an \"uh-huh,\" or a drop and an \"unh-unh.\" It is fast, and it is honest, and my mind is very good at talking me out of it.",
+    ],
+    rule: "My working rule: if the question can be asked as a yes or no, I let my body answer it out loud before I explain anything. When my gut says yes and my head says \"but,\" the gut is the one to trust. When there is no response at all, the answer is not yet.",
+  },
+  "Splenic": {
+    open: [
+      "An animal in the forest freezes before it knows why. My authority is splenic, which means my truth comes as a quiet, in-the-moment knowing about what is safe and healthy for me. It speaks once, softly, and it doesn't repeat itself.",
+    ],
+    rule: "My working rule: I act on the first quiet knowing, even when I can't explain it yet. If I find myself overriding a small inner \"no\" to be polite or logical, I slow down and listen again. Waiting too long turns that knowing into doubt.",
+  },
+  "Ego Manifested": {
+    open: [
+      "My truth lives in my will. My authority runs through my heart center, which means the question is always whether I genuinely want something, and I often hear the answer in what comes out of my mouth before I've planned it.",
+    ],
+    rule: "My working rule: I make promises only when I really want what I'm promising. \"I should\" is a warning sign. \"I want to\" is my yes. Rest and self-care are part of keeping my word, because my will is a muscle.",
+  },
+  "Ego Projected": {
+    open: [
+      "My truth lives in my heart, and I hear it in my own voice. My authority is ego projected, which means the question is whether I genuinely want something, and the answer surfaces when the right person asks me and I talk.",
+    ],
+    rule: "My working rule: I talk important choices through with someone who asks good questions and doesn't push. When I hear myself say \"I want,\" I listen. When I hear \"I should,\" I wait.",
+  },
+  "Self-Projected": {
+    open: [
+      "My truth lives in my voice once it has passed through my sense of who I am. My authority is self-projected, which means I find out what is right for me by talking, and listening to what I say.",
+    ],
+    rule: "My working rule: I talk big decisions out loud with someone who will listen without advising. The answer is in whether what I'm saying sounds like me and points toward where my life wants to go.",
+  },
+  "Mental Projected": {
+    open: [
+      "My truth emerges from the conversation and the place. My authority is environmental, which means I find clarity by talking things through with people I trust, in places where I feel well, and noticing what I hear myself say.",
+    ],
+    rule: "My working rule: I use trusted people as sounding boards, never as deciders, and I pay attention to how different places make me feel. I am still the one who knows.",
+  },
+  "Lunar": {
+    open: [
+      "The moon is my clock. My authority is lunar, which means no major decision is made until a full cycle, about twenty-eight days, has passed and I have felt the question from every side.",
+    ],
+    rule: "My working rule: I refuse to be rushed on the big things. I talk the choice through across the whole cycle and let time show me what stays true.",
+  },
+  "None": {
+    open: [
+      "My design carries no single fixed inner authority, which is rare. My clarity comes through time, my environment, and the people I trust.",
+    ],
+    rule: "My working rule: I make big decisions slowly and notice what stays clear over time, rather than what feels urgent in the moment.",
+  },
+};
+
+const WAVE_COPY: Record<EmotionalWave, (c: ChannelSpec, extra: string) => string> = {
+  tribal: (c, extra) =>
+    `The tribal wave of need runs through my ${channelLabel(c)}. It is about needs, touch, belonging, and the terms of my relationships. This wave builds quietly, ratcheting up in small steps. I let small things slide, leave a need unspoken, swallow a sense that something isn't fair, until the pressure breaks open over something minor. When I suddenly erupt about the dishes, the dishes are rarely the point. The eruption is telling me that a need went unmet, or that the terms of a relationship stopped feeling fair, some time ago.${extra}`,
+  individual: (c, extra) =>
+    `The individual wave runs through my ${channelLabel(c)}. It moves in sudden spikes and long flat stretches, from passion to melancholy, and often the mood has no cause I can point to. It isn't asking to be fixed. Melancholy is where much of my creativity comes from, and the spikes pass on their own when I let them.${extra}`,
+  abstract: (c, extra) =>
+    `The abstract wave of desire runs through my ${channelLabel(c)}. This is the wave of longing and new experience. It rises slowly with anticipation, imagining what could be, and then drops sharply when reality doesn't match the dream. The meaning of an experience often arrives after it's over, when I can look back on it.${extra}`,
+};
+
+const WAVE_NAME: Record<EmotionalWave, string> = {
+  tribal: "tribal",
+  individual: "individual",
+  abstract: "abstract",
+};
+
+// Plain-language framing for each planet, so the reader knows why a planet
+// belongs in the chapter it appears in.
+const PLANET_PLAIN = {
+  SouthNode: "The South Node describes the scenery of the first part of my life: the places, people and patterns I was born into and practiced early, often before I had any say.",
+  Generation: "Two slow-moving planets, Uranus and Pluto, stay in the same gate for years, so I share them with nearly everyone born around the time I was. They describe the times I arrived in more than my personal story.",
+  Saturn: "Saturn is the strict teacher in a chart. It shows where I have to build mastery slowly, usually by getting it wrong a few times first.",
+  Jupiter: "Jupiter is where life opens up and support finds me, usually once I've done the work Saturn asks for.",
+  Chiron: "Chiron marks the wound that becomes medicine: the place I have hurt most, and over time, the place I can help other people most.",
+  Mars: "Mars is raw drive. On my unconscious side, it holds the immature energy I grow up through, and often an old ache about my worth. On my conscious side, it shows what I'll stand up for.",
+  Moon: "The Moon is the part of me that knows what I need before my mind catches up: my moods, my hungers, my sense of safety. In Human Design it is the driving force, the motivation that keeps me moving after ambition runs out.",
+  Mercury: "Mercury is how I think out loud: the way I speak, write, and make ideas land.",
+  Venus: "Venus describes what I value and find beautiful, and the principles I organize my relationships and my work around.",
+  NorthNode: "The North Node describes the scenery of the second part of my life. Somewhere around my late thirties to mid-forties, the backdrop shifts, and life starts pulling me toward it.",
+  Neptune: "Neptune is quieter. It shows where my life opens into something larger than me, and also where I can lose my edges or drift into fog.",
+};
+
+const PROMPTS: Record<string, (p: HumanDesignProfile) => string> = {
+  "WHO AM I AT MY CORE": () =>
+    "When have I felt most like this description of myself, and when have I tried hardest to be something else? What did trying cost me?",
+  "WHERE IS MY ENERGY STEADY": () =>
+    "Where do I feel most unmistakably like myself, and where do I quietly take on energy that is not mine? When this week did I feel the difference in my body?",
+  "HOW DO I MOVE": () =>
+    "What is one thing I could practice this week that matches how I'm built to move? What do I usually do instead?",
+  "HOW DO I KNOW WHAT IS RIGHT": () =>
+    "What decision am I holding right now? What would it look like to make it the way my design decides, instead of the way I usually do?",
+  "WHAT DID I START OUT CARRYING": () =>
+    "What was the story my early world told me about who I was and what was possible? Which parts of it am I still living out without choosing to?",
+  "WHAT KEEPS TESTING ME": () =>
+    "What test keeps returning to me in different costumes? If it's training, what is it training me for?",
+  "WHERE AM I MOST TENDER": () =>
+    "Where does my oldest ache still ask something of me? How has it already made me useful to someone else?",
+  "WHAT KEEPS ME GOING": () =>
+    "What do I need in order to feel resourced, and when did I last give it to myself without earning it first?",
+  "WHAT IS MY LIFE ABOUT": () =>
+    "Looking back, what theme has my life kept returning to, no matter how far I wandered? Where do I see it right now?",
+  "HOW DOES WHAT I CARRY COME OUT": () =>
+    "How does what is true in me want to come out, in words, in making, in presence? Where do I dilute it before anyone hears it?",
+  "WHERE IS MY LIFE PULLING ME": () =>
+    "What would it mean to lean all the way into where I am going, instead of half-protecting myself from it?",
+};
+
+// ─── Chart context ────────────────────────────────────────────────────────────
+
+interface Ctx {
+  activations: Activation[];
+  definedGates: Set<number>;          // excludes Chiron
+  definedChannels: ChannelSpec[];
+  definedCenters: Set<CenterName>;
+  grounded: Set<number>;
+  centersExplained: Set<CenterName>;
+  usedFullChannel: boolean;
+  usedFullHanging: boolean;
+  hangingCount: number;
+}
+
+function buildCtx(activations: Activation[]): Ctx {
+  const definedGates = new Set(activations.filter(a => a.planet !== "Chiron").map(a => a.gate));
+  const definedChannels = CHANNEL_SPECS.filter(c => c.gates.every(g => definedGates.has(g)));
+  const definedCenters = new Set<CenterName>();
+  for (const c of definedChannels) c.centers.forEach(x => definedCenters.add(x));
+  return { activations, definedGates, definedChannels, definedCenters, grounded: new Set(), centersExplained: new Set(), usedFullChannel: false, usedFullHanging: false, hangingCount: 0 };
+}
+
+const PLANET_LABEL: Record<string, string> = {
+  Sun: "Sun", Earth: "Earth", Moon: "Moon", Mercury: "Mercury", Venus: "Venus",
+  Mars: "Mars", Jupiter: "Jupiter", Saturn: "Saturn", Uranus: "Uranus",
+  Neptune: "Neptune", Pluto: "Pluto", NorthNode: "North Node", SouthNode: "South Node",
+  Chiron: "Chiron",
+};
+
+function centerName(c: CenterName): string {
+  return CENTERS[c].displayName;
+}
+
+function g(n: number | null | undefined): string {
+  if (!n || !GATES[n]) return "an unknown gate";
+  return `Gate ${n} (${GATES[n].traditionalName})`;
+}
+
+function expr(n: number | null | undefined, band: GateBand, field: GateField = "short"): string {
+  if (!n || !GATES[n]) return "";
+  return GATES[n][band][field];
+}
+
+function planetsIn(ctx: Ctx, gate: number): string[] {
+  const names = [...new Set(ctx.activations.filter(a => a.gate === gate).map(a => PLANET_LABEL[a.planet] ?? a.planet))];
+  return names;
+}
+
+function listAnd(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+/**
+ * Ground a gate in the body: center, defined/open, and its channel (complete,
+ * or the partner gate it reaches toward). Returns "" if already grounded.
+ */
+function ground(ctx: Ctx, gate: number | null | undefined): string {
+  if (!gate || !GATES[gate] || ctx.grounded.has(gate)) return "";
+  ctx.grounded.add(gate);
+
+  const center = GATE_TO_CENTER[gate];
+  const defined = ctx.definedCenters.has(center);
+  const chans = channelsForGate(gate);
+  const mine = chans.find(c => ctx.definedChannels.includes(c));
+
+  // Name the center's theme the first time it comes up only.
+  const theme = ctx.centersExplained.has(center) ? "" : `, the center of ${CENTER_THEME[center]}`;
+  ctx.centersExplained.add(center);
+  const where = `Gate ${gate} sits in my ${defined ? "defined" : "open"} ${centerName(center)}${theme}`;
+
+  if (mine && ctx.definedGates.has(gate)) {
+    if (!ctx.usedFullChannel) {
+      ctx.usedFullChannel = true;
+      return `${where}, and it is half of my ${channelLabel(mine)}. A complete channel like this runs the same way every day, and other people feel it coming from me.`;
+    }
+    return `${where}, as half of my ${channelLabel(mine)}, so it is consistent in me.`;
+  }
+
+  // Prefer a partner gate where something of mine sits (often Chiron).
+  const partners = chans.map(c => partnerGate(c, gate));
+  const withPlanet = partners.find(p => planetsIn(ctx, p).length > 0);
+  const p = withPlanet ?? partners[0];
+  const who = p ? planetsIn(ctx, p) : [];
+
+  if (!ctx.usedFullHanging) {
+    ctx.usedFullHanging = true;
+    let s = `${where}. ${defined ? "Because that center is defined, this is a steady part of me." : "Because that center is open, this energy doesn't run the same way every day."}`;
+    if (p) {
+      const tail = who.length ? `, where my ${listAnd(who)} sits without completing the channel` : ", which my chart doesn't carry";
+      s += ` It is half of a channel, reaching toward ${g(p)} in my ${centerName(GATE_TO_CENTER[p])}${tail}. I feel its full current most around people who carry that other half.`;
+    }
+    return s;
+  }
+  // Chiron marks a gate without activating it.
+  if (!ctx.definedGates.has(gate)) {
+    let s = `${where}. Chiron marks this gate without activating it, so it works as a theme in my life more than an energy I broadcast.`;
+    if (p && who.length) s += ` Its partner, ${g(p)}, is where my ${listAnd(who)} sits.`;
+    return s;
+  }
+  let s = `${where}, so it ${defined ? "is steady in me" : "comes and goes"}.`;
+  if (p) {
+    if (who.length) {
+      s += ` Its partner, ${g(p)}, holds my ${listAnd(who)}, but the channel isn't complete.`;
+    } else {
+      const variants = [
+        `Its partner, ${g(p)}, isn't in my chart, so I feel this one most fully around people who carry it.`,
+        `Its partner, ${g(p)}, isn't in my chart. Someone who carries it completes the circuit for me.`,
+        `Its partner, ${g(p)}, belongs to other people, so this energy comes most alive in company.`,
+      ];
+      s += " " + variants[ctx.hangingCount++ % variants.length];
+    }
+  }
+  return s;
+}
+
+function groundAll(ctx: Ctx, gates: (number | null | undefined)[]): string {
+  const seen = new Set<number>();
+  const parts: string[] = [];
+  for (const gt of gates) {
+    if (!gt || seen.has(gt)) continue;
+    seen.add(gt);
+    const s = ground(ctx, gt);
+    if (s) parts.push(s);
+  }
+  return parts.join(" ");
+}
+
+/** "My North Node is in Gate 39 (Provocation) on both my conscious and unconscious sides" */
+function placement(label: string, c: number | null, u: number | null): string {
+  if (c && u && c === u) return `My ${label} is in ${g(c)} on both my conscious and unconscious sides`;
+  if (c && u) return `My conscious ${label} is in ${g(c)}, and my unconscious ${label} is in ${g(u)}`;
+  const x = c || u;
+  return x ? `My ${label} is in ${g(x)}` : "";
+}
+
+/** Two band phrases joined, collapsing a repeated gate. */
+function pairExpr(c: number | null, u: number | null, band: GateBand, field: GateField = "short", joiner = "and"): string {
+  if (c && u && c === u) return expr(c, band, field);
+  const a = expr(c, band, field), b = expr(u, band, field);
+  return a && b ? `${a}, ${joiner} ${b}` : (a || b);
+}
+
+// ─── Sections ─────────────────────────────────────────────────────────────────
+
+function withPrompt(heading: string, body: string[], profile: HumanDesignProfile): string {
+  const paras = body.filter(Boolean);
+  const prompt = PROMPTS[heading]?.(profile);
+  if (prompt) paras.push(REFLECTION_MARKER + prompt);
+  return [heading, ...paras].join("\n\n");
+}
+
+function sectionCore(p: HumanDesignProfile): string {
+  const t = p.type ? TYPE_PROFILES[p.type] : undefined;
+  const body: string[] = [];
+  if (t) {
+    body.push(`I am a ${t.name}.`);
+    body.push(t.typeDescription);
+  }
+  const pc = p.profileConscious, pu = p.profileUnconscious;
+  if (pc && pu && PROFILE_LINES[pc] && PROFILE_LINES[pu]) {
+    const d = (n: number) => profileLineDescription(n).replace(/\byour\b/g, "my");
+    body.push(
+      `My profile is ${pc}/${pu}, the ${PROFILE_LINES[pc].name} and the ${PROFILE_LINES[pu].name}. A profile is the role I play in other people's lives and the way I learn. My conscious ${pc} line is how I see myself: ${d(pc)}. My unconscious ${pu} line is how other people often experience me before I notice it myself: ${d(pu)}.`
+    );
+    if (PROFILE_EXPERIMENTS[pc]) body.push(PROFILE_EXPERIMENTS[pc]);
+  }
+  return withPrompt("WHO AM I AT MY CORE", body, p);
+}
+
+function sectionCenters(p: HumanDesignProfile, ctx: Ctx): string {
+  const body: string[] = [];
+  body.push(
+    "My design is a body of nine energy centers. The defined ones are colored in on my chart. They work the same way every day, and other people feel them coming from me. The open ones are where I take the world in and amplify it. They are where I'm most easily conditioned, because much of what moves through them isn't mine, and over a lifetime they become where I grow wisest."
+  );
+
+  const defined = CENTER_ORDER.filter(c => ctx.definedCenters.has(c));
+  const open = CENTER_ORDER.filter(c => !ctx.definedCenters.has(c));
+  const count = (n: number) => ["None", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"][n];
+
+  if (defined.length) {
+    body.push(
+      `${count(defined.length)} of my centers are defined. ` +
+      defined.map(c => `In my ${centerName(c)}, ${CENTERS[c].defined}.`).join(" ") +
+      " This is the ground I move from."
+    );
+  }
+  if (open.length) {
+    body.push(
+      `${count(open.length)} ${open.length === 1 ? "is" : "are"} open. ` +
+      open.map(c => `In my open ${centerName(c)}, ${CENTERS[c].open}.`).join(" ") +
+      " In each of these, the work is noticing when I'm amplifying something that belongs to someone else."
+    );
+  }
+
+  // Hanging gates in open centers: the "borrowed energy" motif.
+  for (const c of open) {
+    const gates = CENTER_GATE_LIST[c].filter(x => ctx.definedGates.has(x));
+    if (gates.length < 2 && !(c === "Sacral" && gates.length)) continue;
+    const names = gates.map(x => `${x} (${GATES[x].traditionalName})`);
+    const sides = new Set(ctx.activations.filter(a => gates.includes(a.gate) && a.planet !== "Chiron").map(a => a.side));
+    let sideNote = "";
+    if (sides.size === 1 && sides.has("unconscious")) sideNote = ` All of them are on the unconscious, Design side of my chart, so they run through my body below awareness.`;
+    if (sides.size === 1 && sides.has("conscious")) sideNote = ` All of them are on my conscious side, so I tend to notice them in myself.`;
+    let para = `My open ${centerName(c)} deserves a closer look, because it holds ${gates.length === 1 ? "an activated gate" : `${count(gates.length).toLowerCase()} activated gates`}: ${listAnd(names)}.${sideNote} ${gates.length === 1 ? "It is" : "Each is"} half of a channel, waiting for a matching gate in someone else's chart. When I spend time with people who carry those other halves, I can feel ${BORROWED[c]}.`;
+    if (c === "Sacral") {
+      para += " That surge is real, and it is borrowed. It belongs to the connection, and it fades when the person leaves.";
+      const rhythm = p.type ? TYPE_RHYTHM[p.type] : undefined;
+      if (rhythm) para += ` Knowing this is one of the keys to avoiding burnout. In the right company my body can feel like a workhorse, while my own design is built for ${rhythm}.`;
+    }
+    body.push(para);
+  }
+
+  // A defining conscious light (Sun or Earth) in open ground.
+  const lights: { planet: string; gate: number }[] = [];
+  if (p.sunConscious) lights.push({ planet: "Sun", gate: p.sunConscious });
+  if (p.earthConscious) lights.push({ planet: "Earth", gate: p.earthConscious });
+  const inOpen = lights.find(l => !ctx.definedCenters.has(GATE_TO_CENTER[l.gate]));
+  if (inOpen) {
+    const c = GATE_TO_CENTER[inOpen.gate];
+    body.push(
+      `One of my defining gifts sits in open ground. My ${inOpen.planet} in ${g(inOpen.gate)} lives in my open ${centerName(c)}, so the very thing I'm here to express runs through the part of me most shaped by others. It can take years to trust this gift as mine, and claiming it is some of the most important work I'll do. ${ground(ctx, inOpen.gate)}`
+    );
+  }
+
+  return withPrompt("WHERE IS MY ENERGY STEADY", body, p);
+}
+
+/** Shortest path of defined channels from the Throat to a motor center. */
+function motorToThroat(ctx: Ctx): { motor: CenterName; path: ChannelSpec[] } | null {
+  if (!ctx.definedCenters.has("Throat")) return null;
+  const prev = new Map<CenterName, { from: CenterName; via: ChannelSpec }>();
+  const queue: CenterName[] = ["Throat"];
+  const seen = new Set<CenterName>(["Throat"]);
+  while (queue.length) {
+    const cur = queue.shift()!;
+    if (cur !== "Throat" && MOTORS.has(cur)) {
+      const path: ChannelSpec[] = [];
+      let at: CenterName = cur;
+      while (at !== "Throat") {
+        const step: { from: CenterName; via: ChannelSpec } = prev.get(at)!;
+        path.push(step.via);
+        at = step.from;
+      }
+      return { motor: cur, path };
+    }
+    for (const ch of ctx.definedChannels) {
+      const [a, b] = ch.centers;
+      const next = a === cur ? b : b === cur ? a : null;
+      if (next && !seen.has(next)) {
+        seen.add(next);
+        prev.set(next, { from: cur, via: ch });
+        queue.push(next);
+      }
+    }
+  }
+  return null;
+}
+
+function sectionMove(p: HumanDesignProfile, ctx: Ctx): string {
+  if (!p.type) return "";
+  const body = [...STRATEGY_DEEP[p.type]];
+
+  if (p.type === "Manifestor" || p.type === "Manifesting Generator") {
+    const m = motorToThroat(ctx);
+    if (m) {
+      const chans = m.path.map(channelLabel);
+      body.push(
+        `My design shows why this matters so much for me. My ${centerName(m.motor)} connects to my Throat through the ${listAnd(chans)}, so my energy can turn straight into action and speech. That is the initiating power in my design. It also means I can move before anyone around me sees it coming, and when I skip the informing, people feel ambushed, they push back, and I feel controlled.`
+      );
+    }
+  }
+  body.push(NOT_SELF[p.type]);
+
+  if (!ctx.definedCenters.has("Sacral") && (p.type === "Manifestor" || p.type === "Projector" || p.type === "Reflector")) {
+    const rhythm = TYPE_RHYTHM[p.type]!;
+    const informRest = p.type === "Manifestor"
+      ? "So I also inform people about my limits: \"I'm done for today.\" \"I'll come back to this after the weekend.\" Informing about rest is part of my strategy, and it is one of the clearest ways out of the burnout that comes from living on borrowed energy."
+      : "So I rest before I'm exhausted, and I leave the room before I've taken on more than my own energy can carry. Rest is part of my strategy.";
+    body.push(
+      `There is a second part to this. My Sacral is open, so I take in and amplify the steady life-force of the Generators around me. In a busy room I can feel like the most productive person there and keep going long after my own energy has run out. My energy is built for ${rhythm}. ${informRest}`
+    );
+  }
+  return withPrompt("HOW DO I MOVE", body, p);
+}
+
+function sectionDecide(p: HumanDesignProfile, ctx: Ctx): string {
+  const auth: Authority = p.authority ?? "None";
+  const deep = AUTHORITY_DEEP[auth] ?? AUTHORITY_DEEP["None"];
+  const body = [...deep.open];
+
+  if (auth === "Emotional") {
+    const waves = ctx.definedChannels.filter(c => c.wave);
+    if (waves.length) {
+      body.push(
+        `Human Design describes several kinds of emotional wave, each with its own shape, depending on which channels connect to the Solar Plexus. My Solar Plexus is fed by ${waves.length === 1 ? "one of them" : `${waves.length === 2 ? "two" : waves.length} of them`}, and learning to recognize ${waves.length === 1 ? "it" : "them"} is some of the most useful self-knowledge I can have.`
+      );
+      for (const w of waves) {
+        // Tie the wave to a purpose placement where one sits on it.
+        let extra = "";
+        const lifesWork = p.sunConscious;
+        if (lifesWork && w.gates.includes(lifesWork)) {
+          extra = ` ${g(lifesWork)} is also my conscious Sun, so this wave and my purpose are bound together. My emotions are often how I discover what matters most to me.`;
+        }
+        body.push(WAVE_COPY[w.wave!](w, extra));
+      }
+      if (waves.length >= 2) {
+        body.push(
+          "My waves can stack. One rises while another builds quietly underneath, and when both drop at once, the crash can feel like burnout or failure. Often it is two waves landing at the same time, and it passes."
+        );
+      }
+      // Single Solar Plexus gates whose channel isn't complete: borrowed waves.
+      const hanging = CHANNEL_SPECS.filter(c => c.wave && !ctx.definedChannels.includes(c))
+        .map(c => ({ c, mine: c.gates.filter(x => ctx.definedGates.has(x)) }))
+        .filter(x => x.mine.length === 1);
+      if (hanging.length) {
+        const bits = hanging.map(h => `Gate ${h.mine[0]}, half of the ${WAVE_NAME[h.c.wave!]} ${channelLabel(h.c)}`);
+        body.push(
+          `I also carry single gates from other waves: ${bits.join("; and ")}. These channels aren't complete in my chart, so these aren't my waves. Around people who carry the missing halves, I may feel those rhythms move through me for a while, which is worth remembering when a mood doesn't match my own patterns.`
+        );
+      }
+    }
+  }
+  body.push(deep.rule);
+  if (p.type) {
+    body.push(`This is the most practical sequence in my whole design. ${AUTHORITY_STEP[auth]}. ${STRATEGY_STEP[p.type]}. Much of the frustration I've known has come from skipping a step.`);
+  }
+  return withPrompt("HOW DO I KNOW WHAT IS RIGHT", body, p);
+}
+
+function sectionStart(p: HumanDesignProfile, ctx: Ctx): string {
+  const body: string[] = [];
+  const sc = p.southNodeConscious, su = p.southNodeUnconscious;
+  if (sc || su) {
+    body.push(
+      `${PLANET_PLAIN.SouthNode} ${placement("South Node", sc, su)}. I came in practicing ${pairExpr(sc, su, "low")}. Over a lifetime, the work is to ${pairExpr(sc, su, "arc", "verb", "and to")}.`
+    );
+    body.push(groundAll(ctx, [sc, su]));
+  }
+  const uc = p.uranusConscious, uu = p.uranusUnconscious, pc = p.plutoConscious, pu = p.plutoUnconscious;
+  if (uc || pc) {
+    const gen: string[] = [PLANET_PLAIN.Generation];
+    if (uc || uu) gen.push(`${placement("Uranus", uc, uu)}. My generation carries a shared gift: ${pairExpr(uc, uu, "high")}.`);
+    if (pc || pu) gen.push(`${placement("Pluto", pc, pu)}. Its shared shadow looks like ${pairExpr(pc, pu, "low")}. The collective work is to ${pairExpr(pc, pu, "arc", "verb", "and to")}.`);
+    body.push(gen.join(" "));
+    body.push(groundAll(ctx, [uc, uu, pc, pu]));
+  }
+  body.push(
+    "The world I grew up in had its own story about who I was and what was possible. Some of it served me. Some of it didn't. Seeing what I started out carrying is how I begin to tell the difference."
+  );
+  return withPrompt("WHAT DID I START OUT CARRYING", body, p);
+}
+
+function sectionTests(p: HumanDesignProfile, ctx: Ctx): string {
+  const body: string[] = [];
+  const sc = p.saturnConscious, su = p.saturnUnconscious;
+  if (sc || su) {
+    let s = `${PLANET_PLAIN.Saturn} ${placement("Saturn", sc, su)}.`;
+    if (sc && su && sc !== su) {
+      s += ` Consciously, the lesson starts with ${expr(sc, "low")}, and grows into ${expr(sc, "high", "gerund")}. Underneath, it starts with ${expr(su, "low")}, and grows into ${expr(su, "high", "gerund")}.`;
+    } else {
+      const x = sc || su;
+      s += ` The lesson starts with ${expr(x, "low")}, and grows into ${expr(x, "high", "gerund")}.`;
+    }
+    body.push(s);
+    body.push(groundAll(ctx, [sc, su]));
+  }
+  const jc = p.jupiterConscious, ju = p.jupiterUnconscious;
+  if (jc || ju) {
+    body.push(`${PLANET_PLAIN.Jupiter} ${placement("Jupiter", jc, ju)}. When I meet Saturn's lessons honestly, I grow into ${pairExpr(jc, ju, "high", "gerund")}.`);
+    body.push(groundAll(ctx, [jc, ju]));
+  }
+  return withPrompt("WHAT KEEPS TESTING ME", body, p);
+}
+
+function sectionTender(p: HumanDesignProfile, ctx: Ctx): string {
+  const body: string[] = [];
+  const cc = p.chironConscious, cu = p.chironUnconscious;
+  if (cc || cu) {
+    body.push(
+      `${PLANET_PLAIN.Chiron} ${placement("Chiron", cc, cu)}. The work here is to ${pairExpr(cc, cu, "arc", "verb", "and to")}. I'm not meant to fix or erase this wound. I cross it more deeply each time, with more capacity to hold what I find. Chiron doesn't color in gates the way the other planets do, so these gates may look blank on my bodygraph.`
+    );
+    body.push(groundAll(ctx, [cc, cu]));
+  }
+  const mu = p.marsUnconscious, mc = p.marsConscious;
+  if (mu || mc) {
+    let s = PLANET_PLAIN.Mars;
+    if (mu) s += ` My unconscious Mars is in ${g(mu)}. The fight I carry most privately, where I've questioned my worth and my right to take up space, lives here. The work is to ${expr(mu, "arc", "verb")}. What has hurt me most here has also taught me the most.`;
+    if (mc) s += ` My conscious Mars is in ${g(mc)}, and it shows what I'll stand up for: ${expr(mc, "high")}.`;
+    body.push(s);
+    body.push(groundAll(ctx, [mu, mc]));
+  }
+  return withPrompt("WHERE AM I MOST TENDER", body, p);
+}
+
+function sectionGoing(p: HumanDesignProfile, ctx: Ctx): string {
+  const mc = p.moonConscious, mu = p.moonUnconscious;
+  if (!mc && !mu) return "";
+  const body = [
+    `${PLANET_PLAIN.Moon} ${placement("Moon", mc, mu)}. At my core, I'm moved by ${pairExpr(mc, mu, "high", "gerund", "and by")}. These are what I return to when I've lost the thread. When I tend to them, I have the energy and heart to keep going. When I neglect them, something essential goes quiet.`,
+    groundAll(ctx, [mc, mu]),
+    "My body is the first ally I have. When I listen to it and tend my needs, I'm resourced. When I override it, I lose the very support that keeps me on the path.",
+  ];
+  return withPrompt("WHAT KEEPS ME GOING", body, p);
+}
+
+function sectionAbout(p: HumanDesignProfile, ctx: Ctx): string {
+  const body: string[] = [];
+  const v = crossVariation(p.incarnationCross);
+  body.push(
+    `The deepest answer to why I'm here is my incarnation cross${p.incarnationCross ? `, the ${p.incarnationCross}` : ""}. It is built from the four gates of my Sun and Earth, on both sides of my chart. The Sun is the gift I'm here to give, and the Earth beneath it is the ground I stand on to give it.`
+  );
+  if (v) body.push(CROSS_VARIATIONS[v].description);
+  const sc = p.sunConscious, ec = p.earthConscious, su = p.sunUnconscious, eu = p.earthUnconscious;
+  if (sc) {
+    body.push(
+      `Consciously, my Sun is in ${g(sc)} and my Earth is in ${g(ec)}. This is the role I know I'm playing: I'm here to ${expr(sc, "high", "verb")}, standing on ${expr(ec, "high")}.`
+    );
+  }
+  if (su) {
+    body.push(
+      `Beneath that, my unconscious Sun is in ${g(su)} and my unconscious Earth is in ${g(eu)}. Others often recognize this in me before I do: I'm built to ${expr(su, "high", "verb")}, standing on ${expr(eu, "high")}.`
+    );
+  }
+  const cd = crossDescription(sc, v);
+  if (cd) body.push(cd);
+  body.push(groundAll(ctx, [sc, ec, su, eu]));
+  const t = p.type ? TYPE_PROFILES[p.type] : undefined;
+  if (t) body.push(`As a ${t.name}, I serve the world by ${t.purposeGerund}. Most people don't fully recognize their cross until they're decades into living it.`);
+  return withPrompt("WHAT IS MY LIFE ABOUT", body, p);
+}
+
+function sectionComesOut(p: HumanDesignProfile, ctx: Ctx): string {
+  const body: string[] = [];
+  const mc = p.mercuryConscious, mu = p.mercuryUnconscious, vc = p.venusConscious, vu = p.venusUnconscious;
+  if (mc || mu) {
+    body.push(`${PLANET_PLAIN.Mercury} ${placement("Mercury", mc, mu)}. At its best, my voice works by ${pairExpr(mc, mu, "high", "gerund", "and by")}.`);
+    body.push(groundAll(ctx, [mc, mu]));
+  }
+  if (vc || vu) {
+    body.push(`${PLANET_PLAIN.Venus} ${placement("Venus", vc, vu)}. What I value most is ${pairExpr(vc, vu, "high")}. These show up in how I love, what I protect, and what I choose to make.`);
+    body.push(groundAll(ctx, [vc, vu]));
+  }
+  return withPrompt("HOW DOES WHAT I CARRY COME OUT", body, p);
+}
+
+function sectionPulling(p: HumanDesignProfile, ctx: Ctx): string {
+  const body: string[] = [];
+  const nc = p.northNodeConscious, nu = p.northNodeUnconscious, sc = p.southNodeConscious, su = p.southNodeUnconscious;
+  if (nc || nu) {
+    let s = `${PLANET_PLAIN.NorthNode} ${placement("North Node", nc, nu)}. It asks me to grow into ${pairExpr(nc, nu, "high", "gerund")}.`;
+    if (sc || su) s += ` Where my South Node set the early scenery, this is the direction my life bends toward once those early lessons have done their work. It often feels unfamiliar at first, and then like coming home.`;
+    body.push(s);
+    body.push(groundAll(ctx, [nc, nu]));
+  }
+  const ec = p.neptuneConscious, eu = p.neptuneUnconscious;
+  if (ec || eu) {
+    body.push(
+      `${PLANET_PLAIN.Neptune} ${placement("Neptune", ec, eu)}. At its clearest, this is ${pairExpr(ec, eu, "high")}. In the fog, it can look like ${pairExpr(ec, eu, "low")}. When I've drifted from the thread, this is where I come back to re-anchor.`
+    );
+    body.push(groundAll(ctx, [ec, eu]));
+  }
+  return withPrompt("WHERE IS MY LIFE PULLING ME", body, p);
+}
+
+function hinge(): string {
+  return `AM I MADE FOR THIS MOMENT?
+
+Everything so far has been about me: how I'm built, where I've been, and what I'm here for. Sooner or later, a different question arrives. Is what I've found in myself meant for something happening now, something larger than me?
+
+This is where the reading turns outward. Having found my purpose, I begin looking for where it belongs, among other people and inside the larger story unfolding in my lifetime. The Gene Keys are the lens for this part. They use the same gates as my Human Design chart, with different names, so I'll see familiar numbers in a new light.`;
+}
+
+function recap(p: HumanDesignProfile): string {
+  const t = p.type ? TYPE_PROFILES[p.type] : undefined;
+  const lines: string[] = ["WHO I AM — A RECAP", "Before the story gets too long to hold, here is what matters most."];
+  if (t) lines.push(`My nature: I'm a ${t.name}. I serve by ${t.purposeGerund}.`);
+  if (p.type) {
+    const auth: Authority = p.authority ?? "None";
+    lines.push(`How I move and decide: ${STRATEGY_SHORT[p.type]}. ${AUTHORITY_SHORT[auth]}.`);
+  }
+  if (p.sunConscious) lines.push(`What my life is about: ${pairExpr(p.sunConscious, p.sunUnconscious, "high")}.`);
+  if (p.southNodeConscious) lines.push(`Where I'm growing: I'm learning to ${pairExpr(p.southNodeConscious, p.southNodeUnconscious, "arc", "verb", "and to")}.`);
+  if (p.moonConscious) lines.push(`What keeps me going: ${pairExpr(p.moonConscious, p.moonUnconscious, "high", "gerund")}.`);
+  if (p.northNodeConscious) lines.push(`Where I'm headed: toward ${pairExpr(p.northNodeConscious, p.northNodeUnconscious, "high", "gerund")}.`);
+  return lines.join("\n\n");
+}
+
+// ─── Entry point ──────────────────────────────────────────────────────────────
+
+export function buildLifeQuestionsNarrative(input: LifeQuestionsInput): string {
+  const { profile: p, geneKeys } = input;
+  const ctx = buildCtx(input.activations);
+
+  const partOneToThree = [
+    sectionCore(p),
+    sectionCenters(p, ctx),
+    sectionMove(p, ctx),
+    sectionDecide(p, ctx),
+    sectionStart(p, ctx),
+    sectionTests(p, ctx),
+    sectionTender(p, ctx),
+    sectionGoing(p, ctx),
+    sectionAbout(p, ctx),
+    sectionComesOut(p, ctx),
+    sectionPulling(p, ctx),
+  ].filter(Boolean);
+
+  // Hinge, Village Journey and closing reuse the existing prompt injector,
+  // which already knows those headings.
+  const village = buildVillageJourney(geneKeys);
+  const tail = [
+    village ? hinge() : "",
+    village,
+    recap(p),
+    buildClosingModule(p, geneKeys),
+  ].filter(Boolean).join("\n\n");
+
+  return [...partOneToThree, injectReflectionPrompts(tail, p)].join("\n\n");
+}
