@@ -757,7 +757,7 @@ function sectionTender(p: HumanDesignProfile, ctx: Ctx): string {
     body.push(
       [
         PLANET_PLAIN.Chiron,
-        sides("Chiron", cc, cu, n => `The tender territory here is ${expr(n, "low")}, and the work is to ${expr(n, "arc", "verb")}.`),
+        sides("Chiron", cc, cu, n => `The tender territory here is ${firstClause(expr(n, "low"))}, and the work is to ${expr(n, "arc", "verb")}.`),
         "I'm not meant to fix or erase this wound. I cross it more deeply each time, with more capacity to hold what I find. Chiron doesn't color in gates the way the other planets do, so these gates may look blank on my bodygraph.",
       ].filter(Boolean).join(" ")
     );
@@ -767,7 +767,7 @@ function sectionTender(p: HumanDesignProfile, ctx: Ctx): string {
     PLANET_PLAIN.Mars + " " +
     sides("Mars", mc, mu,
       n => `It shows what I'll stand up for: ${expr(n, "high")}.`,
-      n => `It holds an old ache about my worth, ${expr(n, "low")}, and the work is to ${expr(n, "arc", "verb")}.`) +
+      n => `It holds an old ache about my worth that can show up as ${firstClause(expr(n, "low"))}. The work is to ${expr(n, "arc", "verb")}.`) +
     (mc && mu ? " The ache underneath and the stand I take in the world are two ends of one fire." : "")
   );
   body.push(groundAll(ctx, [mu, mc]));
@@ -922,8 +922,10 @@ const WAVE_SHORT: Record<EmotionalWave, string> = {
   abstract: "the abstract wave, which rises with anticipation and drops when reality doesn't match the dream",
 };
 
+/** The first clause of a gate phrase; keeps the whole phrase when the first clause is too short to stand alone. */
 function firstClause(s: string): string {
-  return s.split(", ")[0];
+  const first = s.split(", ")[0];
+  return first.split(" ").length < 3 ? s : first;
 }
 
 // Mirrors for the chapters that aren't about a single gate. Each is a moment
