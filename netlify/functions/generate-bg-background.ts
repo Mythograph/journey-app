@@ -31,7 +31,7 @@ const handler: Handler = async (event) => {
   try {
     const chart = await generateChart(purchase.birthData);
     let accumulated = "";
-    for await (const chunk of streamNarrative(chart, purchase.name ?? "")) {
+    for await (const chunk of streamNarrative(chart, purchase.name ?? "", purchase.format)) {
       accumulated += chunk;
     }
     console.log(`generate-bg: generated narrative for token ${purchase.token.slice(0, 10)}… (${accumulated.length} chars)`);
@@ -50,7 +50,7 @@ const handler: Handler = async (event) => {
     console.log(`generate-bg: saved narrative for token ${purchase.token.slice(0, 10)}…`);
 
     const makeUrl = process.env.MAKE_NARRATIVE_WEBHOOK_URL;
-    if (makeUrl && accumulated) {
+    if (makeUrl && accumulated && !purchase.test) {
       await fetch(makeUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -47,6 +47,7 @@ src/
       narrative-ready.ts        GET ?token — polled by the reading page; returns { ready: boolean }
       save-narrative.ts         POST — internal callback (shared-secret) the bg function calls to persist text (+ chart snapshot)
       tracker.ts                GET/POST ?token — the reader's four-week tracker entries, stored on the purchase
+    test-reading.ts             Private free test path: /test-reading?key=TEST_READING_KEY (&format=classic). 404 without the key. Creates an unpaid test purchase (format forced, no narrative email)
     dev/sample-life-questions.ts  DEV ONLY (404 outside astro dev) — creates a purchase with a finished Life Questions reading for the sample chart
   lib/
     purchases.ts                Purchase type, HMAC token creation, Netlify Blobs storage (Map fallback in dev)
@@ -179,6 +180,9 @@ Strict, and baked into the cosmic-core copy:
   storage as a cache; the token is the credential, as for the page itself.
 - The narrative email (Make) receives a clean text version for Life Questions
   readings (`lifeQuestionsPlainText`) plus a new `readingUrl` field.
+- A purchase can force its own format (`purchase.format`); the private
+  `/test-reading` path uses this so Cléa can test Life Questions live before
+  flipping `READING_FORMAT`. Test purchases (`purchase.test`) skip the email.
 - The polish pass is skipped for Life Questions (it can't be trusted with the
   layer markers).
 
@@ -224,6 +228,7 @@ page later triggers narrative generation on first visit.
 - `ANTHROPIC_API_KEY` — only needed if the polish pass is enabled.
 - `ENABLE_NARRATIVE_POLISH` — `"true"` to turn on layer-3 LLM polish (default off; classic only).
 - `READING_FORMAT` — `"life-questions"` for the new reading; unset = classic.
+- `TEST_READING_KEY` — secret (16+ chars) that unlocks `/test-reading`; unset = route is off.
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
 - `MAKE_WEBHOOK_URL` (Stripe→token email), `MAKE_NARRATIVE_WEBHOOK_URL` (narrative→email)
 - `INTERNAL_CALLBACK_SECRET` — guards `/api/save-narrative`

@@ -202,11 +202,11 @@ export function activationsFromChart(chart: Chart): Activation[] {
   ];
 }
 
-export async function generateNarrative(chart: Chart, name: string): Promise<string> {
+export async function generateNarrative(chart: Chart, name: string, format: ReadingFormat = readingFormat()): Promise<string> {
   const hd = humanDesignProfileFromChart(chart);
   const gk = geneKeysProfileFromChart(chart);
 
-  if (readingFormat() === "life-questions") {
+  if (format === "life-questions") {
     // Deterministic and already voice-checked; the polish pass is skipped
     // because it can't be trusted to keep the layer markers intact.
     return normalizeGrammar(
@@ -227,6 +227,6 @@ export async function generateNarrative(chart: Chart, name: string): Promise<str
 }
 
 // Back-compat: the Netlify background function consumes an async generator.
-export async function* streamNarrative(chart: Chart, name: string): AsyncGenerator<string> {
-  yield await generateNarrative(chart, name);
+export async function* streamNarrative(chart: Chart, name: string, format?: ReadingFormat): AsyncGenerator<string> {
+  yield await generateNarrative(chart, name, format);
 }

@@ -12,6 +12,10 @@ export interface Purchase {
   narrative?: string;
   /** Chart saved with a Life Questions reading, so the page needn't re-geocode. */
   chart?: ChartSnapshot;
+  /** Forces a reading format for this purchase (used by the private test path). */
+  format?: "classic" | "life-questions";
+  /** A free test reading: no Stripe payment, no narrative email. */
+  test?: boolean;
   /** The reader's four-week tracker entries (Life Questions readings). */
   tracker?: Record<string, string | boolean>;
 }
