@@ -75,6 +75,7 @@ export interface LifeQuestionSection {
   key: string;      // ALL-CAPS heading as emitted in the text
   title: string;    // reader-facing title
   part: string;     // which of the four parts it belongs to
+  term?: string;    // the Human Design term this chapter teaches, shown as a kicker
 }
 
 export const LIFE_QUESTIONS_PARTS = [
@@ -86,19 +87,20 @@ export const LIFE_QUESTIONS_PARTS = [
 ] as const;
 
 export const LIFE_QUESTIONS_SECTIONS: LifeQuestionSection[] = [
-  { key: "WHO AM I AT MY CORE",               title: "Who am I at my core?",                         part: "How I'm Built" },
-  { key: "WHERE IS MY ENERGY STEADY",         title: "Where is my energy steady, and where do I borrow it?", part: "How I'm Built" },
-  { key: "HOW DO I MOVE",                     title: "How do I move through the world?",             part: "How I'm Built" },
-  { key: "HOW DO I KNOW WHAT IS RIGHT",       title: "How do I know what's right for me?",           part: "How I'm Built" },
-  { key: "WHAT DID I START OUT CARRYING",     title: "What did I start out carrying?",               part: "Where I've Been" },
-  { key: "WHAT KEEPS TESTING ME",             title: "What keeps testing me?",                       part: "Where I've Been" },
-  { key: "WHERE AM I MOST TENDER",            title: "Where am I most tender?",                      part: "Where I've Been" },
-  { key: "WHAT KEEPS ME GOING",               title: "What keeps me going?",                         part: "Where I've Been" },
-  { key: "WHAT IS MY LIFE ABOUT",             title: "What is my life about?",                       part: "What I'm Here For" },
-  { key: "HOW DOES WHAT I CARRY COME OUT",    title: "How does what I carry come out?",              part: "What I'm Here For" },
-  { key: "WHERE IS MY LIFE PULLING ME",       title: "Where is my life pulling me?",                 part: "What I'm Here For" },
+  { key: "WHAT KIND OF ENERGY DO I HAVE",     title: "What kind of energy do I have?",               part: "How I'm Built", term: "Energy type" },
+  { key: "WHAT ROLE AM I HERE TO PLAY",       title: "What role am I here to play?",                 part: "How I'm Built", term: "Profile" },
+  { key: "WHERE IS MY ENERGY STEADY",         title: "Where is my energy steady, and where do I borrow it?", part: "How I'm Built", term: "Defined and open centers" },
+  { key: "HOW DO I MOVE",                     title: "How do I move through the world?",             part: "How I'm Built", term: "Strategy" },
+  { key: "HOW DO I KNOW WHAT IS RIGHT",       title: "How do I know what's right for me?",           part: "How I'm Built", term: "Authority" },
+  { key: "WHAT DID I START OUT CARRYING",     title: "What did I start out carrying?",               part: "Where I've Been", term: "South Node · Uranus · Pluto" },
+  { key: "WHAT KEEPS TESTING ME",             title: "What keeps testing me?",                       part: "Where I've Been", term: "Saturn · Jupiter" },
+  { key: "WHERE AM I MOST TENDER",            title: "Where am I most tender?",                      part: "Where I've Been", term: "Chiron · Mars" },
+  { key: "WHAT KEEPS ME GOING",               title: "What keeps me going?",                         part: "Where I've Been", term: "Moon" },
+  { key: "WHAT IS MY LIFE ABOUT",             title: "What is my life about?",                       part: "What I'm Here For", term: "Sun · Earth · Incarnation cross" },
+  { key: "HOW DOES WHAT I CARRY COME OUT",    title: "How does what I carry come out?",              part: "What I'm Here For", term: "Mercury · Venus" },
+  { key: "WHERE IS MY LIFE PULLING ME",       title: "Where is my life pulling me?",                 part: "What I'm Here For", term: "North Node · Neptune" },
   { key: "AM I MADE FOR THIS MOMENT?",        title: "Am I made for this moment?",                   part: "Where I Belong" },
-  { key: "THE VILLAGE JOURNEY",               title: "The Village Journey",                          part: "Where I Belong" },
+  { key: "THE VILLAGE JOURNEY",               title: "The Village Journey",                          part: "Where I Belong", term: "Gene Keys" },
   { key: "WHO I AM",                          title: "What matters most",                            part: "Where I Belong" },
   { key: "THE PEN",                           title: "The Pen",                                      part: "Writing It Forward" },
   { key: "THE EDGE",                          title: "The Edge",                                     part: "Writing It Forward" },
@@ -313,8 +315,10 @@ const PLANET_PLAIN = {
 };
 
 const PROMPTS: Record<string, (p: HumanDesignProfile) => string> = {
-  "WHO AM I AT MY CORE": () =>
+  "WHAT KIND OF ENERGY DO I HAVE": () =>
     "When have I felt most like this description of myself, and when have I tried hardest to be something else? What did trying cost me?",
+  "WHAT ROLE AM I HERE TO PLAY": () =>
+    "Looking back, how have the biggest openings in my life actually found me? What did I need in place before I felt ready to step through?",
   "WHERE IS MY ENERGY STEADY": () =>
     "Where do I feel most unmistakably like myself, and where do I quietly take on energy that is not mine? When this week did I feel the difference in my body?",
   "HOW DO I MOVE": () =>
@@ -524,15 +528,16 @@ export function toSecondPerson(text: string): string {
 // Two layers: the short version (always visible), the writing prompt, then the
 // full chart detail, each detail paragraph led by DETAIL_MARKER so the reading
 // page can fold it away under "In my chart".
-function withPrompt(heading: string, body: string[], profile: HumanDesignProfile, short?: string[]): string {
+function withPrompt(heading: string, body: string[], profile: HumanDesignProfile, short?: string[], whatIs?: string): string {
   const detail = body.filter(Boolean);
   const top = (short ?? []).filter(Boolean);
   const prompt = PROMPTS[heading]?.(profile);
+  const note = whatIs ? [WHATIS_MARKER + whatIs] : [];
   if (!top.length) {
     if (prompt) detail.push(REFLECTION_MARKER + prompt);
-    return [heading, ...detail].join("\n\n");
+    return [heading, ...note, ...detail].join("\n\n");
   }
-  const out = [heading, ...top];
+  const out = [heading, ...note, ...top];
   if (prompt) out.push(REFLECTION_MARKER + prompt);
   out.push(...detail.map(d => DETAIL_MARKER + toSecondPerson(d)));
   return out.join("\n\n");
@@ -548,19 +553,26 @@ function otherSide(label: string, c: number | null, u: number | null, tail: (n: 
   return `My unconscious ${label} is in ${g(u)}. ${tail(u)}`;
 }
 
-function sectionCore(p: HumanDesignProfile, ctx: Ctx): string {
-  const short = shortCore(p, ctx);
-  const t = p.type ? TYPE_PROFILES[p.type] : undefined;
-  const body: string[] = [];
-  if (t) body.push(t.typeDescription);
+function sectionType(p: HumanDesignProfile, ctx: Ctx): string {
+  if (!p.type) return "";
+  const t = TYPE_PROFILES[p.type];
+  const short = [TYPE_MIRROR[p.type], `That's what it feels like to be a ${t.name}. ${TYPE_ESSENCE[p.type]}`];
+  return withPrompt("WHAT KIND OF ENERGY DO I HAVE", [t.typeDescription], p, short, whatIsType(p, ctx));
+}
+
+function sectionProfile(p: HumanDesignProfile, _ctx: Ctx): string {
   const pc = p.profileConscious, pu = p.profileUnconscious;
-  if (pc && pu && PROFILE_LINES[pc] && PROFILE_LINES[pu]) {
-    body.push(
-      `My profile is ${pc}/${pu}, the ${PROFILE_LINES[pc].name} and the ${PROFILE_LINES[pu].name}. A profile is the role I play in other people's lives and the way I learn. The first number is my conscious line, how I see myself. The second is my unconscious line, how other people experience me before I notice it myself.`
-    );
-    if (PROFILE_EXPERIMENTS[pc]) body.push(PROFILE_EXPERIMENTS[pc]);
-  }
-  return withPrompt("WHO AM I AT MY CORE", body, p, short);
+  if (!pc || !pu || !PROFILE_LINES[pc] || !PROFILE_LINES[pu]) return "";
+  const short = [
+    PROFILE_MIRROR[pc],
+    `That's my ${pc}/${pu} profile, the ${PROFILE_LINES[pc].name} and the ${PROFILE_LINES[pu].name}. It means ${LINE_CONSCIOUS[pc]}, and ${LINE_UNCONSCIOUS[pu]}.`,
+  ];
+  const body = [
+    `My conscious ${pc} line, the ${PROFILE_LINES[pc].name}, is how I see myself and meet the world. My unconscious ${pu} line, the ${PROFILE_LINES[pu].name}, is how other people often experience me before I notice it myself.`,
+    PROFILE_EXPERIMENTS[pc] ?? "",
+    PROFILE_EXPERIMENTS[pu] && pu !== pc ? `Underneath, my ${pu} line adds its own way of learning. ${PROFILE_EXPERIMENTS[pu]}` : "",
+  ];
+  return withPrompt("WHAT ROLE AM I HERE TO PLAY", body, p, short, whatIsProfile(p));
 }
 
 function sectionCenters(p: HumanDesignProfile, ctx: Ctx): string {
@@ -611,7 +623,7 @@ function sectionCenters(p: HumanDesignProfile, ctx: Ctx): string {
         : `One of my defining gifts sits in open ground. My ${light.planet} in ${g(light.gate)} lives in my open ${centerName(c)}, so the very thing I'm here to express runs through the part of me most shaped by others. It can take years to trust this gift as mine, and claiming it is some of the most important work I'll do. ${ground(ctx, light.gate)}`
     );
   }
-  return withPrompt("WHERE IS MY ENERGY STEADY", body, p, short);
+  return withPrompt("WHERE IS MY ENERGY STEADY", body, p, short, whatIsCenters());
 }
 
 /** Shortest path of defined channels from the Throat to a motor center. */
@@ -662,7 +674,7 @@ function sectionMove(p: HumanDesignProfile, ctx: Ctx): string {
   }
   // The short version names the signal; the detail says what it is telling me.
   body.push(NOT_SELF_DETAIL[p.type]);
-  return withPrompt("HOW DO I MOVE", body, p, short);
+  return withPrompt("HOW DO I MOVE", body, p, short, whatIsStrategy(p));
 }
 
 function sectionDecide(p: HumanDesignProfile, ctx: Ctx): string {
@@ -693,7 +705,7 @@ function sectionDecide(p: HumanDesignProfile, ctx: Ctx): string {
     }
   }
   body.push(deep.rule);
-  return withPrompt("HOW DO I KNOW WHAT IS RIGHT", body, p, short);
+  return withPrompt("HOW DO I KNOW WHAT IS RIGHT", body, p, short, whatIsAuthority(p));
 }
 
 function sectionStart(p: HumanDesignProfile, ctx: Ctx): string {
@@ -833,6 +845,7 @@ function recap(p: HumanDesignProfile): string {
 // detail from the body. The full chapter text becomes the folded detail.
 
 export const DETAIL_MARKER = "◇ ";
+export const WHATIS_MARKER = "ⓘ ";
 
 const TYPE_ESSENCE: Record<HdTypeName, string> = {
   "Manifestor": "I'm here to start things. My energy moves in bursts, on my own timing, without waiting for anyone's permission.",
@@ -944,14 +957,77 @@ const DECIDE_MIRROR: Record<Authority, string> = {
   "None": "Urgency has never once made my choices better.",
 };
 
-function shortCore(p: HumanDesignProfile, _ctx: Ctx): string[] {
-  const out: string[] = [];
-  if (p.type) out.push(TYPE_MIRROR[p.type], `That's what it feels like to be a ${TYPE_PROFILES[p.type].name}. ${TYPE_ESSENCE[p.type]}`);
+const PROFILE_MIRROR: Record<number, string> = {
+  1: "I don't feel ready until I've read everything, asked everyone, and checked the foundation twice.",
+  2: "I do my best work when no one is watching, and then someone knocks on the door and asks me to share it.",
+  3: "Almost everything I know, I learned by getting it wrong first.",
+  4: "Almost every good thing in my life came through someone I already knew.",
+  5: "People call me when something needs fixing, and sometimes they expect more than I can give.",
+  6: "I've often felt older than my age, watching from a little distance and taking notes on how life works.",
+};
+
+// "What this is" notes: the chart reader explaining a Human Design term in
+// plain language, where it comes from in the chart, and why it matters.
+const TYPE_REASON: Record<HdTypeName, string> = {
+  "Manifestor": "a motor center connects to your Throat while your Sacral stays open",
+  "Generator": "your Sacral, the center of life-force, is defined",
+  "Manifesting Generator": "your Sacral is defined and a motor center also connects to your Throat",
+  "Projector": "your Sacral is open and no motor center connects to your Throat",
+  "Reflector": "all nine of your centers are open",
+};
+
+const STRATEGY_NAME: Record<HdTypeName, string> = {
+  "Manifestor": "to inform before you act",
+  "Generator": "to respond",
+  "Manifesting Generator": "to respond, then inform",
+  "Projector": "to wait for the invitation",
+  "Reflector": "to wait a full lunar cycle",
+};
+
+const AUTHORITY_REASON: Record<Authority, string> = {
+  "Emotional": "your Solar Plexus is defined, and the Solar Plexus outranks every other center",
+  "Sacral": "your Sacral is defined and your Solar Plexus is open",
+  "Splenic": "your Spleen is your highest-ranking defined center",
+  "Ego Manifested": "your Ego connects directly to your Throat",
+  "Ego Projected": "your Ego connects to your G Center",
+  "Self-Projected": "your G Center connects to your Throat with no motor below it",
+  "Mental Projected": "all of your definition sits above the Throat",
+  "Lunar": "all nine of your centers are open",
+  "None": "none of the inner authorities is defined in your chart",
+};
+
+const AUTHORITY_NAME: Record<Authority, string> = {
+  "Emotional": "emotional", "Sacral": "sacral", "Splenic": "splenic",
+  "Ego Manifested": "ego manifested", "Ego Projected": "ego projected",
+  "Self-Projected": "self-projected", "Mental Projected": "mental (environmental)",
+  "Lunar": "lunar", "None": "outer",
+};
+
+const FOUNDATION_NOTE = "Your type, strategy and authority are the foundation of your whole design. If you take only one thing from this reading, take these three.";
+
+function whatIsType(p: HumanDesignProfile, _ctx: Ctx): string {
+  if (!p.type) return "";
+  const article = /^[AEIOU]/.test(p.type) ? "an" : "a";
+  return `Your energy type is the broadest layer of your design. It describes how your energy moves and how it meets other people. There are five types, and each comes from which of your centers are defined and how they connect. You're ${article} ${p.type} because ${TYPE_REASON[p.type]}. ${FOUNDATION_NOTE}`;
+}
+
+function whatIsProfile(p: HumanDesignProfile): string {
   const pc = p.profileConscious, pu = p.profileUnconscious;
-  if (pc && pu && LINE_CONSCIOUS[pc] && LINE_UNCONSCIOUS[pu]) {
-    out.push(`My ${pc}/${pu} profile means ${LINE_CONSCIOUS[pc]}, and ${LINE_UNCONSCIOUS[pu]}.`);
-  }
-  return out;
+  return `Your profile is the role you play in your life story: how you learn, and how other people tend to meet you. It's written as two numbers, taken from the line (one to six) your Sun falls in on each side of your chart. The first number comes from your conscious side, the second from your unconscious side. Yours is ${pc}/${pu}. If your type is the kind of energy you have, your profile is the costume it wears.`;
+}
+
+function whatIsCenters(): string {
+  return "Your nine centers are the hubs of your bodygraph. Each one governs part of life, from thinking to willpower to emotions. Defined centers, colored in, are consistent in you. Open centers, left white, are where you take in and amplify the people around you. Knowing which is which helps you tell your own energy from everyone else's.";
+}
+
+function whatIsStrategy(p: HumanDesignProfile): string {
+  if (!p.type) return "";
+  return `Your strategy is the way your type is built to meet life, so your energy moves with the least resistance. Each type has one. As ${/^[AEIOU]/.test(p.type) ? "an" : "a"} ${p.type}, yours is ${STRATEGY_NAME[p.type]}. It's the most practical part of Human Design to test: try it for a few weeks and notice what changes.`;
+}
+
+function whatIsAuthority(p: HumanDesignProfile): string {
+  const auth: Authority = p.authority ?? "None";
+  return `Your authority is where in your body your most reliable decisions come from. It's set by your defined centers, which rank in a fixed order, with the Solar Plexus first, then the Sacral, then the Spleen. Your authority is ${AUTHORITY_NAME[auth]}, because ${AUTHORITY_REASON[auth]}. Strategy tells you how to move. Authority tells you when a choice is right.`;
 }
 
 function shortCenters(p: HumanDesignProfile, ctx: Ctx): string[] {
@@ -1078,7 +1154,12 @@ export function lifeQuestionsFocus(input: LifeQuestionsInput): Record<string, Ch
   const motor = motorToThroat(ctx);
   const sp = ctx.definedChannels.filter(c => c.wave);
   return {
-    "WHO AM I AT MY CORE": { gates: [], centers: [], labels: [] },
+    "WHAT KIND OF ENERGY DO I HAVE": {
+      gates: [],
+      centers: motor ? [...new Set(motor.path.flatMap(c => c.centers))] : [],
+      labels: [],
+    },
+    "WHAT ROLE AM I HERE TO PLAY": byPlanets("Sun"),
     "WHERE IS MY ENERGY STEADY": {
       gates: pick ? CENTER_GATE_LIST[pick].filter(x => ctx.definedGates.has(x)) : [],
       centers: pick ? [pick] : [],
@@ -1128,7 +1209,8 @@ export function buildLifeQuestionsNarrative(input: LifeQuestionsInput): string {
   const ctx = buildCtx(input.activations);
 
   const partOneToThree = [
-    sectionCore(p, ctx),
+    sectionType(p, ctx),
+    sectionProfile(p, ctx),
     sectionCenters(p, ctx),
     sectionMove(p, ctx),
     sectionDecide(p, ctx),

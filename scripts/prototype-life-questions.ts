@@ -9,6 +9,7 @@ import {
   normalizeGrammar,
   REFLECTION_MARKER,
   DETAIL_MARKER,
+  WHATIS_MARKER,
   LIFE_QUESTIONS_SECTIONS,
   LIFE_QUESTIONS_PARTS,
   CHANNEL_SPECS,
@@ -52,7 +53,8 @@ const dGates = new Set(real.filter(a => a.side === "unconscious").map(a => a.gat
 const all = new Set([...pGates, ...dGates]);
 const chans = CHANNEL_SPECS.filter(c => c.gates.every(g => all.has(g)));
 const definedCenters = new Set<CenterName>(chans.flatMap(c => c.centers) as CenterName[]);
-const bodygraph = (focus?: { gates: number[]; centers: string[] }) => renderBodygraph({
+const bodygraph = (focus?: { gates: number[]; centers: string[] }, names = false) => renderBodygraph({
+  showCenterNames: names,
   definedCenters,
   definedChannels: chans.map(c => c.gates),
   personalityGates: pGates,
@@ -64,14 +66,15 @@ const bodygraph = (focus?: { gates: number[]; centers: string[] }) => renderBody
 const focusMap = lifeQuestionsFocus({ profile, geneKeys, activations });
 
 // Parse the text into chapters.
-interface Chapter { key: string; title: string; part: string; voice: string[]; prompt: string; detail: string[] }
+interface Chapter { key: string; title: string; part: string; term: string; whatIs: string; voice: string[]; prompt: string; detail: string[] }
 const chapters: Chapter[] = [];
 for (const b of text.split(/\n\n+/)) {
   const line = b.trim();
   const meta = LIFE_QUESTIONS_SECTIONS.find(s => line === s.key || line.startsWith(s.key + " "));
-  if (meta) { chapters.push({ key: meta.key, title: meta.title, part: meta.part, voice: [], prompt: "", detail: [] }); continue; }
+  if (meta) { chapters.push({ key: meta.key, title: meta.title, part: meta.part, term: meta.term ?? "", whatIs: "", voice: [], prompt: "", detail: [] }); continue; }
   const ch = chapters[chapters.length - 1];
   if (!ch) continue;
+  if (line.startsWith(WHATIS_MARKER)) { ch.whatIs = line.slice(WHATIS_MARKER.length).replace(/\n/g, " "); continue; }
   if (line.startsWith(DETAIL_MARKER)) ch.detail.push(line.slice(DETAIL_MARKER.length).replace(/\n/g, " "));
   else if (line.startsWith(REFLECTION_MARKER)) ch.prompt = line.slice(REFLECTION_MARKER.length);
   else ch.voice.push(line.replace(/\n/g, " "));
@@ -105,11 +108,11 @@ chapters.forEach((ch, i) => {
     const graph = f ? `<figure class="graph">${bodygraph(f)}${chips ? `<figcaption>${chips}</figcaption>` : ""}</figure>` : "";
     chart = `<details class="chart"><summary>What your chart shows</summary>${graph}${ch.detail.map(d => `<p>${esc(d)}</p>`).join("")}</details>`;
   }
-  html += `<article class="chapter${hasChart ? "" : " solo"}"><div class="voice"><p class="num">${roman[i]}</p><h2>${esc(ch.title)}</h2>${voice}${prompt}</div>${chart}</article>`;
+  html += `<article class="chapter${hasChart ? "" : " solo"}"><div class="voice"><p class="num">${roman[i]}${ch.term ? `<span class="term"> · ${esc(ch.term)}</span>` : ""}</p><h2>${esc(ch.title)}</h2>${ch.whatIs ? `<div class="whatis"><p class="label">What this is</p><p>${esc(ch.whatIs)}</p></div>` : ""}${voice}${prompt}</div>${chart}</article>`;
 });
 
 const primer = `<details class="primer"><summary>New to Human Design and Gene Keys?<small>Start here · about 5 minutes</small></summary><div class="cards">${
-  buildPrimerCards(profile).map(c => `<section class="card${c.showChart ? " wide" : ""}"><h3>${esc(c.title)}</h3><p>${esc(c.body)}</p>${c.showChart ? `<figure class="graph">${bodygraph()}</figure>` : ""}</section>`).join("")
+  buildPrimerCards(profile).map(c => `<section class="card${c.showChart ? " wide" : ""}"><h3>${esc(c.title)}</h3><p>${esc(c.body)}</p>${c.showChart ? `<figure class="graph">${bodygraph(undefined, true)}</figure>` : ""}</section>`).join("")
 }</div></details>`;
 
 const page = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -133,6 +136,10 @@ body{background:var(--bg);color:var(--ink);margin:0;font-family:"Fraunces",Georg
 .num{font-family:"Playfair Display",serif;color:var(--terra);font-size:1rem;letter-spacing:.25em;margin:0 0 .4em}
 h2{font-family:"Playfair Display",serif;font-weight:700;font-size:clamp(1.9rem,4.4vw,2.9rem);line-height:1.1;letter-spacing:-.015em;margin:0 0 .8em}
 .mirror{font-family:"Playfair Display",serif;font-style:italic;font-weight:500;font-size:clamp(1.4rem,3vw,1.85rem);line-height:1.35;margin:0 0 .9em;padding-left:18px;border-left:3px solid var(--gold)}
+.term{font-family:"DM Sans",sans-serif;font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--soft)}
+.whatis{font-family:"DM Sans",sans-serif;font-size:15px;line-height:1.6;color:var(--muted);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;margin:-6px 0 28px}
+.whatis .label{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin:0 0 .35em}
+.whatis p{margin:0}
 .say{font-size:clamp(1.12rem,2.2vw,1.3rem);line-height:1.6;margin:0 0 .9em}
 .solo .voice{max-width:720px;margin:0 auto}
 .solo .say{font-size:1.15rem}
@@ -146,7 +153,7 @@ h2{font-family:"Playfair Display",serif;font-weight:700;font-size:clamp(1.9rem,4
 .chart[open] summary::after{content:" –"}
 .chart p{margin:0 0 1em}
 .graph{margin:4px 0 22px;background:#fafaf7;border:1px solid var(--line);border-radius:8px;padding:14px}
-.graph svg{display:block;width:100%;max-width:260px;height:auto;margin:0 auto}
+.graph svg{display:block;width:100%;max-width:340px;height:auto;margin:0 auto}
 figcaption{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;color:#3d362f;background:#fff;border:1px solid #e3dccf;border-radius:999px;padding:3px 9px}
 .chip i{width:8px;height:8px;border-radius:50%;background:#111}

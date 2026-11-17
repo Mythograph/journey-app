@@ -85,6 +85,14 @@ into a shared package that **both** journey-app and the Story Loom app depend on
 - `normalize.ts` — deterministic grammar repair after template assembly
   (a/an articles, doubled function words at seams, spacing, paragraph caps).
 - `index.ts` — barrel export.
+- **Prototype (not live yet):** `life-questions.ts` rebuilds the reading around
+  plain life questions in four parts, with two layers per chapter: a short
+  first-person version that mirrors a lived moment then names the placement,
+  and a folded chart-reader layer in second person. Supporting files:
+  `channels.ts` (wiring + emotional wave types), `gate-moments.ts` (DRAFT
+  shadow/gift moments for all 64 gates, for Cléa's edit), `primer.ts` (the
+  "New to Human Design and Gene Keys?" explainer). Preview with
+  `npx tsx scripts/prototype-life-questions.ts <out-dir>`.
 
 Three naming systems coexist per gate by design: HD traditional name, Mythograph
 quantum name, and Gene Keys Shadow/Gift/Siddhi. Keep all three.
@@ -101,7 +109,10 @@ Pipeline (entry: `index.ts` → `generateChart(birthData)`):
    (note the **1.75° offset** documented in the file header, validated against
    known charts), then gates → channels → centers → type / strategy / authority /
    profile / incarnation cross.
-5. `render.ts` — hand-built SVG bodygraph (620×860 canvas, fixed center coords).
+5. `render.ts` — hand-built SVG bodygraph in the classic layout (612×954 canvas):
+   hollow channel "pipes" filled black/red/striped by side, plain gate numbers
+   along center edges, active gates as filled pills. Optional `focus` (fade the
+   chart, ring chapter gates/centers in gold) and `showCenterNames`.
 6. `data.ts` — static tables: gate wheel sequence, 34 channels, center→gates,
    motor centers, 192 incarnation cross names.
 7. `copy.ts` — human-written interpretive copy (channel essays, type/authority/
