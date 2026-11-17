@@ -46,7 +46,7 @@ let idx = 0;
 let detail: string[] = [];
 const flush = () => {
   if (!detail.length) return;
-  html += `<details><summary>In my chart</summary>${detail.map(d => `<p>${esc(d)}</p>`).join("")}</details>`;
+  html += `<details><summary>What your chart shows</summary>${detail.map(d => `<p>${esc(d)}</p>`).join("")}</details>`;
   detail = [];
 };
 for (const b of blocks) {

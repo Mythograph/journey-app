@@ -498,6 +498,27 @@ function pairExpr(c: number | null, u: number | null, band: GateBand, field: Gat
 
 // ─── Sections ─────────────────────────────────────────────────────────────────
 
+// The detail layer speaks in the chart reader's voice ("you"), answering the
+// reader's own first-person short version. Quoted speech stays as written.
+const SECOND_PERSON: [RegExp, string][] = [
+  [/\bam I\b/g, "are you"], [/\bI (\w+ly) am\b/g, "you $1 are"], [/\bI (\w+ly) was\b/g, "you $1 were"], [/\bI am\b/g, "you are"], [/\bI'm\b/g, "you're"], [/\bI've\b/g, "you've"],
+  [/\bI'll\b/g, "you'll"], [/\bI'd\b/g, "you'd"], [/\bI was\b/g, "you were"], [/\bI\b/g, "you"],
+  [/\bmyself\b/g, "yourself"], [/\bmine\b/g, "yours"], [/\bmy\b/g, "your"], [/\bMy\b/g, "Your"],
+  [/\bme\b/g, "you"],
+];
+
+export function toSecondPerson(text: string): string {
+  return text
+    .split(/("[^"]*")/)
+    .map(part => {
+      if (part.startsWith("\"")) return part;
+      let out = part;
+      for (const [re, rep] of SECOND_PERSON) out = out.replace(re, rep);
+      return out.replace(/(^|[.!?:]\s+)you\b/g, (_m, pre) => `${pre}You`);
+    })
+    .join("");
+}
+
 // Two layers: the short version (always visible), the writing prompt, then the
 // full chart detail, each detail paragraph led by DETAIL_MARKER so the reading
 // page can fold it away under "In my chart".
@@ -511,7 +532,7 @@ function withPrompt(heading: string, body: string[], profile: HumanDesignProfile
   }
   const out = [heading, ...top];
   if (prompt) out.push(REFLECTION_MARKER + prompt);
-  out.push(...detail.map(d => DETAIL_MARKER + d));
+  out.push(...detail.map(d => DETAIL_MARKER + toSecondPerson(d)));
   return out.join("\n\n");
 }
 
