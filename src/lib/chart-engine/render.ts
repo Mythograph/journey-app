@@ -239,7 +239,7 @@ export function renderBodygraph({
   const focusGates = new Set(focus?.gates ?? []);
   const focusCenters = new Set<CenterName>(focus?.centers ?? []);
   const focusing = focusGates.size + focusCenters.size > 0;
-  const FADE = 0.22;
+  const FADE = 0.4;
   const centerOf = (g: number) => (Object.keys(CENTER_GATES) as CenterName[]).find(c => CENTER_GATES[c].includes(g));
   const centerLit = (c: CenterName) => !focusing || focusCenters.has(c) || CENTER_GATES[c].some(g => focusGates.has(g));
   const op = (lit: boolean) => (focusing && !lit ? ` opacity="${FADE}"` : "");

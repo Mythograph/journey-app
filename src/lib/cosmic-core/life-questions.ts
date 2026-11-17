@@ -548,9 +548,18 @@ function withPrompt(heading: string, body: string[], profile: HumanDesignProfile
 // of the chart, the channel story, and the longer interpretive copy.
 
 /** "My unconscious Moon is in Gate 9 (Focus)", only when it differs from the conscious one. */
-function otherSide(label: string, c: number | null, u: number | null, tail: (n: number) => string): string {
-  if (!u || u === c) return "";
-  return `My unconscious ${label} is in ${g(u)}. ${tail(u)}`;
+function sides(
+  label: string,
+  c: number | null,
+  u: number | null,
+  descC: (n: number) => string,
+  descU: (n: number) => string = descC,
+): string {
+  if (c && u && c === u) return `My ${label} is in ${g(c)} on both my conscious and unconscious sides. ${descC(c)}`;
+  const out: string[] = [];
+  if (c) out.push(`My conscious ${label} is in ${g(c)}. ${descC(c)}`);
+  if (u) out.push(`My unconscious ${label}, running underneath, is in ${g(u)}. ${descU(u)}`);
+  return out.join(" ");
 }
 
 function sectionType(p: HumanDesignProfile, ctx: Ctx): string {
@@ -712,7 +721,7 @@ function sectionStart(p: HumanDesignProfile, ctx: Ctx): string {
   const short = shortStart(p, ctx);
   const body: string[] = [];
   const sc = p.southNodeConscious, su = p.southNodeUnconscious;
-  body.push(otherSide("South Node", sc, su, n => `There I practiced ${firstClause(expr(n, "low"))}, and the work is to ${expr(n, "arc", "verb")}.`));
+  body.push(PLANET_PLAIN.SouthNode + " " + sides("South Node", sc, su, n => `Early on, I practiced ${expr(n, "low")}. Over a lifetime, the work is to ${expr(n, "arc", "verb")}.`));
   body.push(groundAll(ctx, [sc, su]));
   const uc = p.uranusConscious, uu = p.uranusUnconscious, pc = p.plutoConscious, pu = p.plutoUnconscious;
   if (uc || pc) {
@@ -731,9 +740,10 @@ function sectionTests(p: HumanDesignProfile, ctx: Ctx): string {
   const sc = p.saturnConscious, su = p.saturnUnconscious, jc = p.jupiterConscious, ju = p.jupiterUnconscious;
   const body = [
     PLANET_PLAIN.Saturn,
-    otherSide("Saturn", sc, su, n => `Underneath, the lesson starts with ${expr(n, "low")}, and grows into ${expr(n, "high", "gerund")}.`),
+    sides("Saturn", sc, su, n => `The lesson starts with ${expr(n, "low")}, and grows into ${expr(n, "high", "gerund")}.`),
     groundAll(ctx, [sc, su]),
-    otherSide("Jupiter", jc, ju, n => `It adds another kind of opening: ${expr(n, "high", "gerund")}.`),
+    PLANET_PLAIN.Jupiter,
+    sides("Jupiter", jc, ju, n => `Things open up through ${expr(n, "high", "gerund")}.`),
     groundAll(ctx, [jc, ju]),
   ];
   return withPrompt("WHAT KEEPS TESTING ME", body, p, short);
@@ -746,13 +756,20 @@ function sectionTender(p: HumanDesignProfile, ctx: Ctx): string {
   if (cc || cu) {
     body.push(
       [
-        otherSide("Chiron", cc, cu, n => `There, the work is to ${expr(n, "arc", "verb")}.`),
+        PLANET_PLAIN.Chiron,
+        sides("Chiron", cc, cu, n => `The tender territory here is ${expr(n, "low")}, and the work is to ${expr(n, "arc", "verb")}.`),
         "I'm not meant to fix or erase this wound. I cross it more deeply each time, with more capacity to hold what I find. Chiron doesn't color in gates the way the other planets do, so these gates may look blank on my bodygraph.",
       ].filter(Boolean).join(" ")
     );
     body.push(groundAll(ctx, [cc, cu]));
   }
-  if (mc) body.push(`My conscious Mars is in ${g(mc)}, and it shows what I'll stand up for: ${expr(mc, "high")}. The ache underneath and the stand I take in the world are two ends of one fire.`);
+  if (mc || mu) body.push(
+    PLANET_PLAIN.Mars + " " +
+    sides("Mars", mc, mu,
+      n => `It shows what I'll stand up for: ${expr(n, "high")}.`,
+      n => `It holds an old ache about my worth, ${expr(n, "low")}, and the work is to ${expr(n, "arc", "verb")}.`) +
+    (mc && mu ? " The ache underneath and the stand I take in the world are two ends of one fire." : "")
+  );
   body.push(groundAll(ctx, [mu, mc]));
   return withPrompt("WHERE AM I MOST TENDER", body, p, short);
 }
@@ -762,7 +779,7 @@ function sectionGoing(p: HumanDesignProfile, ctx: Ctx): string {
   if (!mc && !mu) return "";
   const short = shortGoing(p, ctx);
   const body = [
-    otherSide("Moon", mc, mu, n => `It adds another fuel: ${expr(n, "high", "gerund")}.`),
+    PLANET_PLAIN.Moon + " " + sides("Moon", mc, mu, n => `It fuels me through ${expr(n, "high", "gerund")}.`),
     groundAll(ctx, [mc, mu]),
     "My body is the first ally I have. When I listen to it and tend my needs, I'm resourced. When I override it, I lose the very support that keeps me on the path.",
   ];
@@ -778,8 +795,11 @@ function sectionAbout(p: HumanDesignProfile, ctx: Ctx): string {
   );
   if (v) body.push(CROSS_VARIATIONS[v].description);
   const sc = p.sunConscious, ec = p.earthConscious, su = p.sunUnconscious, eu = p.earthUnconscious;
+  if (sc) {
+    body.push(`Consciously, my Sun is in ${g(sc)} and my Earth is in ${g(ec)}. This is the role I know I'm playing: I'm here to ${expr(sc, "high", "verb")}, standing on ${expr(ec, "high")}.`);
+  }
   if (su) {
-    body.push(`Beneath that, my unconscious Sun is in ${g(su)} and my unconscious Earth is in ${g(eu)}. Others often recognize this in me before I do: I'm built to ${expr(su, "high", "verb")}, standing on ${expr(eu, "high")}.`);
+    body.push(`Underneath, my unconscious Sun is in ${g(su)} and my unconscious Earth is in ${g(eu)}. Others often recognize this in me before I do: I'm built to ${expr(su, "high", "verb")}, standing on ${expr(eu, "high")}.`);
   }
   const cd = crossDescription(sc, v);
   if (cd) body.push(cd.split(/(?<=\.)\s/).slice(1).join(" "));
@@ -793,9 +813,11 @@ function sectionComesOut(p: HumanDesignProfile, ctx: Ctx): string {
   const short = shortComesOut(p, ctx);
   const mc = p.mercuryConscious, mu = p.mercuryUnconscious, vc = p.venusConscious, vu = p.venusUnconscious;
   const body = [
-    otherSide("Mercury", mc, mu, n => `It gives my voice a second register: ${expr(n, "high", "gerund")}.`),
+    PLANET_PLAIN.Mercury,
+    sides("Mercury", mc, mu, n => `My voice works through ${expr(n, "high", "gerund")}.`, n => `It gives my voice a second register: ${expr(n, "high", "gerund")}.`),
     groundAll(ctx, [mc, mu]),
-    otherSide("Venus", vc, vu, n => `I also value ${expr(n, "high")}.`),
+    PLANET_PLAIN.Venus,
+    sides("Venus", vc, vu, n => `I value ${expr(n, "high")}.`, n => `I also value ${expr(n, "high")}.`),
     vc || vu ? "These values show up in how I love, what I protect, and what I choose to make." : "",
     groundAll(ctx, [vc, vu]),
   ];
@@ -806,7 +828,8 @@ function sectionPulling(p: HumanDesignProfile, ctx: Ctx): string {
   const short = shortPulling(p, ctx);
   const nc = p.northNodeConscious, nu = p.northNodeUnconscious;
   const body = [
-    otherSide("North Node", nc, nu, n => `It also pulls me toward ${expr(n, "high", "gerund")}.`),
+    PLANET_PLAIN.NorthNode,
+    sides("North Node", nc, nu, n => `It pulls me toward ${expr(n, "high", "gerund")}.`),
     groundAll(ctx, [nc, nu]),
   ];
   const ec = p.neptuneConscious, eu = p.neptuneUnconscious;
