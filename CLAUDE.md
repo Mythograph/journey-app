@@ -25,7 +25,7 @@ computed in-process, with no third-party chart API at runtime.
 - **Netlify** hosting — adapter `@astrojs/netlify`, Functions, and **Blobs** for
   purchase/token storage.
 - **Chart engine**: `astronomy-engine`, `luxon`, `tz-lookup`, Nominatim geocoding.
-- **Payments**: Stripe Checkout → webhook → Make.com (fulfilment/email).
+- **Payments**: Paddle checkout (overlay on the landing card) → `/api/paddle-webhook` → Make.com (fulfilment/email). Moved from Stripe on 22 Nov 2026 (Log Book); the Stripe webhook stays for past purchases.
 - **Narrative**: deterministic template engine in `src/lib/cosmic-core/`, with an
   optional LLM polish pass (Anthropic Claude via `@anthropic-ai/sdk`).
 - Path alias: `~/*` → `src/*` (see `tsconfig.json`).
@@ -207,7 +207,7 @@ Edit the narrative by changing the **template strings in
 
 ## Pages / routes
 
-- `/` — landing: intro + two cards (free chart, $37 Journey Narrative → Stripe link).
+- `/` — landing: intro + two cards (free chart, $37 Journey Narrative → Paddle checkout, or the Stripe link if Paddle isn't set).
 - `/chart` — free bodygraph tool. Birth-data form; on submit, server-renders the
   SVG plus type/authority/profile/channel copy and a synopsis.
 - `/journey/[token]` — paid reading. Verifies the purchase by token; three UI
@@ -216,6 +216,19 @@ Edit the narrative by changing the **template strings in
 - `/dev/test-journey` — dev shortcut that fakes a purchase. **Remove before prod.**
 
 ## Purchase / fulfilment flow
+
+**Paddle (from 22 Nov 2026).** The landing card opens Paddle's checkout when
+`PUBLIC_PADDLE_CLIENT_TOKEN` and `PUBLIC_PADDLE_PRICE_JOURNEY` are set for the
+deploy (otherwise it keeps the Stripe link). Paddle's `transaction.completed`
+→ `paddle-webhook.ts` checks the signature (`PADDLE_WEBHOOK_SECRET`, from this
+site's own notification destination in Paddle; each destination has its own
+secret), ignores sales of other products (Paddle sends every sale on the
+account), reads the buyer's email from Paddle (`PADDLE_API_KEY`), creates the
+token and purchase, records the transaction id so a repeat does nothing, and
+sends Make.com the same fields as the Stripe webhook. Netlify gives functions
+new env values only on a new deploy, so redeploy after changing one.
+
+**Stripe (before 22 Nov 2026).**
 
 Stripe Checkout (`buy.stripe.com/...` link on the landing page) →
 `checkout.session.completed` webhook → `stripe-webhook.ts` creates an HMAC token
@@ -229,7 +242,9 @@ page later triggers narrative generation on first visit.
 - `ENABLE_NARRATIVE_POLISH` — `"true"` to turn on layer-3 LLM polish (default off; classic only).
 - `READING_FORMAT` — `"life-questions"` for the new reading; unset = classic.
 - `TEST_READING_KEY` — secret (16+ chars) that unlocks `/test-reading`; unset = route is off.
-- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (past Stripe purchases)
+- `PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET` (secret), `PADDLE_ENV` (`sandbox`/`production`)
+- `PUBLIC_PADDLE_CLIENT_TOKEN`, `PUBLIC_PADDLE_PRICE_JOURNEY`, `PUBLIC_PADDLE_ENV` (public, used in the page)
 - `MAKE_WEBHOOK_URL` (Stripe→token email), `MAKE_NARRATIVE_WEBHOOK_URL` (narrative→email)
 - `INTERNAL_CALLBACK_SECRET` — guards `/api/save-narrative`
 - `TOKEN_SECRET` — HMAC salt for purchase tokens
