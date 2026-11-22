@@ -6,7 +6,10 @@ export interface Purchase {
   token: string;
   email: string;
   name: string;
+  /** Stripe's checkout session id, or (for Paddle sales) Paddle's transaction id. */
   stripeSessionId: string;
+  /** Who took the payment. Unset on older purchases, which were all Stripe. */
+  provider?: "stripe" | "paddle";
   paidAt: string; // ISO timestamp
   birthData?: BirthData;
   narrative?: string;
@@ -81,4 +84,18 @@ export async function updatePurchase(token: string, updates: Partial<Omit<Purcha
   if (!purchase) return false;
   await savePurchase({ ...purchase, ...updates });
   return true;
+}
+
+// ── Payment references ────────────────────────────────────────────────────────
+// Paddle can send the same sale more than once; a small index from its
+// transaction id to the purchase token makes a repeat do nothing.
+
+export async function tokenForPaymentRef(ref: string): Promise<string | null> {
+  const store = await getStore();
+  return store.get(`ref:${ref}`);
+}
+
+export async function savePaymentRef(ref: string, token: string): Promise<void> {
+  const store = await getStore();
+  await store.set(`ref:${ref}`, token);
 }

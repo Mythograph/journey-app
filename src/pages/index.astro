@@ -1,5 +1,12 @@
 ---
 import Base from "~/layouts/Base.astro";
+
+// Paddle checkout (Log Book, 22 Nov 2026). Until the public Paddle settings are
+// set for this deploy, the card keeps the Stripe link, so nothing changes.
+const paddleToken = import.meta.env.PUBLIC_PADDLE_CLIENT_TOKEN as string | undefined;
+const paddlePrice = import.meta.env.PUBLIC_PADDLE_PRICE_JOURNEY as string | undefined;
+const paddleEnv = (import.meta.env.PUBLIC_PADDLE_ENV as string | undefined) ?? "sandbox";
+const usePaddle = Boolean(paddleToken && paddlePrice);
 ---
 
 <Base title="Mythograph Journey">
@@ -20,10 +27,28 @@ import Base from "~/layouts/Base.astro";
     <a
       id="journey-narrative"
       href="https://buy.stripe.com/28E8wQ0uX1t1auT61sfAc08"
+      data-paddle={usePaddle ? "" : undefined}
       class="block rounded-lg border border-[color:var(--color-ink)]/10 p-6 transition hover:border-[color:var(--color-indigo)]"
     >
       <h2 class="text-2xl">Journey Narrative — $37</h2>
       <p class="mt-2 text-base">A long-form personal reading in Cléa Hernández's voice.</p>
     </a>
   </section>
+
+  {usePaddle && (
+    <>
+      <script is:inline src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+      <script is:inline define:vars={{ paddleToken, paddlePrice, paddleEnv }}>
+        if (window.Paddle) {
+          if (paddleEnv !== "production") Paddle.Environment.set("sandbox");
+          Paddle.Initialize({ token: paddleToken });
+          var card = document.getElementById("journey-narrative");
+          card.addEventListener("click", function (e) {
+            e.preventDefault();
+            Paddle.Checkout.open({ items: [{ priceId: paddlePrice, quantity: 1 }] });
+          });
+        }
+      </script>
+    </>
+  )}
 </Base>
