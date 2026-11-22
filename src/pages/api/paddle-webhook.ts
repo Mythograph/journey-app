@@ -12,7 +12,11 @@ import { paddleCustomer, priceIdsOf, verifyPaddleSignature } from "../../lib/pad
 export const POST: APIRoute = async ({ request }) => {
   const env = import.meta.env;
   const rawBody = await request.text();
-  if (!verifyPaddleSignature(rawBody, request.headers.get("paddle-signature"), env.PADDLE_WEBHOOK_SECRET)) {
+  const signature = request.headers.get("paddle-signature");
+  const secret = env.PADDLE_WEBHOOK_SECRET ?? process.env.PADDLE_WEBHOOK_SECRET;
+  if (!verifyPaddleSignature(rawBody, signature, secret)) {
+    // Says which part failed, never the secret itself.
+    console.error("Paddle signature check failed:", JSON.stringify({ header: Boolean(signature), secretSet: Boolean(secret), secretLooksRight: Boolean(secret?.startsWith("pdl_ntfset_")) }));
     return new Response("Invalid signature", { status: 400 });
   }
 
@@ -22,13 +26,13 @@ export const POST: APIRoute = async ({ request }) => {
   };
   if (event.event_type !== "transaction.completed" || !event.data?.id) return new Response("ok");
 
-  const journeyPrice = env.PADDLE_PRICE_JOURNEY ?? env.PUBLIC_PADDLE_PRICE_JOURNEY;
+  const journeyPrice = env.PADDLE_PRICE_JOURNEY ?? env.PUBLIC_PADDLE_PRICE_JOURNEY ?? process.env.PUBLIC_PADDLE_PRICE_JOURNEY;
   if (!journeyPrice || !priceIdsOf(event.data.items).includes(journeyPrice)) return new Response("ok");
 
   const txnId = event.data.id;
   if (await tokenForPaymentRef(txnId)) return new Response("ok");
 
-  const customer = event.data.customer_id ? await paddleCustomer(event.data.customer_id, env.PADDLE_API_KEY, env.PADDLE_ENV) : null;
+  const customer = event.data.customer_id ? await paddleCustomer(event.data.customer_id, env.PADDLE_API_KEY ?? process.env.PADDLE_API_KEY, env.PADDLE_ENV ?? process.env.PADDLE_ENV) : null;
   if (!customer) {
     console.error("Paddle sale with no readable customer email:", txnId);
     // 500 so Paddle tries again later.
@@ -39,7 +43,7 @@ export const POST: APIRoute = async ({ request }) => {
   await savePurchase({ token, email: customer.email, name: customer.name, stripeSessionId: txnId, provider: "paddle", paidAt: new Date().toISOString() });
   await savePaymentRef(txnId, token);
 
-  const makeWebhookUrl = env.MAKE_WEBHOOK_URL;
+  const makeWebhookUrl = env.MAKE_WEBHOOK_URL ?? process.env.MAKE_WEBHOOK_URL;
   if (makeWebhookUrl) {
     try {
       await fetch(makeWebhookUrl, {
