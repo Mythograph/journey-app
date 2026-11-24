@@ -21,6 +21,10 @@ export interface Purchase {
   test?: boolean;
   /** The reader's four-week tracker entries (Life Questions readings). */
   tracker?: Record<string, string | boolean>;
+  /** When the site emailed her the link to her reading page (Resend, 24 Nov 2026). */
+  linkEmailedAt?: string;
+  /** When the site emailed her that the reading is written. */
+  readyEmailedAt?: string;
 }
 
 // ── Token creation ─────────────────────────────────────────────────────────────
@@ -42,6 +46,7 @@ export function createPurchaseToken(email: string, sessionId: string): string {
 type Store = {
   get(key: string): Promise<string | null>;
   set(key: string, value: string): Promise<void>;
+  keys(): Promise<string[]>;
 };
 
 const devMap = new Map<string, string>();
@@ -53,12 +58,14 @@ async function getStore(): Promise<Store> {
     return {
       get: (k) => store.get(k),
       set: (k, v) => store.set(k, v),
+      keys: async () => (await store.list()).blobs.map((b) => b.key),
     };
   } catch {
     // Local dev fallback
     return {
       get: async (k) => devMap.get(k) ?? null,
       set: async (k, v) => { devMap.set(k, v); },
+      keys: async () => [...devMap.keys()],
     };
   }
 }
@@ -98,4 +105,16 @@ export async function tokenForPaymentRef(ref: string): Promise<string | null> {
 export async function savePaymentRef(ref: string, token: string): Promise<void> {
   const store = await getStore();
   await store.set(`ref:${ref}`, token);
+}
+
+/** Every purchase (not the payment-reference index). For the missed-email catch-up. */
+export async function listPurchases(): Promise<Purchase[]> {
+  const store = await getStore();
+  const keys = (await store.keys()).filter((k) => k.startsWith("jny_"));
+  const out: Purchase[] = [];
+  for (const k of keys) {
+    const p = await getPurchase(k);
+    if (p) out.push(p);
+  }
+  return out;
 }

@@ -11,6 +11,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "check": "astro check",
+    "test": "tsx --test tests/*.test.ts",
     "sync-copy": "node scripts/sync-copy.mjs",
     "seed-csv": "node scripts/generate-seed-csv.mjs"
   },

@@ -1,11 +1,12 @@
 import type { APIRoute } from "astro";
-import { createPurchaseToken, savePaymentRef, savePurchase, tokenForPaymentRef } from "../../lib/purchases.js";
+import { createPurchaseToken, getPurchase, savePaymentRef, savePurchase, tokenForPaymentRef } from "../../lib/purchases.js";
+import { envOf, sendLinkEmailOnce } from "../../lib/fulfil.js";
 import { paddleCustomer, priceIdsOf, verifyPaddleSignature } from "../../lib/paddle.js";
 
 /**
  * Paddle tells Journey about a sale (Log Book, 22 Nov 2026). It does what the
- * Stripe webhook does: a purchase and its token, then the token email through
- * Make.com. Paddle sends every sale on the account here, so a sale of anything
+ * Stripe webhook does: a purchase and its token, then the link email, which
+ * the site sends itself through Resend (24 Nov 2026; Make.com had no scenario). Paddle sends every sale on the account here, so a sale of anything
  * other than the Journey Narrative is acknowledged and left alone. A repeat of
  * a sale already recorded changes nothing.
  */
@@ -30,7 +31,16 @@ export const POST: APIRoute = async ({ request }) => {
   if (!journeyPrice || !priceIdsOf(event.data.items).includes(journeyPrice)) return new Response("ok");
 
   const txnId = event.data.id;
-  if (await tokenForPaymentRef(txnId)) return new Response("ok");
+  const env2 = envOf(env);
+  // A repeat of a sale already recorded: send the link email only if it hasn't gone yet.
+  const known = await tokenForPaymentRef(txnId);
+  if (known) {
+    const had = await getPurchase(known);
+    if (!had) return new Response("ok");
+    const again = await sendLinkEmailOnce(had, env2);
+    if (!again.ok) console.error("Journey link email failed again:", txnId, again.error);
+    return again.ok ? new Response("ok") : new Response("Email not sent", { status: 500 });
+  }
 
   const customer = event.data.customer_id ? await paddleCustomer(event.data.customer_id, env.PADDLE_API_KEY ?? process.env.PADDLE_API_KEY, env.PADDLE_ENV ?? process.env.PADDLE_ENV) : null;
   if (!customer) {
@@ -43,6 +53,12 @@ export const POST: APIRoute = async ({ request }) => {
   await savePurchase({ token, email: customer.email, name: customer.name, stripeSessionId: txnId, provider: "paddle", paidAt: new Date().toISOString() });
   await savePaymentRef(txnId, token);
 
+  // The site sends the link email itself (Resend, 24 Nov 2026). If it fails, answer 500 so
+  // Paddle sends the sale again; the repeat finds the purchase above and tries the email again.
+  const sent = await sendLinkEmailOnce({ token, email: customer.email, name: customer.name, stripeSessionId: txnId, provider: "paddle", paidAt: new Date().toISOString() }, env2);
+  if (!sent.ok) console.error("Journey link email failed:", txnId, sent.error);
+
+  // A copy to Make, only if its address is set (for Kit tags and the like). It no longer sends the email.
   const makeWebhookUrl = env.MAKE_WEBHOOK_URL ?? process.env.MAKE_WEBHOOK_URL;
   if (makeWebhookUrl) {
     try {
@@ -56,5 +72,5 @@ export const POST: APIRoute = async ({ request }) => {
       console.error("Make.com webhook forward failed:", err);
     }
   }
-  return new Response("ok");
+  return sent.ok ? new Response("ok") : new Response("Email not sent", { status: 500 });
 };
