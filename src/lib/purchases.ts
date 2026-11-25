@@ -54,7 +54,10 @@ const devMap = new Map<string, string>();
 async function getStore(): Promise<Store> {
   try {
     const { getStore: netlifyGetStore } = await import("@netlify/blobs");
-    const store = netlifyGetStore("journey-purchases");
+    // Strong reads (25 Nov 2026): the default is eventual, so a page loaded right after a save
+    // could read the copy from before it. Seen live: birth details saved (303), then the reload
+    // showed the empty form again.
+    const store = netlifyGetStore({ name: "journey-purchases", consistency: "strong" });
     return {
       get: (k) => store.get(k),
       set: (k, v) => store.set(k, v),

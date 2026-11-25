@@ -109,3 +109,8 @@ test("the catch-up picks only buyers who never reached their page", async () => 
   assert.equal(readingUrl("jny_1", { SITE_URL: "https://journey.mythograph.co/" }), "https://journey.mythograph.co/journey/jny_1");
   assert.ok((await listPurchases()).length >= 1);
 });
+
+test("purchases are read strongly, so a page right after a save sees it", async () => {
+  const { readFileSync } = await import("node:fs");
+  assert.match(readFileSync("src/lib/purchases.ts", "utf8"), /netlifyGetStore\(\{ name: "journey-purchases", consistency: "strong" \}\)/);
+});
