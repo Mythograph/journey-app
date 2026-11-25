@@ -1,11 +1,13 @@
 import type { APIRoute } from "astro";
 import Stripe from "stripe";
-import { createPurchaseToken, savePurchase } from "../../lib/purchases.js";
+import { createPurchaseToken, getPurchase, savePaymentRef, savePurchase, tokenForPaymentRef } from "../../lib/purchases.js";
+import { envOf, readingUrl, sendLinkEmailOnce } from "../../lib/fulfil.js";
 
 export const POST: APIRoute = async ({ request }) => {
   const stripeSecret = import.meta.env.STRIPE_SECRET_KEY;
   const webhookSecret = import.meta.env.STRIPE_WEBHOOK_SECRET;
-  const makeWebhookUrl = import.meta.env.MAKE_WEBHOOK_URL;
+  const env = envOf(import.meta.env);
+  const makeWebhookUrl = env.MAKE_WEBHOOK_URL;
 
   if (!stripeSecret || !webhookSecret) {
     return new Response("Stripe env vars not configured", { status: 500 });
@@ -39,19 +41,31 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response("No customer email", { status: 400 });
     }
 
+    // A repeat of a session already recorded (Stripe retries until it gets a 2xx):
+    // send the link email only if it hasn't gone yet, and never make a second purchase.
+    const ref = `stripe:${session.id}`;
+    const known = await tokenForPaymentRef(ref);
+    if (known) {
+      const had = await getPurchase(known);
+      const again = had ? await sendLinkEmailOnce(had, env) : { ok: true as const };
+      if (!again.ok) console.error("Journey link email failed again:", session.id, again.error);
+      return again.ok ? new Response("ok", { status: 200 }) : new Response("Email not sent", { status: 500 });
+    }
+
     // Generate a signed access token for this purchase
     const token = createPurchaseToken(email, session.id);
+    const purchase = { token, email, name, stripeSessionId: session.id, provider: "stripe" as const, paidAt: new Date().toISOString() };
 
     // Persist the purchase so the journey page can verify it
-    await savePurchase({
-      token,
-      email,
-      name,
-      stripeSessionId: session.id,
-      paidAt: new Date().toISOString(),
-    });
+    await savePurchase(purchase);
+    await savePaymentRef(ref, token);
 
-    // Forward to Make.com for order fulfillment (email delivery, CRM, etc.)
+    // The site sends the link email itself (Resend, 24 Nov 2026; Make.com had no scenario).
+    // If it fails, answer 500 so Stripe retries; the retry finds the purchase above.
+    const sent = await sendLinkEmailOnce(purchase, env);
+    if (!sent.ok) console.error("Journey link email failed:", session.id, sent.error);
+
+    // A copy to Make, only if its address is set (for Kit tags and the like).
     if (makeWebhookUrl) {
       try {
         await fetch(makeWebhookUrl, {
@@ -62,14 +76,14 @@ export const POST: APIRoute = async ({ request }) => {
             email,
             name,
             stripeSessionId: session.id,
-            journeyUrl: `${import.meta.env.SITE_URL ?? ""}/journey/${token}`,
+            journeyUrl: readingUrl(token, env),
           }),
         });
       } catch (err) {
-        // Log but don't fail — Make.com delivery is best-effort
         console.error("Make.com webhook forward failed:", err);
       }
     }
+    if (!sent.ok) return new Response("Email not sent", { status: 500 });
   }
 
   return new Response("ok", { status: 200 });

@@ -25,7 +25,8 @@ computed in-process, with no third-party chart API at runtime.
 - **Netlify** hosting — adapter `@astrojs/netlify`, Functions, and **Blobs** for
   purchase/token storage.
 - **Chart engine**: `astronomy-engine`, `luxon`, `tz-lookup`, Nominatim geocoding.
-- **Payments**: Stripe Checkout → webhook → Make.com (fulfilment/email).
+- **Payments**: Paddle checkout (overlay on the landing card) → `/api/paddle-webhook`. Moved from Stripe on 22 Nov 2026 (Log Book); the Stripe webhook stays for past purchases.
+- **Email**: the site sends its own emails through Resend (`src/lib/email.ts`, `src/lib/fulfil.ts`), from "Mythograph <noreply@mythograph.co>", 24 Nov 2026. Before that they went to Make.com webhooks with no scenario behind them, so none went out.
 - **Narrative**: deterministic template engine in `src/lib/cosmic-core/`, with an
   optional LLM polish pass (Anthropic Claude via `@anthropic-ai/sdk`).
 - Path alias: `~/*` → `src/*` (see `tsconfig.json`).
@@ -178,8 +179,9 @@ Strict, and baked into the cosmic-core copy:
   draws bodygraphs without geocoding again (falls back to `generateChart`).
 - The tracker saves to `purchase.tracker` via `/api/tracker`, with browser
   storage as a cache; the token is the credential, as for the page itself.
-- The narrative email (Make) receives a clean text version for Life Questions
-  readings (`lifeQuestionsPlainText`) plus a new `readingUrl` field.
+- The narrative copy to Make (if set) receives a clean text version for Life Questions
+  readings (`lifeQuestionsPlainText`) plus a `readingUrl` field. The reader's own
+  "ready" email is sent by the site and carries the link, not the text.
 - A purchase can force its own format (`purchase.format`); the private
   `/test-reading` path uses this so Cléa can test Life Questions live before
   flipping `READING_FORMAT`. Test purchases (`purchase.test`) skip the email.
@@ -207,7 +209,7 @@ Edit the narrative by changing the **template strings in
 
 ## Pages / routes
 
-- `/` — landing: intro + two cards (free chart, $37 Journey Narrative → Stripe link).
+- `/` — landing: intro + two cards (free chart, $37 Journey Narrative → Paddle checkout, or the Stripe link if Paddle isn't set).
 - `/chart` — free bodygraph tool. Birth-data form; on submit, server-renders the
   SVG plus type/authority/profile/channel copy and a synopsis.
 - `/journey/[token]` — paid reading. Verifies the purchase by token; three UI
@@ -217,11 +219,34 @@ Edit the narrative by changing the **template strings in
 
 ## Purchase / fulfilment flow
 
+**Paddle (from 22 Nov 2026).** The landing card opens Paddle's checkout when
+`PUBLIC_PADDLE_CLIENT_TOKEN` and `PUBLIC_PADDLE_PRICE_JOURNEY` are set for the
+deploy (otherwise it keeps the Stripe link). Paddle's `transaction.completed`
+→ `paddle-webhook.ts` checks the signature (`PADDLE_WEBHOOK_SECRET`, from this
+site's own notification destination in Paddle; each destination has its own
+secret), ignores sales of other products (Paddle sends every sale on the
+account), reads the buyer's email from Paddle (`PADDLE_API_KEY`), creates the
+token and purchase, records the transaction id so a repeat does nothing, and
+sends the link email (`sendLinkEmailOnce`). If the email fails it answers 500,
+so Paddle sends the sale again; the repeat finds the purchase and retries only
+the email. A copy still goes to `MAKE_WEBHOOK_URL` if set. Netlify gives functions
+new env values only on a new deploy, so redeploy after changing one.
+
+**Stripe (before 22 Nov 2026).**
+
 Stripe Checkout (`buy.stripe.com/...` link on the landing page) →
 `checkout.session.completed` webhook → `stripe-webhook.ts` creates an HMAC token
 (`createPurchaseToken`, salted with `TOKEN_SECRET`) and a `Purchase` record in
-Blobs → forwards to `MAKE_WEBHOOK_URL` (Make.com) for the token email. The reading
-page later triggers narrative generation on first visit.
+Blobs, records `ref:stripe:<session>` so a Stripe retry never makes a second
+purchase, and sends the link email the same way as Paddle. The reading page
+later triggers narrative generation on first visit; `/api/save-narrative`
+then sends the "your reading is ready" email (`sendReadyEmailOnce`).
+
+**Emails, once each.** `linkEmailedAt` and `readyEmailedAt` on the purchase
+mark what went out; test purchases never get either. Buyers whose link email
+never went out (before 24 Nov) can be caught up through the private
+`/api/send-missed?key=TEST_READING_KEY&since=YYYY-MM-DD` (GET lists, masked;
+POST with `&confirm=send` sends). Tests: `npm test`.
 
 ## Env vars (set in Netlify; see `.env.example`)
 
@@ -229,8 +254,11 @@ page later triggers narrative generation on first visit.
 - `ENABLE_NARRATIVE_POLISH` — `"true"` to turn on layer-3 LLM polish (default off; classic only).
 - `READING_FORMAT` — `"life-questions"` for the new reading; unset = classic.
 - `TEST_READING_KEY` — secret (16+ chars) that unlocks `/test-reading`; unset = route is off.
-- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-- `MAKE_WEBHOOK_URL` (Stripe→token email), `MAKE_NARRATIVE_WEBHOOK_URL` (narrative→email)
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (past Stripe purchases)
+- `PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET` (secret), `PADDLE_ENV` (`sandbox`/`production`)
+- `PUBLIC_PADDLE_CLIENT_TOKEN`, `PUBLIC_PADDLE_PRICE_JOURNEY`, `PUBLIC_PADDLE_ENV` (public, used in the page)
+- `RESEND_API_KEY` — the site's emails (link after purchase, reading ready). Without it no email goes out and the payment webhooks answer 500 so they retry.
+- `MAKE_WEBHOOK_URL`, `MAKE_NARRATIVE_WEBHOOK_URL` — optional copies to Make.com (Kit tags and the like); they no longer send email.
 - `INTERNAL_CALLBACK_SECRET` — guards `/api/save-narrative`
 - `TOKEN_SECRET` — HMAC salt for purchase tokens
 - `SITE_URL` = https://journey.mythograph.co
